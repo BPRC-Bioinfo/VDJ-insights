@@ -1,9 +1,0 @@
-Started on vr  8 sep 2023 10:04:43 CEST
-For the SRR8137616 dataset:
-Removing reads containing adapters a minimum of 44 bp in length and 97% match.
-
-Number of ccs reads:
-Number of adapter contaminated ccs reads: 0 (% of total)
-Number of ccs reads retained: (100% of total)
-
-Finished on vr  8 sep 2023 10:22:24 CEST
