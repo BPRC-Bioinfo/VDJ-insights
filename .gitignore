@@ -164,5 +164,8 @@ cython_debug/
 
 # Result folder
 results/*
+
+# .snakemake folder
 .snakemake/*
+# Data folder
 data/*
