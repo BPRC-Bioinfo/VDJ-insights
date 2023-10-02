@@ -171,6 +171,9 @@ downloads/*
 # Input folder
 input/*
 
+# seqkit folders
+seqkit*/*
+
 # .snakemake folder
 .snakemake/*
 # Data folder

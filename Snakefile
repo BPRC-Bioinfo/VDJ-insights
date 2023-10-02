@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from pipeline import get_ids
+from scripts.pipeline import get_ids
 
 
 id_dict = get_ids()
@@ -8,15 +8,14 @@ print(id_dict)
 
 rule all:
     input:
-        expand("seqkit_filtered/filterd_{accession}_stat.tsv", accession=id_dict.keys())
+        expand("filtered/{accession}.filtered.fastq.gz", accession=id_dict.keys()),
+#        expand("seqkit_filtered/filterd_{accession}_stat.tsv", accession=id_dict.keys())
 
 
 # donwload rule to download data from SRA db with kingfisher
 rule SRA_download:
     output:
         "downloads/{accession}.fastq.gz"
-    wildcard_constraints:
-        accession="^(?!pb/).+$"
     params:
         lambda wildcards: id_dict[wildcards.accession]
     conda:
@@ -30,7 +29,7 @@ rule SRA_download:
 # QC rule for getting statistics for unfilterd reads with seqkit stats.
 rule seqkit:
     input:
-        "downloads/{accession}.fastq.gz" 
+        ancient("downloads/{accession}.fastq.gz")
     output:
         "seqkit/raw_read_{accession}_stat.tsv"
     conda:
@@ -45,41 +44,28 @@ rule pbAdaptFilt:
     input: 
         "downloads/{accession}.fastq.gz"
     output: 
-        temp("downloads/pb/{accession}.filt.fastq.gz")
-    wildcard_constraints:
-        accession="[^/]+"
+        pbfilt=temp("downloads/pb/{accession}.filt.fastq.gz"),
+        hififilt = temp("downloads/pb/hifi/{accession}.filt.filt.fastq.gz"),
+        filt = "filtered/{accession}.filtered.fastq.gz"
     params:
         input_dir = "downloads",
-        output_dir = "pb"
+        pb_dir = "pb",
+        hifi_dir = "hifi"
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
     shell:
         """
         cd {params.input_dir}
-        bash pbadapterfilt.sh -o {params.output_dir} -p {wildcards.accession}
-        """
-
-# Filter rule for removing adaptor for pacbio hifi reads with seqkit.
-rule hifiAdaptFilt:
-    input: 
-        "downloads/pb/{accession}.filt.fastq.gz"
-    output: 
-        "downloads/pb/hifi/{accession}.filt.filt.fastq.gz"
-    params:
-        input_dir = "downloads/pb",
-        output_dir = "hifi"
-    singularity:
-        "docker://australianbiocommons/hifiadapterfilt"
-    shell:
-        """
-        cd {params.input_dir}
-        bash pbadapterfilt.sh -o {params.output_dir} -p {wildcards.accession}
+        bash pbadapterfilt.sh -o {params.pb_dir} -p {wildcards.accession}
+        cd {params.pb_dir}
+        bash pbadapterfilt.sh -o {params.hifi_dir} -p {wildcards.accession}
+        cp {output.hififilt} {output.filt}
         """
 
 # Filter rule to remove duplicates with seqkit rmdup.
 rule removeDuplicateReads:
     input:
-        "downloads/pb/hifi/{accession}.filt.filt.fastq.gz"
+        "filtered/{accession}.filtered.fastq.gz"
     output:
         "downloads/duplicate_free/no_duplicate_{accession}.fastq.gz"
     conda:
