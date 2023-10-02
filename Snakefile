@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from scripts.pipeline import get_ids
 
+ACCESSION, = glob_wildcards("downloads/{accs}.fastq.gz")
 
 id_dict = get_ids()
 print(id_dict)
