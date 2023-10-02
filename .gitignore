@@ -165,6 +165,12 @@ cython_debug/
 # Result folder
 results/*
 
+# Download folder
+downloads/*
+
+# Input folder
+input/*
+
 # .snakemake folder
 .snakemake/*
 # Data folder
