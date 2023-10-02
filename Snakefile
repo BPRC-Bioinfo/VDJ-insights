@@ -19,6 +19,8 @@ rule SRA_download:
         "downloads/{accession}.fastq.gz"
     params:
         lambda wildcards: id_dict[wildcards.accession]
+    threads:
+        8
     conda:
         "envs/kingfisher.yaml"
     shell:
@@ -45,12 +47,12 @@ rule pbAdaptFilt:
     input: 
         "downloads/{accession}.fastq.gz"
     output: 
-        pbfilt=temp("downloads/pb/{accession}.filt.fastq.gz"),
-        hififilt = temp("downloads/pb/hifi/{accession}.filt.filt.fastq.gz"),
+        pbfilt=temp("downloads/{accession}/{accession}.filt.fastq.gz"),
+        hififilt = temp("downloads/{accession}/hifi/{accession}.filt.filt.fastq.gz"),
         filt = "filtered/{accession}.filtered.fastq.gz"
     params:
         input_dir = "downloads",
-        pb_dir = "pb",
+        pb_dir = "{accession}",
         hifi_dir = "hifi"
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
@@ -58,11 +60,11 @@ rule pbAdaptFilt:
         """
         cd {params.input_dir}
         bash pbadapterfilt.sh -o {params.pb_dir} -p {wildcards.accession}
-        cd {params.pb_dir}
+        cd {params.hifi_dir}
         bash pbadapterfilt.sh -o {params.hifi_dir} -p {wildcards.accession}
-        cp {output.hififilt} {output.filt}
+        cp {output.hififilt} {output.filt} 
         """
-
+'''
 # Filter rule to remove duplicates with seqkit rmdup.
 rule removeDuplicateReads:
     input:
@@ -101,3 +103,4 @@ rule seqkitFiltered:
         """
         seqkit stats {input} -a -o {output}
         """
+'''
