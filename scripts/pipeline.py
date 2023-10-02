@@ -2,8 +2,8 @@ import os
 current_cwd = os.getcwd()
 
 
-def get_ids():
-    with open(f"{current_cwd}/input/input.txt") as f:
+def get_ids(path):
+    with open(path) as f:
         input_content = f.readlines()
         id_dict = {}
         for id in input_content:
