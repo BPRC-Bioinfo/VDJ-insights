@@ -168,8 +168,8 @@ results/*
 # Download folder
 downloads/*
 
-# Input folder
-input/*
+# # Input folder
+# input/*
 
 # seqkit folders
 seqkit*/*

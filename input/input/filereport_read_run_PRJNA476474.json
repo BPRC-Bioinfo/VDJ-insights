@@ -1,0 +1,437 @@
+[
+{"run_accession":"SRR10287311","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7000300","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/011/SRR10287311/SRR10287311_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/011/SRR10287311/SRR10287311_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR102/011/SRR10287311","bam_ftp":""}
+,
+{"run_accession":"SRR10287313","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7000298","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/013/SRR10287313/SRR10287313_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/013/SRR10287313/SRR10287313_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR102/013/SRR10287313","bam_ftp":""}
+,
+{"run_accession":"SRR11235850","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7847640","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/050/SRR11235850/SRR11235850_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/050/SRR11235850/SRR11235850_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR112/050/SRR11235850","bam_ftp":""}
+,
+{"run_accession":"SRR11365504","study_accession":"PRJNA476474","sample_accession":"SAMN14422538","experiment_accession":"SRX7966813","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR113/004/SRR11365504/SRR11365504_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR113/004/SRR11365504","bam_ftp":""}
+,
+{"run_accession":"SRR11460453","study_accession":"PRJNA476474","sample_accession":"SAMN14513997","experiment_accession":"SRX8037770","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR114/053/SRR11460453/SRR11460453_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR114/053/SRR11460453","bam_ftp":""}
+,
+{"run_accession":"SRR11460456","study_accession":"PRJNA476474","sample_accession":"SAMN14513994","experiment_accession":"SRX8037767","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR114/056/SRR11460456/SRR11460456_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR114/056/SRR11460456","bam_ftp":""}
+,
+{"run_accession":"SRR8137615","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4958517","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/005/SRR8137615/SRR8137615_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR813/005/SRR8137615","bam_ftp":""}
+,
+{"run_accession":"SRR7971006","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971006/SRR7971006_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971006","bam_ftp":""}
+,
+{"run_accession":"SRR7971007","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971007/SRR7971007_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971007","bam_ftp":""}
+,
+{"run_accession":"SRR7971008","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971008/SRR7971008_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971008","bam_ftp":""}
+,
+{"run_accession":"SRR7971010","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971010/SRR7971010_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971010","bam_ftp":""}
+,
+{"run_accession":"SRR7971011","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971011/SRR7971011_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971011","bam_ftp":""}
+,
+{"run_accession":"SRR10287312","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7000299","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/012/SRR10287312/SRR10287312_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/012/SRR10287312/SRR10287312_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR102/012/SRR10287312","bam_ftp":""}
+,
+{"run_accession":"SRR11460454","study_accession":"PRJNA476474","sample_accession":"SAMN14513996","experiment_accession":"SRX8037769","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR114/054/SRR11460454/SRR11460454_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR114/054/SRR11460454","bam_ftp":""}
+,
+{"run_accession":"SRR11460455","study_accession":"PRJNA476474","sample_accession":"SAMN14513995","experiment_accession":"SRX8037768","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR114/055/SRR11460455/SRR11460455_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR114/055/SRR11460455","bam_ftp":""}
+,
+{"run_accession":"SRR7971004","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971004/SRR7971004_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971004","bam_ftp":""}
+,
+{"run_accession":"SRR7971005","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971005/SRR7971005_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971005","bam_ftp":""}
+,
+{"run_accession":"SRR7971009","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971009/SRR7971009_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971009","bam_ftp":""}
+,
+{"run_accession":"SRR7971019","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971019/SRR7971019_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971019","bam_ftp":""}
+,
+{"run_accession":"SRR7971021","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971021/SRR7971021_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971021","bam_ftp":""}
+,
+{"run_accession":"SRR7971022","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971022/SRR7971022_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971022","bam_ftp":""}
+,
+{"run_accession":"SRR7971029","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971029/SRR7971029_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971029","bam_ftp":""}
+,
+{"run_accession":"SRR7971030","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971030/SRR7971030_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971030","bam_ftp":""}
+,
+{"run_accession":"SRR7971033","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971033/SRR7971033_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971033","bam_ftp":""}
+,
+{"run_accession":"SRR7971042","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971042/SRR7971042_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971042","bam_ftp":""}
+,
+{"run_accession":"SRR7971046","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971046/SRR7971046_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971046","bam_ftp":""}
+,
+{"run_accession":"SRR7971047","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971047/SRR7971047_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971047","bam_ftp":""}
+,
+{"run_accession":"SRR7971048","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971048/SRR7971048_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971048","bam_ftp":""}
+,
+{"run_accession":"SRR7971064","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971064/SRR7971064_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971064","bam_ftp":""}
+,
+{"run_accession":"SRR7971067","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971067/SRR7971067_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971067","bam_ftp":""}
+,
+{"run_accession":"SRR7971068","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971068/SRR7971068_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971068","bam_ftp":""}
+,
+{"run_accession":"SRR7971072","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971072/SRR7971072_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971072","bam_ftp":""}
+,
+{"run_accession":"SRR7971074","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971074/SRR7971074_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971074","bam_ftp":""}
+,
+{"run_accession":"SRR7971076","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971076/SRR7971076_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971076","bam_ftp":""}
+,
+{"run_accession":"SRR7971013","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971013/SRR7971013_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971013","bam_ftp":""}
+,
+{"run_accession":"SRR7971077","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971077/SRR7971077_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971077","bam_ftp":""}
+,
+{"run_accession":"SRR7971078","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971078/SRR7971078_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971078","bam_ftp":""}
+,
+{"run_accession":"SRR7971014","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971014/SRR7971014_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971014","bam_ftp":""}
+,
+{"run_accession":"SRR7971081","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971081/SRR7971081_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971081","bam_ftp":""}
+,
+{"run_accession":"SRR7971083","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971083/SRR7971083_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971083","bam_ftp":""}
+,
+{"run_accession":"SRR7971015","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971015/SRR7971015_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971015","bam_ftp":""}
+,
+{"run_accession":"SRR7971087","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971087/SRR7971087_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971087","bam_ftp":""}
+,
+{"run_accession":"SRR7971089","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971089/SRR7971089_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971089","bam_ftp":""}
+,
+{"run_accession":"SRR7971025","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971025/SRR7971025_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971025","bam_ftp":""}
+,
+{"run_accession":"SRR7971090","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971090/SRR7971090_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971090","bam_ftp":""}
+,
+{"run_accession":"SRR7971027","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971027/SRR7971027_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971027","bam_ftp":""}
+,
+{"run_accession":"SRR7971034","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971034/SRR7971034_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971034","bam_ftp":""}
+,
+{"run_accession":"SRR7971035","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971035/SRR7971035_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971035","bam_ftp":""}
+,
+{"run_accession":"SRR7971036","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971036/SRR7971036_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971036","bam_ftp":""}
+,
+{"run_accession":"SRR7971043","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971043/SRR7971043_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971043","bam_ftp":""}
+,
+{"run_accession":"SRR7971044","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971044/SRR7971044_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971044","bam_ftp":""}
+,
+{"run_accession":"SRR7971050","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971050/SRR7971050_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971050","bam_ftp":""}
+,
+{"run_accession":"SRR7971052","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971052/SRR7971052_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971052","bam_ftp":""}
+,
+{"run_accession":"SRR7971054","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971054/SRR7971054_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971054","bam_ftp":""}
+,
+{"run_accession":"SRR7971056","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971056/SRR7971056_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971056","bam_ftp":""}
+,
+{"run_accession":"SRR7971057","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971057/SRR7971057_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971057","bam_ftp":""}
+,
+{"run_accession":"SRR7971059","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971059/SRR7971059_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971059","bam_ftp":""}
+,
+{"run_accession":"SRR7971061","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971061/SRR7971061_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971061","bam_ftp":""}
+,
+{"run_accession":"SRR7971063","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971063/SRR7971063_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971063","bam_ftp":""}
+,
+{"run_accession":"SRR7971069","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971069/SRR7971069_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971069","bam_ftp":""}
+,
+{"run_accession":"SRR7971070","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971070/SRR7971070_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971070","bam_ftp":""}
+,
+{"run_accession":"SRR7971073","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971073/SRR7971073_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971073","bam_ftp":""}
+,
+{"run_accession":"SRR7971079","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971079/SRR7971079_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971079","bam_ftp":""}
+,
+{"run_accession":"SRR7971080","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971080/SRR7971080_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971080","bam_ftp":""}
+,
+{"run_accession":"SRR7971084","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971084/SRR7971084_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971084","bam_ftp":""}
+,
+{"run_accession":"SRR7971086","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971086/SRR7971086_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971086","bam_ftp":""}
+,
+{"run_accession":"SRR7971088","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971088/SRR7971088_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971088","bam_ftp":""}
+,
+{"run_accession":"SRR7971092","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971092/SRR7971092_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971092","bam_ftp":""}
+,
+{"run_accession":"SRR7971101","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971101/SRR7971101_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971101","bam_ftp":""}
+,
+{"run_accession":"SRR7971103","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971103/SRR7971103_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971103","bam_ftp":""}
+,
+{"run_accession":"SRR7973885","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973885/SRR7973885_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973885","bam_ftp":""}
+,
+{"run_accession":"SRR7973886","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973886/SRR7973886_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973886","bam_ftp":""}
+,
+{"run_accession":"SRR7973887","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973887/SRR7973887_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973887","bam_ftp":""}
+,
+{"run_accession":"SRR7973892","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973892/SRR7973892_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973892","bam_ftp":""}
+,
+{"run_accession":"SRR7973897","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973897/SRR7973897_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973897","bam_ftp":""}
+,
+{"run_accession":"SRR7973901","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973901/SRR7973901_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973901","bam_ftp":""}
+,
+{"run_accession":"SRR7973903","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973903/SRR7973903_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973903","bam_ftp":""}
+,
+{"run_accession":"SRR7973904","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973904/SRR7973904_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973904","bam_ftp":""}
+,
+{"run_accession":"SRR7973906","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973906/SRR7973906_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973906","bam_ftp":""}
+,
+{"run_accession":"SRR7973912","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973912/SRR7973912_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973912","bam_ftp":""}
+,
+{"run_accession":"SRR7973917","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973917/SRR7973917_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973917","bam_ftp":""}
+,
+{"run_accession":"SRR7973918","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973918/SRR7973918_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973918","bam_ftp":""}
+,
+{"run_accession":"SRR7973925","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973925/SRR7973925_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973925","bam_ftp":""}
+,
+{"run_accession":"SRR7973939","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973939/SRR7973939_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973939","bam_ftp":""}
+,
+{"run_accession":"SRR7973940","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973940/SRR7973940_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973940","bam_ftp":""}
+,
+{"run_accession":"SRR7973941","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973941/SRR7973941_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973941","bam_ftp":""}
+,
+{"run_accession":"SRR7973948","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973948/SRR7973948_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973948","bam_ftp":""}
+,
+{"run_accession":"SRR7973951","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973951/SRR7973951_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973951","bam_ftp":""}
+,
+{"run_accession":"SRR7973952","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973952/SRR7973952_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973952","bam_ftp":""}
+,
+{"run_accession":"SRR7973960","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973960/SRR7973960_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973960","bam_ftp":""}
+,
+{"run_accession":"SRR7973964","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973964/SRR7973964_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973964","bam_ftp":""}
+,
+{"run_accession":"SRR7973965","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973965/SRR7973965_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973965","bam_ftp":""}
+,
+{"run_accession":"SRR7973966","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973966/SRR7973966_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973966","bam_ftp":""}
+,
+{"run_accession":"SRR7973967","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973967/SRR7973967_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973967","bam_ftp":""}
+,
+{"run_accession":"SRR7973970","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973970/SRR7973970_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973970","bam_ftp":""}
+,
+{"run_accession":"SRR7973972","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973972/SRR7973972_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973972","bam_ftp":""}
+,
+{"run_accession":"SRR7975511","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7975511/SRR7975511_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7975511","bam_ftp":""}
+,
+{"run_accession":"SRR7975513","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7975513/SRR7975513_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7975513","bam_ftp":""}
+,
+{"run_accession":"SRR7975514","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7975514/SRR7975514_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7975514","bam_ftp":""}
+,
+{"run_accession":"SRR7971091","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971091/SRR7971091_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971091","bam_ftp":""}
+,
+{"run_accession":"SRR7971094","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971094/SRR7971094_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971094","bam_ftp":""}
+,
+{"run_accession":"SRR7971095","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971095/SRR7971095_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971095","bam_ftp":""}
+,
+{"run_accession":"SRR7971096","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971096/SRR7971096_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971096","bam_ftp":""}
+,
+{"run_accession":"SRR7971100","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971100/SRR7971100_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971100","bam_ftp":""}
+,
+{"run_accession":"SRR7971104","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971104/SRR7971104_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971104","bam_ftp":""}
+,
+{"run_accession":"SRR7971111","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971111/SRR7971111_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971111","bam_ftp":""}
+,
+{"run_accession":"SRR7971112","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971112/SRR7971112_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971112","bam_ftp":""}
+,
+{"run_accession":"SRR7971115","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971115/SRR7971115_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971115","bam_ftp":""}
+,
+{"run_accession":"SRR7973888","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973888/SRR7973888_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973888","bam_ftp":""}
+,
+{"run_accession":"SRR7973889","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973889/SRR7973889_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973889","bam_ftp":""}
+,
+{"run_accession":"SRR7973893","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973893/SRR7973893_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973893","bam_ftp":""}
+,
+{"run_accession":"SRR7973898","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973898/SRR7973898_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973898","bam_ftp":""}
+,
+{"run_accession":"SRR7973907","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973907/SRR7973907_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973907","bam_ftp":""}
+,
+{"run_accession":"SRR7973909","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973909/SRR7973909_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973909","bam_ftp":""}
+,
+{"run_accession":"SRR7973911","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973911/SRR7973911_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973911","bam_ftp":""}
+,
+{"run_accession":"SRR7973914","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973914/SRR7973914_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973914","bam_ftp":""}
+,
+{"run_accession":"SRR7973915","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973915/SRR7973915_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973915","bam_ftp":""}
+,
+{"run_accession":"SRR7973916","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973916/SRR7973916_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973916","bam_ftp":""}
+,
+{"run_accession":"SRR7973919","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973919/SRR7973919_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973919","bam_ftp":""}
+,
+{"run_accession":"SRR7973920","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973920/SRR7973920_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973920","bam_ftp":""}
+,
+{"run_accession":"SRR7973921","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973921/SRR7973921_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973921","bam_ftp":""}
+,
+{"run_accession":"SRR7973923","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973923/SRR7973923_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973923","bam_ftp":""}
+,
+{"run_accession":"SRR7973926","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973926/SRR7973926_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973926","bam_ftp":""}
+,
+{"run_accession":"SRR7973942","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973942/SRR7973942_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973942","bam_ftp":""}
+,
+{"run_accession":"SRR7973944","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973944/SRR7973944_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973944","bam_ftp":""}
+,
+{"run_accession":"SRR7973945","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973945/SRR7973945_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973945","bam_ftp":""}
+,
+{"run_accession":"SRR7973947","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973947/SRR7973947_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973947","bam_ftp":""}
+,
+{"run_accession":"SRR7973950","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973950/SRR7973950_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973950","bam_ftp":""}
+,
+{"run_accession":"SRR7973953","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973953/SRR7973953_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973953","bam_ftp":""}
+,
+{"run_accession":"SRR7973954","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973954/SRR7973954_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973954","bam_ftp":""}
+,
+{"run_accession":"SRR7973956","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973956/SRR7973956_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973956","bam_ftp":""}
+,
+{"run_accession":"SRR7973958","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973958/SRR7973958_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973958","bam_ftp":""}
+,
+{"run_accession":"SRR7973959","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973959/SRR7973959_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973959","bam_ftp":""}
+,
+{"run_accession":"SRR7973962","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973962/SRR7973962_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973962","bam_ftp":""}
+,
+{"run_accession":"SRR7973968","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973968/SRR7973968_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973968","bam_ftp":""}
+,
+{"run_accession":"SRR7973969","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973969/SRR7973969_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973969","bam_ftp":""}
+,
+{"run_accession":"SRR7973971","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973971/SRR7973971_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973971","bam_ftp":""}
+,
+{"run_accession":"SRR7975512","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7975512/SRR7975512_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7975512","bam_ftp":""}
+,
+{"run_accession":"SRR7975515","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7975515/SRR7975515_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7975515","bam_ftp":""}
+,
+{"run_accession":"SRR7975516","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7975516/SRR7975516_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7975516","bam_ftp":""}
+,
+{"run_accession":"SRR7975518","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7975518/SRR7975518_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7975518","bam_ftp":""}
+,
+{"run_accession":"SRR10287309","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7000302","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/009/SRR10287309/SRR10287309_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/009/SRR10287309/SRR10287309_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR102/009/SRR10287309","bam_ftp":""}
+,
+{"run_accession":"SRR10287310","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7000301","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/010/SRR10287310/SRR10287310_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/010/SRR10287310/SRR10287310_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR102/010/SRR10287310","bam_ftp":""}
+,
+{"run_accession":"SRR10287314","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7000297","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/014/SRR10287314/SRR10287314_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR102/014/SRR10287314/SRR10287314_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR102/014/SRR10287314","bam_ftp":""}
+,
+{"run_accession":"SRR11235849","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7847641","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/049/SRR11235849/SRR11235849_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/049/SRR11235849/SRR11235849_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR112/049/SRR11235849","bam_ftp":""}
+,
+{"run_accession":"SRR11235851","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7847639","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/051/SRR11235851/SRR11235851_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/051/SRR11235851/SRR11235851_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR112/051/SRR11235851","bam_ftp":""}
+,
+{"run_accession":"SRR11235852","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX7847638","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/052/SRR11235852/SRR11235852_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR112/052/SRR11235852/SRR11235852_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR112/052/SRR11235852","bam_ftp":""}
+,
+{"run_accession":"SRR11365505","study_accession":"PRJNA476474","sample_accession":"SAMN14422539","experiment_accession":"SRX7966812","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR113/005/SRR11365505/SRR11365505_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR113/005/SRR11365505","bam_ftp":""}
+,
+{"run_accession":"SRR11467824","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX8044371","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR114/024/SRR11467824/SRR11467824_1.fastq.gz;ftp.sra.ebi.ac.uk/vol1/fastq/SRR114/024/SRR11467824/SRR11467824_2.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR114/024/SRR11467824","bam_ftp":""}
+,
+{"run_accession":"SRR7971012","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971012/SRR7971012_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971012","bam_ftp":""}
+,
+{"run_accession":"SRR7971016","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971016/SRR7971016_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971016","bam_ftp":""}
+,
+{"run_accession":"SRR7971017","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971017/SRR7971017_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971017","bam_ftp":""}
+,
+{"run_accession":"SRR7971018","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971018/SRR7971018_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971018","bam_ftp":""}
+,
+{"run_accession":"SRR7971020","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971020/SRR7971020_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971020","bam_ftp":""}
+,
+{"run_accession":"SRR7971023","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971023/SRR7971023_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971023","bam_ftp":""}
+,
+{"run_accession":"SRR7971024","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971024/SRR7971024_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971024","bam_ftp":""}
+,
+{"run_accession":"SRR7971026","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971026/SRR7971026_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971026","bam_ftp":""}
+,
+{"run_accession":"SRR7971028","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971028/SRR7971028_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971028","bam_ftp":""}
+,
+{"run_accession":"SRR7971031","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971031/SRR7971031_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971031","bam_ftp":""}
+,
+{"run_accession":"SRR7971032","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971032/SRR7971032_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971032","bam_ftp":""}
+,
+{"run_accession":"SRR7971037","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971037/SRR7971037_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971037","bam_ftp":""}
+,
+{"run_accession":"SRR7971038","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971038/SRR7971038_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971038","bam_ftp":""}
+,
+{"run_accession":"SRR7971039","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971039/SRR7971039_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971039","bam_ftp":""}
+,
+{"run_accession":"SRR7971040","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971040/SRR7971040_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971040","bam_ftp":""}
+,
+{"run_accession":"SRR7971041","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971041/SRR7971041_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971041","bam_ftp":""}
+,
+{"run_accession":"SRR7971045","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971045/SRR7971045_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971045","bam_ftp":""}
+,
+{"run_accession":"SRR7971049","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971049/SRR7971049_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971049","bam_ftp":""}
+,
+{"run_accession":"SRR7971051","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971051/SRR7971051_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971051","bam_ftp":""}
+,
+{"run_accession":"SRR7971053","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971053/SRR7971053_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971053","bam_ftp":""}
+,
+{"run_accession":"SRR7971055","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971055/SRR7971055_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971055","bam_ftp":""}
+,
+{"run_accession":"SRR7971058","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971058/SRR7971058_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971058","bam_ftp":""}
+,
+{"run_accession":"SRR7971060","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971060/SRR7971060_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971060","bam_ftp":""}
+,
+{"run_accession":"SRR7971062","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971062/SRR7971062_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971062","bam_ftp":""}
+,
+{"run_accession":"SRR7971065","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971065/SRR7971065_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971065","bam_ftp":""}
+,
+{"run_accession":"SRR7971066","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971066/SRR7971066_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971066","bam_ftp":""}
+,
+{"run_accession":"SRR7971071","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7971071/SRR7971071_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7971071","bam_ftp":""}
+,
+{"run_accession":"SRR7971075","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971075/SRR7971075_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971075","bam_ftp":""}
+,
+{"run_accession":"SRR7971082","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971082/SRR7971082_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971082","bam_ftp":""}
+,
+{"run_accession":"SRR7971085","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971085/SRR7971085_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971085","bam_ftp":""}
+,
+{"run_accession":"SRR7971093","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971093/SRR7971093_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971093","bam_ftp":""}
+,
+{"run_accession":"SRR7971097","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971097/SRR7971097_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971097","bam_ftp":""}
+,
+{"run_accession":"SRR7971098","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971098/SRR7971098_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971098","bam_ftp":""}
+,
+{"run_accession":"SRR7971099","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971099/SRR7971099_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971099","bam_ftp":""}
+,
+{"run_accession":"SRR7971102","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7971102/SRR7971102_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7971102","bam_ftp":""}
+,
+{"run_accession":"SRR7971105","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7971105/SRR7971105_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7971105","bam_ftp":""}
+,
+{"run_accession":"SRR7971106","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7971106/SRR7971106_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7971106","bam_ftp":""}
+,
+{"run_accession":"SRR7971107","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7971107/SRR7971107_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7971107","bam_ftp":""}
+,
+{"run_accession":"SRR7971108","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7971108/SRR7971108_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7971108","bam_ftp":""}
+,
+{"run_accession":"SRR7971109","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7971109/SRR7971109_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7971109","bam_ftp":""}
+,
+{"run_accession":"SRR7971110","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7971110/SRR7971110_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7971110","bam_ftp":""}
+,
+{"run_accession":"SRR7971113","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7971113/SRR7971113_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7971113","bam_ftp":""}
+,
+{"run_accession":"SRR7971114","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4804151","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7971114/SRR7971114_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7971114","bam_ftp":""}
+,
+{"run_accession":"SRR7973884","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973884/SRR7973884_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973884","bam_ftp":""}
+,
+{"run_accession":"SRR7973890","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973890/SRR7973890_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973890","bam_ftp":""}
+,
+{"run_accession":"SRR7973891","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973891/SRR7973891_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973891","bam_ftp":""}
+,
+{"run_accession":"SRR7973894","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973894/SRR7973894_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973894","bam_ftp":""}
+,
+{"run_accession":"SRR7973895","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973895/SRR7973895_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973895","bam_ftp":""}
+,
+{"run_accession":"SRR7973896","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973896/SRR7973896_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973896","bam_ftp":""}
+,
+{"run_accession":"SRR7973899","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973899/SRR7973899_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973899","bam_ftp":""}
+,
+{"run_accession":"SRR7973900","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973900/SRR7973900_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973900","bam_ftp":""}
+,
+{"run_accession":"SRR7973902","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973902/SRR7973902_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973902","bam_ftp":""}
+,
+{"run_accession":"SRR7973905","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973905/SRR7973905_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973905","bam_ftp":""}
+,
+{"run_accession":"SRR7973908","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/008/SRR7973908/SRR7973908_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/008/SRR7973908","bam_ftp":""}
+,
+{"run_accession":"SRR7973910","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/000/SRR7973910/SRR7973910_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/000/SRR7973910","bam_ftp":""}
+,
+{"run_accession":"SRR7973913","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973913/SRR7973913_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973913","bam_ftp":""}
+,
+{"run_accession":"SRR7973922","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/002/SRR7973922/SRR7973922_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/002/SRR7973922","bam_ftp":""}
+,
+{"run_accession":"SRR7973924","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806917","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/004/SRR7973924/SRR7973924_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/004/SRR7973924","bam_ftp":""}
+,
+{"run_accession":"SRR7973943","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973943/SRR7973943_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973943","bam_ftp":""}
+,
+{"run_accession":"SRR7973946","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/006/SRR7973946/SRR7973946_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/006/SRR7973946","bam_ftp":""}
+,
+{"run_accession":"SRR7973949","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/009/SRR7973949/SRR7973949_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/009/SRR7973949","bam_ftp":""}
+,
+{"run_accession":"SRR7973955","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/005/SRR7973955/SRR7973955_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/005/SRR7973955","bam_ftp":""}
+,
+{"run_accession":"SRR7973957","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7973957/SRR7973957_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7973957","bam_ftp":""}
+,
+{"run_accession":"SRR7973961","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/001/SRR7973961/SRR7973961_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/001/SRR7973961","bam_ftp":""}
+,
+{"run_accession":"SRR7973963","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4806928","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/003/SRR7973963/SRR7973963_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/003/SRR7973963","bam_ftp":""}
+,
+{"run_accession":"SRR7975517","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4808326","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR797/007/SRR7975517/SRR7975517_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR797/007/SRR7975517","bam_ftp":""}
+,
+{"run_accession":"SRR8137614","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4958517","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/004/SRR8137614/SRR8137614_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR813/004/SRR8137614","bam_ftp":""}
+,
+{"run_accession":"SRR8137616","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4958517","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/006/SRR8137616/SRR8137616_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR813/006/SRR8137616","bam_ftp":""}
+,
+{"run_accession":"SRR8137617","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4958517","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/007/SRR8137617/SRR8137617_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR813/007/SRR8137617","bam_ftp":""}
+]
