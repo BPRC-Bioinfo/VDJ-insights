@@ -28,6 +28,9 @@ def gunzip_file(file, new_file):
         with gzip.open(f"{new_file}.fastq.gz", 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
 
+def clean(fastq_file: str):
+    return fastq_file.split("/")[-1].split("_")[0]
+
 def sra():
     print(f"Fetching ids with sra!")
     sra_get_prefetch()
@@ -61,19 +64,16 @@ def wget(id):
     wget_fetch = f"wget {id}"
     subprocess.call(wget_fetch, shell=True)
 
-def move_files():
-    fastq_files = [f for f in os.listdir('.') if "fastq" in f]
-    if fastq_files:
-        if not os.path.exists(f"{current_pwd}/{output_dir}"):
-            os.mkdir(f"{current_pwd}/{output_dir}")
-        for fastq_file in fastq_files:
-            new_fastq_file = fastq_file.split("_")[0]
-            if fastq_file.endswith(".fastq.gz"):
-                new_fastq_file = new_fastq_file + ".fastq.gz"
-                print(f"Renaming and moving {new_fastq_file} to {output_dir}!")
-                shutil.move(f"{current_pwd}/{fastq_file}", f"{current_pwd}/{output_dir}/{new_fastq_file}")
-            else:
-                gunzip_file(fastq_file, new_fastq_file)
+def move_files(file):
+    if file:
+        current_file = [i for i in os.listdir(".") if file in i][0]
+        new_fastq_file = current_file.split("_")[0]
+        if current_file.endswith(".fastq.gz"):
+            new_fastq_file = new_fastq_file + ".fastq.gz"
+            print(f"Renaming and moving {new_fastq_file} to {output_dir}!")
+            shutil.move(f"{current_pwd}/{current_file}", f"{current_pwd}/{output_dir}/{new_fastq_file}")
+        else:
+            gunzip_file(current_file, new_fastq_file)
     else:
         print("No fastq files found!")
             
@@ -85,21 +85,17 @@ def remove_prefetch():
             shutil.rmtree(f"{current_pwd}/{dir}")
 
 def run():
+    print("Running...")
     args, parser = parser_args() 
-    ids = get_ids(path=args.input[0])
     if args.type[0] == "sra":
-        for key, value in ids.items():
-            sra(key)
+        sra(clean(args.input[0]))
     elif args.type[0] == "kingfisher":
-        for key, value in ids.items():
-            kingfisher(key)
+        kingfisher(clean(args.input[0]))
     elif args.type[0] == "wget":
-        with open(args.input[0], "r") as f:
-            for line in f:
-                wget(line.strip())
+        wget(args.input[0])
     else:
         print(f"{args.type[0]} is not a valid option!")  
-    move_files()
+    move_files(clean(args.input[0]))
     # remove_prefetch()
     
 
