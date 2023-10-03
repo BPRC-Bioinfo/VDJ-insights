@@ -2,37 +2,30 @@ import os
 import pandas as pd
 from scripts.pipeline import get_ids
 
-ACCESSION, = glob_wildcards("downloads/{accs}.fastq.gz")
+ids = get_ids("input/input.txt")
 
-id_dict = get_ids()
-print(id_dict)
-
+# Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("filtered/{accession}.filtered.fastq.gz", accession=id_dict.keys()),
-#        expand("seqkit_filtered/filterd_{accession}_stat.tsv", accession=id_dict.keys())
+        expand("seqkit_filtered/filtered_{accession}_stat.tsv", accession=ids.keys())
 
-
-# donwload rule to download data from SRA db with kingfisher
+# Rule to download data from the SRA database
 rule SRA_download:
     output:
-        "downloads/{accession}.fastq.gz"
+        sra="downloads/sra_{accession}.fastq.gz"
     params:
-        lambda wildcards: id_dict[wildcards.accession]
-    threads:
-        8
+        fastq_file = lambda wildcards: ids[wildcards.accession]
     conda:
-        "envs/kingfisher.yaml"
+        "envs/sra_download.yaml"
     shell:
         """
-        kingfisher get -r {wildcards.accession} -m ena-ftp
-        mv {params}.fastq.gz {output}
+        python scripts/fetchall.py -t wget -i {params.fastq_file} -o {output.sra}
         """
 
-# QC rule for getting statistics for unfilterd reads with seqkit stats.
+# Rule for initial QC
 rule seqkit:
     input:
-        ancient("downloads/{accession}.fastq.gz")
+        "downloads/sra_{accession}.fastq.gz"
     output:
         "seqkit/raw_read_{accession}_stat.tsv"
     conda:
@@ -47,30 +40,44 @@ rule pbAdaptFilt:
     input: 
         "downloads/{accession}.fastq.gz"
     output: 
-        pbfilt=temp("downloads/{accession}/{accession}.filt.fastq.gz"),
-        hififilt = temp("downloads/{accession}/hifi/{accession}.filt.filt.fastq.gz"),
-        filt = "filtered/{accession}.filtered.fastq.gz"
+        pbfilt = temp("downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz")
     params:
+        filt = "download/{accession}/{accession}.filt.fastq.gz" ,
         input_dir = "downloads",
-        pb_dir = "{accession}",
-        hifi_dir = "hifi"
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
     shell:
         """
         cd {params.input_dir}
-        bash pbadapterfilt.sh -o {params.pb_dir} -p {wildcards.accession}
-        cd {params.hifi_dir}
-        bash pbadapterfilt.sh -o {params.hifi_dir} -p {wildcards.accession}
-        cp {output.hififilt} {output.filt} 
+        bash pbadapterfilt.sh -o {wildcards.accession} -p {wildcards.accession}
+        mv {params.filt} {output.pbfilt}
         """
-'''
+
+# Filter rule for removing adaptor for pacbio hifi reads with seqkit.
+rule hifiAdaptFilt:
+    input: 
+        "downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz"
+    output: 
+        filt = temp("downloads/{accession}/filtered/hifi_filtered_{accession}.fastq.gz")
+    params:
+        input_dir = "downloads/{accession}",
+        output_dir = "hifi",
+        hififilt = "downloads/{accession}/hifi/{accession}.filt.filt.fastq.gz",
+    singularity:
+        "docker://australianbiocommons/hifiadapterfilt"
+    shell:
+        """
+        cd {params.input_dir}
+        bash hifiadapterfilt.sh -o {params.output_dir} -p {wildcards.accession}
+        mv {params.hififilt} {output.filt} 
+        """
+
 # Filter rule to remove duplicates with seqkit rmdup.
 rule removeDuplicateReads:
     input:
-        "filtered/{accession}.filtered.fastq.gz"
+        "downloads/{accession}/filtered/hifi_filtered_{accession}.fastq.gz"
     output:
-        "downloads/duplicate_free/no_duplicate_{accession}.fastq.gz"
+        "downloads/{accession}/duplicate_free/no_duplicate_{accession}.fastq.gz"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -81,9 +88,9 @@ rule removeDuplicateReads:
 # Filter rule to remove sequences over 5000 bps with seqkit seq.
 rule filteredReads:
     input:
-        "downloads/duplicate_free/no_duplicate_{accession}.fastq.gz"
+        "downloads/{accession}/duplicate_free/no_duplicate_{accession}.fastq.gz"
     output:
-        "downloads/filtered/filtered_{accession}.fastq.gz"
+        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -94,13 +101,12 @@ rule filteredReads:
 # QC rule for getting statistics for filterd reads with seqkit stats.
 rule seqkitFiltered:
     input:
-        "downloads/filtered/filtered_{accession}.fastq.gz"
+        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
     output:
-        "seqkit_filtered/filterd_{accession}_stat.tsv"
+        "seqkit_filtered/filtered_{accession}_stat.tsv"
     conda:
         "envs/seqkit.yaml"
     shell:
         """
         seqkit stats {input} -a -o {output}
         """
-'''
