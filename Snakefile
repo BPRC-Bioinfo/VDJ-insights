@@ -42,7 +42,7 @@ rule pbAdaptFilt:
     output: 
         pbfilt = temp("downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz")
     params:
-        filt = "download/{accession}/{accession}.filt.fastq.gz" ,
+        filt = "downloads/{accession}/{accession}.filt.fastq.gz" ,
         input_dir = "downloads",
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
