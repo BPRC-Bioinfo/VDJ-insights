@@ -7,6 +7,9 @@ def get_ids(path):
         input_content = f.readlines()
         id_dict = {}
         for id in input_content:
-            id_list = id.strip().split("/")[-2::]
-            id_dict[id_list[0]] = id_list[1].split(".")[0]
+            id_list = id.strip().split("/")
+            id_dict[id_list[-2]] = id.strip()
         return id_dict
+
+if __name__ == "__main__":
+    print(get_ids("input/input.txt"))
