@@ -4,4 +4,5 @@ channels:
  - conda-forge
 dependencies:
  - kingfisher
+ - sra-tools
 
