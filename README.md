@@ -11,21 +11,8 @@ To run this pipeline, make sure you have the following software and environments
 2. Conda (for managing environments)
 3. Singularity (for containerization)
 
-# Pipeline Rules
-
-**SRA_download**: Downloads data from the SRA database. The rule switches between "wget" and a custom downloader based on the number of files.
-
-**seqkit**: Generates basic statistics for the raw reads.
-
-**pbAdaptFilt**: Filters adaptors specific to PacBio reads.
-
-**hifiAdaptFilt**: Filters adaptors specific to PacBio hifi reads.
-
-**removeDuplicateReads**: Removes duplicate reads from the dataset.
-
-**filteredReads**: Filters reads longer than 5000 bases.
-
-**seqkitFiltered**: Generates basic statistics for filtered reads.
+# Pipeline
+`Place holder for pipeline image`
 
 # Python scripts
 1. fetchall.py
@@ -38,6 +25,8 @@ The **fetchall.py** script is responsible for automating the downloading and ini
 * **-i, --input**: Specifies the input link for the sequence files to be downloaded. For "wget", this needs to be a URL link from the ENA database.
 
 * **-o, --output**: Specifies the output directory where the downloaded and processed files will be saved.
+
+`python fetchall.py -i ... -t ... -o ...`
 
 # pipeline.py
 The **pipeline.py** script offers an interactive interface for downloading sequence files for the main pipeline. The script employs the **questionary** library to create user-friendly prompts, allowing the user to select options easily.
