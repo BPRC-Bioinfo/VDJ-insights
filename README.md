@@ -1,4 +1,4 @@
-# TCR Macaque pipeline Snakemake Pipeline README
+# TCR Macaque Snakemake Pipeline README
 ## Overview
 
 This Snakemake pipeline is designed for analysing TCR region of the Rhesus Macaque from publicly available data. It includes a set of rules for downloading SRA data, performing initial QC, removing adaptors, removing duplicates and filtering reads based on length.
