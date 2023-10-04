@@ -12,7 +12,8 @@ ids = get_ids(f"input/{input_file}")
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("seqkit_filtered/filtered_{accession}_stat.tsv", accession=ids.keys())
+        expand("downloads/{accession}/longQC_results", accession=ids.keys()),
+        expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
 rule SRA_download:
@@ -48,7 +49,7 @@ rule pbAdaptFilt:
     output: 
         pbfilt = temp("downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz")
     params:
-        filt = "downloads/{accession}/{accession}.filt.fastq.gz" ,
+        filt = "downloads/{accession}/sra_{accession}.filt.fastq.gz" ,
         input_dir = "downloads",
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
@@ -117,4 +118,16 @@ rule seqkitFiltered:
     shell:
         """
         seqkit stats {input} -a -o {output}
+        """
+
+rule longqc:
+    input:
+        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+    output:
+        "downloads/{accession}/longQC_results"
+    singularity:
+        "docker://cymbopogon/longqc"
+    shell:
+        """
+        python longQC.py sampleqc -x pb-sequel -o {output} -p 4 {input}
         """
