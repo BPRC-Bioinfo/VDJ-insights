@@ -1,8 +1,13 @@
 import os
 import pandas as pd
-from scripts.pipeline import get_ids
+from scripts.pipeline import get_ids, fetchall_args
 
-ids = get_ids("input/input.txt")
+
+sra_download, input_file = fetchall_args()
+ids = get_ids(f"input/{input_file}")
+
+
+
 
 # Define the top-level rule that depends on the output from other rules
 rule all:
@@ -14,12 +19,13 @@ rule SRA_download:
     output:
         sra="downloads/sra_{accession}.fastq.gz"
     params:
-        fastq_file = lambda wildcards: ids[wildcards.accession]
+        fastq_file = lambda wildcards: ids[wildcards.accession],
+        download_type = sra_download
     conda:
         "envs/sra_download.yaml"
     shell:
         """
-        python scripts/fetchall.py -t wget -i {params.fastq_file} -o {output.sra}
+        python scripts/fetchall.py -t {params.download_type} -i {params.fastq_file} -o {output.sra}
         """
 
 # Rule for initial QC
@@ -49,7 +55,7 @@ rule pbAdaptFilt:
     shell:
         """
         cd {params.input_dir}
-        bash pbadapterfilt.sh -o {wildcards.accession} -p {wildcards.accession}
+        bash pbadapterfilt.sh -o {wildcards.accession} -p sra_{wildcards.accession}
         cd ../
         mv {params.filt} {output.pbfilt}
         """
