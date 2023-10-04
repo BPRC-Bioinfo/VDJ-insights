@@ -18,7 +18,7 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("seqkit_filtered/filtered_{accession}_stat.tsv", accession=ids.keys()),
+        expand("downloads/{accession}/alignments/{accession}.sam", accession=ids.keys()),
         expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -125,6 +125,31 @@ rule seqkitFiltered:
         """
         seqkit stats {input} -a -o {output}
         """
+
+rule downloadMmul10:
+    output:
+        "downloads/mmul10.gz/"
+    shell:
+        """
+        wget --header="Accept: application/gzip" "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/GCF_003339765.1/download?include_annotation_type=GENOME_FASTA,GENOME_GFF,RNA_FASTA,CDS_FASTA,PROT_FASTA,SEQUENCE_REPORT&filename=GCF_003339765.1.gz" -O {output}
+        """
+
+
+rule minimap2:
+    input:
+        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+    output:
+        "downloads/{accession}/alignments/{accession}.sam"
+    params:
+        mmul10 = "downloads/mmul10.gz"
+    conda:
+        "envs/minimap2.yaml"
+    shell:
+        """
+        minimap2 -ax {params.mmul10} {input} > {output}
+        """
+
+
 
 # rule longqc:
 #     input:
