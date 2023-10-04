@@ -70,7 +70,7 @@ rule hifiAdaptFilt:
         """
         cd {params.input_dir}
         bash hifiadapterfilt.sh -o {params.output_dir} -p pb_filtered_{wildcards.accession}
-        cd ../../../
+        cd ../../
         mv {params.hififilt} {output.filt} 
         """
 
