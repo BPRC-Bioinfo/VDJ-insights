@@ -25,7 +25,7 @@ def get_ids(path):
 
 
 
-def fetchall_args():
+def fetchall_args_sra_download():
     selected_option = questionary.select(
                 "Select a option for downloading SRA files",
                 choices=["wget", "king", "sra"],
@@ -35,6 +35,9 @@ def fetchall_args():
                 show_selected=True,
                 qmark=""
             ).ask()
+    return selected_option
+
+def fetchall_args_input_file():
     input_files = [ f for f in os.listdir(f"{current_cwd}/input/") if f.endswith(".txt")]
     selected_input = questionary.select(
                 "Select a option as input file",
@@ -45,8 +48,7 @@ def fetchall_args():
                 show_selected=True,
                 qmark=""
             ).ask()
-    
-    return selected_option, selected_input
+    return selected_input
 
 
 if __name__ == "__main__":
