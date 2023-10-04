@@ -1,18 +1,24 @@
 import os
 import pandas as pd
-from scripts.pipeline import get_ids, fetchall_args
+from scripts.pipeline import *
 
+current = os.getcwd()
 
-sra_download, input_file = fetchall_args()
+input_file = fetchall_args_input_file()
 ids = get_ids(f"input/{input_file}")
 
+files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("sra_")]
+if len(ids.keys()) > len(files):
+    sra_download = fetchall_args_sra_download()
+else:
+    sra_download = "wget"
 
 
 
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/longQC_results", accession=ids.keys()),
+        expand("seqkit_filtered/filtered_{accession}_stat.tsv", accession=ids.keys()),
         expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -120,14 +126,14 @@ rule seqkitFiltered:
         seqkit stats {input} -a -o {output}
         """
 
-rule longqc:
-    input:
-        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
-    output:
-        "downloads/{accession}/longQC_results"
-    singularity:
-        "docker://cymbopogon/longqc"
-    shell:
-        """
-        python longQC.py sampleqc -x pb-sequel -o {output} -p 4 {input}
-        """
+# rule longqc:
+#     input:
+#         "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+#     output:
+#         "downloads/{accession}/longQC_results"
+#     singularity:
+#         "docker://cymbopogon/longqc"
+#     shell:
+#         """
+#         python longQC.py sampleqc -x pb-sequel -o {output} -p 4 {input}
+#         """
