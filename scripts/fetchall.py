@@ -3,7 +3,6 @@ import os
 import shutil
 import argparse
 from argparse import RawTextHelpFormatter
-from pipeline import get_ids
 import gzip
 
 current_pwd = os.getcwd()
@@ -18,6 +17,9 @@ def parser_args():
                         help="choose a downloading style.\nOptions include sra (sra), kingfisher (king) or wget")
     group1.add_argument("-i", "--input", nargs="+", type=str, required=True, metavar="input", 
                         help="choose a input file")
+    group1.add_argument("-o", "--output", nargs="+", type=str, required=True, metavar="output", 
+                        help="choose a output file location")
+     
     # group2 = parser.add_argument_group('optional arguments')
 
     args = parser.parse_args()
@@ -64,16 +66,14 @@ def wget(id):
     wget_fetch = f"wget {id}"
     subprocess.call(wget_fetch, shell=True)
 
-def move_files(file):
+def move_files(file, location):
     if file:
         current_file = [i for i in os.listdir(".") if file in i][0]
-        new_fastq_file = current_file.split("_")[0]
         if current_file.endswith(".fastq.gz"):
-            new_fastq_file = new_fastq_file + ".fastq.gz"
-            print(f"Renaming and moving {new_fastq_file} to {output_dir}!")
-            shutil.move(f"{current_pwd}/{current_file}", f"{current_pwd}/{output_dir}/{new_fastq_file}")
+            print(f"Renaming and moving {current_file} to {location}!")
+            shutil.move(f"{current_pwd}/{current_file}", f"{current_pwd}/{location}")
         else:
-            gunzip_file(current_file, new_fastq_file)
+            gunzip_file(current_file, current_file)
     else:
         print("No fastq files found!")
             
@@ -87,6 +87,7 @@ def remove_prefetch():
 def run():
     print("Running...")
     args, parser = parser_args() 
+    print(args)
     if args.type[0] == "sra":
         sra(clean(args.input[0]))
     elif args.type[0] == "kingfisher":
@@ -95,7 +96,7 @@ def run():
         wget(args.input[0])
     else:
         print(f"{args.type[0]} is not a valid option!")  
-    move_files(clean(args.input[0]))
+    move_files(clean(args.input[0]), args.output[0])
     # remove_prefetch()
     
 
