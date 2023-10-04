@@ -38,7 +38,7 @@ rule seqkit:
 # Filter rule for removing adaptor for pacbio reads with seqkit rmdup.
 rule pbAdaptFilt:
     input: 
-        "downloads/{accession}.fastq.gz"
+        "downloads/sra_{accession}.fastq.gz"
     output: 
         pbfilt = temp("downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz")
     params:
