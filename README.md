@@ -38,9 +38,9 @@ The **fetchall.py** script is responsible for automating the downloading and SRA
 * **-o, --output**: In pipeline mode the output is a direct output path. In manual it's a output directory where the downloaded and processed files will be saved.
 * **-r, --run-type**: Choose a run type for usage. Options include pipeline and manual.
 
-## Usage for pipeline mode with snakemake
-    python scripts/fetchall.py -t {download_type} -r pipeline -i {file} -o {output}
 ## Usage for manual mode
     python script/fetchall.py -t wget -r manual -i input/input.txt -o downloads
+## Usage for pipeline mode with snakemake
+    python scripts/fetchall.py -t {download_type} -r pipeline -i {file} -o {output}
 # pipeline.py
 The **pipeline.py** script offers an interactive interface for downloading sequence files for the main pipeline. The script employs the **questionary** library to create user-friendly prompts, allowing the user to select options easily.
