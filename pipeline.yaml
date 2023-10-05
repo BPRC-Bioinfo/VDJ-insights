@@ -1,0 +1,9 @@
+name: pipeline
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - mamba
+  - singularity
+  - snakemake
+  - questionary
