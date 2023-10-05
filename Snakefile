@@ -32,7 +32,7 @@ rule SRA_download:
         "envs/sra_download.yaml"
     shell:
         """
-        python scripts/fetchall.py -t {params.download_type} -i {params.fastq_file} -o {output.sra}
+        python scripts/fetchall.py -t {params.download_type} -r pipeline -i {params.fastq_file} -o {output.sra}
         """
 
 # Rule for initial QC
@@ -128,25 +128,33 @@ rule seqkitFiltered:
 
 rule downloadMmul10:
     output:
-        "downloads/mmul10.gz/"
+        ref = "downloads/mmul10.fna",
+        ref_report = "downloads/reports/mmul10_assembly_report.txt",
+    params:
+        zipped_ref = "downloads/mmul10.fna.gz"
     shell:
         """
-        wget --header="Accept: application/gzip" "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/GCF_003339765.1/download?include_annotation_type=GENOME_FASTA,GENOME_GFF,RNA_FASTA,CDS_FASTA,PROT_FASTA,SEQUENCE_REPORT&filename=GCF_003339765.1.gz" -O {output}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        gunzip {params.zipped_ref}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
         """
 
 
 rule minimap2:
     input:
-        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+        read = "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz",
+        mmul10 = "downloads/mmul10.fna",
     output:
         "downloads/{accession}/alignments/{accession}.sam"
+    threads:
+        20
     params:
-        mmul10 = "downloads/mmul10.gz"
+        read_type = "map-hifi"
     conda:
         "envs/minimap2.yaml"
     shell:
         """
-        minimap2 -ax {params.mmul10} {input} > {output}
+        minimap2 -ax {params.read_type} {input.mmul10} {input.read} > {output}
         """
 
 
@@ -160,5 +168,5 @@ rule minimap2:
 #         "docker://cymbopogon/longqc"
 #     shell:
 #         """
-#         python longQC.py sampleqc -x pb-sequel -o {output} -p 4 {input}
+#         LongQC sampleqc -x pb-sequel -o {output} -p 4 {input}
 #         """
