@@ -18,8 +18,8 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/alignments/{accession}.sam", accession=ids.keys()),
-        expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
+        expand("downloads/{accession}/longQC_results", accession=ids.keys()),
+        # expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
 rule SRA_download:
@@ -158,14 +158,13 @@ rule minimap2:
         """
 
 
-
 # rule longqc:
 #     input:
 #         "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
 #     output:
 #         "downloads/{accession}/longQC_results"
 #     singularity:
-#         "docker://cymbopogon/longqc"
+#         "docker://quay.io/biocontainers/longqc"
 #     shell:
 #         """
 #         LongQC sampleqc -x pb-sequel -o {output} -p 4 {input}
