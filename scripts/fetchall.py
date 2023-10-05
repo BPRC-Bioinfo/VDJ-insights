@@ -22,9 +22,12 @@ def parser_args():
     group1.add_argument("-t", "--type", nargs="+", type=str, required=True, metavar="type", choices=["sra", "kingfisher", "wget"], default="wget",
                         help="choose a downloading style.\nOptions include sra (sra), kingfisher (king) or wget")
     group1.add_argument("-i", "--input", nargs="+", type=str, required=True, metavar="input", 
-                        help="needs a wget link from the ENA database")
+                        help="needs a wget link from the ENA database when running --run-type in pipeline mode. When using manual mode it needs a input file.")
     group1.add_argument("-o", "--output", nargs="+", type=str, required=True, metavar="output", 
                         help="choose a output file location")
+    group1.add_argument("-r", "--run-type", nargs="+", type=str, choices=["pipeline", "manual"], default="pipeline",
+                        required=True, metavar="run-type", 
+                        help="choose a run-type for using.\nOptions include pipeline and manual.")
      
     # group2 = parser.add_argument_group('optional arguments')
 
@@ -121,8 +124,9 @@ def move_files(file, location):
         location (str): The directory to move the file to.
     """
     if file:
-        current_file = [i for i in os.listdir(".") if file in i][0]
+        current_file = [i for i in os.listdir(".") if file in i]
         if current_file:
+            current_file = current_file[0]
             if current_file.endswith(".fastq.gz"):
                 print(f"Renaming and moving {current_file} to {location}!")
                 shutil.move(f"{current_pwd}/{current_file}", f"{current_pwd}/{location}")
@@ -141,22 +145,35 @@ def remove_prefetch():
             print(f"Removing {dir}!")
             shutil.rmtree(f"{current_pwd}/{dir}")
 
+def options(chosen_type, chosen_input):
+    if chosen_type == "sra":
+        sra(clean(chosen_input))
+    elif chosen_type == "kingfisher":
+        kingfisher(clean(chosen_input))
+    elif chosen_type == "wget":
+        wget(chosen_input)
+    else:
+        print(f"{chosen_type} is not a valid option!")  
+    
+
 def run():
     """
     Main function to orchestrate the fetching and file operations based on user input.
     """
     print("Running...")
     args, parser = parser_args() 
-    print(args)
-    if args.type[0] == "sra":
-        sra(clean(args.input[0]))
-    elif args.type[0] == "kingfisher":
-        kingfisher(clean(args.input[0]))
-    elif args.type[0] == "wget":
-        wget(args.input[0])
+    chosen_type = args.type[0]
+    chosen_input = args.input[0]
+    chosen_output = args.output[0]
+    if args.run_type[0] == "manual":
+        with open(f"{current_pwd}/{chosen_input}", "r") as f:
+            for sra_file in f:
+                cleaned_id = clean(sra_file)
+                options(chosen_type, sra_file.strip())        
+                move_files(cleaned_id, f"{chosen_output}/sra_{cleaned_id}.fastq.gz")
     else:
-        print(f"{args.type[0]} is not a valid option!")  
-    move_files(clean(args.input[0]), args.output[0])
+        options(chosen_type, chosen_input)      
+        move_files(clean(chosen_input), chosen_output)
     # remove_prefetch()
     
 
