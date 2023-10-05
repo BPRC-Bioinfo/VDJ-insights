@@ -115,7 +115,7 @@ def wget(id):
     wget_fetch = f"wget {id}"
     subprocess.call(wget_fetch, shell=True)
 
-def move_files(file, location, type):
+def move_files(file, location, type, run_type):
     """
     Move a file to a specified directory.
     
@@ -123,10 +123,10 @@ def move_files(file, location, type):
         file (str): The name of the file to move.
         location (str): The directory to move the file to.
     """
-    if not os.path.isdir(f"{current_pwd}/{location}") and type == "manual":
-        os.makedirs(f"{current_pwd}/{location}")
-        
-    if file:
+    if all([file, location, type]):
+        folder = location.split("/")[0]
+        if not os.path.isdir(f"{current_pwd}/{folder}") and run_type == "manual":
+            os.makedirs(f"{current_pwd}/{folder}")
         current_file = [i for i in os.listdir(".") if file in i]
         if current_file:
             current_file = current_file[0]
@@ -168,15 +168,17 @@ def run():
     chosen_type = args.type[0]
     chosen_input = args.input[0]
     chosen_output = args.output[0]
-    if args.run_type[0] == "manual":
+    chosen_run_type = args.run_type[0]
+    if chosen_run_type == "manual":
         with open(f"{current_pwd}/{chosen_input}", "r") as f:
             for sra_file in f:
                 cleaned_id = clean(sra_file)
-                options(chosen_type, sra_file.strip())        
-                move_files(cleaned_id, f"{chosen_output}/sra_{cleaned_id}.fastq.gz", chosen_type)
+                options(chosen_type, sra_file.strip())
+                move_path = f"{chosen_output}/sra_{cleaned_id}.fastq.gz"        
+                move_files(cleaned_id, move_path, chosen_type, chosen_run_type)
     else:
         options(chosen_type, chosen_input)      
-        move_files(clean(chosen_input), chosen_output, chosen_type)
+        move_files(clean(chosen_input), chosen_output, chosen_type, chosen_run_type)
     # remove_prefetch()
     
 
