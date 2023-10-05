@@ -7,10 +7,19 @@ This Snakemake pipeline is designed for analysing TCR region of the Rhesus Macaq
 ## Dependencies
 
 To run this pipeline, make sure you have the following software and environments:
-
+### Already installed
+1. Conda (for managing environments)
+### Need to be install
 1. Snakemake
-2. Conda (for managing environments)
-3. Singularity (for containerization)
+2. Singularity (for containerization)
+3. Questionairy
+
+### Installation Steps
+
+To install the required packages, you can use a Conda environment defined in **pipeline.yaml**. Run the following command to install the packages:
+
+    conda env create -f pipeline.yaml
+
 
 ## Pipeline Rules
 
