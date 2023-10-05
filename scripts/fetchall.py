@@ -115,7 +115,7 @@ def wget(id):
     wget_fetch = f"wget {id}"
     subprocess.call(wget_fetch, shell=True)
 
-def move_files(file, location):
+def move_files(file, location, type):
     """
     Move a file to a specified directory.
     
@@ -123,6 +123,9 @@ def move_files(file, location):
         file (str): The name of the file to move.
         location (str): The directory to move the file to.
     """
+    if not os.path.isdir(f"{current_pwd}/{location}") and type == "manual":
+        os.makedirs(f"{current_pwd}/{location}")
+        
     if file:
         current_file = [i for i in os.listdir(".") if file in i]
         if current_file:
@@ -170,10 +173,10 @@ def run():
             for sra_file in f:
                 cleaned_id = clean(sra_file)
                 options(chosen_type, sra_file.strip())        
-                move_files(cleaned_id, f"{chosen_output}/sra_{cleaned_id}.fastq.gz")
+                move_files(cleaned_id, f"{chosen_output}/sra_{cleaned_id}.fastq.gz", chosen_type)
     else:
         options(chosen_type, chosen_input)      
-        move_files(clean(chosen_input), chosen_output)
+        move_files(clean(chosen_input), chosen_output, chosen_type)
     # remove_prefetch()
     
 

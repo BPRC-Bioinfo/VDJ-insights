@@ -32,12 +32,15 @@ To run this pipeline, make sure you have the following software and environments
 2. pipeline.py
 
 # fetchall.py
-The **fetchall.py** script is responsible for automating the downloading and initial preprocessing of sequence data. It parses command-line arguments to specify the downloading method, input data, and output location. The argements it uses are:
+The **fetchall.py** script is responsible for automating the downloading and SRA data. It parses command-line arguments to specify the downloading method, run type, input data, and output location. The argements it uses are:
 * **-t, --type**: Specifies the method to download sequence files. Options include "sra" for SRA Toolkit, "kingfisher" for Kingfisher utility, and "wget" for wget command.
+* **-i, --input**: In pipeline mode the input needs to be a URL link from the ENA/SRA database. In manual mode it needs to be a file containing URLs from the ENA/SRA database. 
+* **-o, --output**: In pipeline mode the output is a direct output path. In manual it's a output directory where the downloaded and processed files will be saved.
+* **-r, --run-type**: Choose a run type for usage. Options include pipeline and manual.
 
-* **-i, --input**: Specifies the input link for the sequence files to be downloaded. For "wget", this needs to be a URL link from the ENA database.
-
-* **-o, --output**: Specifies the output directory where the downloaded and processed files will be saved.
-
+## Usage for manual mode
+    python script/fetchall.py -t wget -r manual -i input/input.txt -o downloads
+## Usage for pipeline mode with snakemake
+    python scripts/fetchall.py -t {download_type} -r pipeline -i {file} -o {output}
 # pipeline.py
 The **pipeline.py** script offers an interactive interface for downloading sequence files for the main pipeline. The script employs the **questionary** library to create user-friendly prompts, allowing the user to select options easily.
