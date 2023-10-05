@@ -15,6 +15,15 @@ custom_style = Style([
 ])
 
 def get_ids(path):
+    """
+    creates a dictionary with as key the SRA identifier and as value a ENA link.
+    
+    Parameters:
+        path (str): path to the input.txt file to be used.
+    
+    Returns:
+        id_dict (dict): dictionary with SRA identifier and ENA link.
+    """
     with open(path) as f:
         input_content = f.readlines()
         id_dict = {}
@@ -26,6 +35,12 @@ def get_ids(path):
 
 
 def fetchall_args_sra_download():
+    """
+    Visual prompt for asking which download type you want to use as
+    download type: wget, king or sra.
+    Returns:
+        selected_option (str): chosen option as string.
+    """
     selected_option = questionary.select(
                 "Select a option for downloading SRA files",
                 choices=["wget", "king", "sra"],
@@ -38,6 +53,11 @@ def fetchall_args_sra_download():
     return selected_option
 
 def fetchall_args_input_file():
+    """
+    Visual prompt for asking which input file you want to use.
+    Returns:
+        selected_option (str): chosen input file as string.
+    """
     input_files = [ f for f in os.listdir(f"{current_cwd}/input/") if f.endswith(".txt")]
     selected_input = questionary.select(
                 "Select a option as input file",
