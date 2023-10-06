@@ -147,14 +147,14 @@ rule minimap2:
     output:
         "downloads/{accession}/alignments/{accession}.sam"
     threads:
-        20
+        10
     params:
         read_type = "map-hifi"
     conda:
         "envs/minimap2.yaml"
     shell:
         """
-        minimap2 -ax {params.read_type} {input.mmul10} {input.read} > {output}
+        minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output}
         """
 
 
