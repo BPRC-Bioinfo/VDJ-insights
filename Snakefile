@@ -18,7 +18,7 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/alignments/extracted_{chr}_{accession}.sam", accession=ids.keys(), chrs=["chr3", "chr7"]),
+        expand("downloads/{accession}/alignments/extracted_{accession}.bam", accession=ids.keys()),
         # expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -128,7 +128,7 @@ rule filteredReads:
 # QC rule for getting statistics for filterd reads with seqkit stats.
 rule seqkitFiltered:
     input:
-        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+        ancient("downloads/{accession}/cleaned/filtered_{accession}.fastq.gz")
     output:
         "seqkit_filtered/filtered_{accession}_stat.tsv"
     conda:
@@ -163,7 +163,7 @@ rule minimap2:
     benchmark:
         "benchmarks/minimap2/benchmark_{accession}_alignment.txt"
     threads:
-        10
+        20
     params:
         read_type = "map-hifi"
     conda:
@@ -175,20 +175,41 @@ rule minimap2:
 
 rule extractMappedReads:
     input:
-        ancient("downloads/{accession}/alignments/{accession}.sam")
-        # samtools view -@ {threads} -Sb -F4 {input} chr7 > output_mapped_chr7.bam
+        "downloads/{accession}/alignments/{accession}.sam"
     output:
-        expand("downloads/{accession}/alignments/extracted_{chr}_{accession}.sam", chrs=["chr3", "chr7"])
+        "downloads/{accession}/alignments/extracted_{accession}.bam",
+    log:
+        "logs/samtools/log_{accession}_alignment.log",
     conda:
         "envs/samtools.yaml"
     threads:
         10
     shell:
         """
-        samtools view -@ {threads} -Sb -F4 {input} chr3 > {input}
+        samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
         """
 
+# rule sortIndexBam:
+#     input:
+#         "downloads/{accession}/alignments/extracted_{accession}.bam"
+#     output:
 
+    
+#     log:
+#         "logs/samtools/log_chr_{accession}_alignment.log"
+#     conda:
+#         "envs/samtools.yaml"
+#     threads:
+#         10
+#     #     extracted_chr = "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam",
+#     #     index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
+#     #     sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+#     shell:
+#     """
+#     samtools sort -o {params.sorted_bam} {params.bam}
+#     samtools index {params.sorted_bam}
+#     samtool view -@ {threads} {params.bam} {wildcards.chrs}> {output.extracted_chr} 2> {log.chr_log}
+#     """
 
 # rule longqc:
 #     input:
