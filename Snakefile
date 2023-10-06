@@ -18,7 +18,7 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/longQC_results", accession=ids.keys()),
+        expand("downloads/{accession}/alignments/extracted_{accession}.sam", accession=ids.keys()),
         # expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -146,6 +146,8 @@ rule minimap2:
         mmul10 = "downloads/mmul10.fna",
     output:
         "downloads/{accession}/alignments/{accession}.sam"
+    log:
+        
     threads:
         10
     params:
@@ -156,6 +158,22 @@ rule minimap2:
         """
         minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output}
         """
+
+rule extractMappedReads:
+    input:
+        ancient("downloads/{accession}/alignments/{accession}.sam")
+        # samtools view -@ {threads} -Sb -F4 {input} chr7 > output_mapped_chr7.bam
+    output:
+        expand("downloads/{accession}/alignments/extracted_{accession}.sam", chrs=["chr3", "chr7"])
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -Sb -F4 {input} chr3 > {input}
+        """
+
 
 
 # rule longqc:
