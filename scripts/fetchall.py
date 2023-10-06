@@ -123,7 +123,7 @@ def move_files(file, location, type, run_type):
         file (str): The name of the file to move.
         location (str): The directory to move the file to.
     """
-    if all([file, location, type]):
+    if all([file, location, type, run_type]):
         folder = location.split("/")[0]
         if not os.path.isdir(f"{current_pwd}/{folder}") and run_type == "manual":
             os.makedirs(f"{current_pwd}/{folder}")
