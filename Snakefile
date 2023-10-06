@@ -18,7 +18,7 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/alignments/extracted_{accession}.sam", accession=ids.keys()),
+        expand("downloads/{accession}/alignments/extracted_{chr}_{accession}.sam", accession=ids.keys(), chrs=["chr3", "chr7"]),
         # expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -54,6 +54,10 @@ rule pbAdaptFilt:
         "downloads/sra_{accession}.fastq.gz"
     output: 
         pbfilt = temp("downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz")
+    log:
+        "logs/adaptor/log_{accession}_pb.log"
+    benchmark:
+        "benchmarks/adaptfilt/benchmark_{accession}_pb.txt"
     params:
         filt = "downloads/{accession}/sra_{accession}.filt.fastq.gz" ,
         input_dir = "downloads",
@@ -73,6 +77,10 @@ rule hifiAdaptFilt:
         "downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz"
     output: 
         filt = temp("downloads/{accession}/hifi/hifi_filtered_{accession}.fastq.gz")
+    log:
+        "logs/adaptor/log_{accession}_hifi.log"
+    benchmark:
+        "benchmarks/adaptfilt/benchmark_{accession}_hifi.txt"
     params:
         input_dir = "downloads/{accession}",
         output_dir = "hifi",
@@ -93,6 +101,8 @@ rule removeDuplicateReads:
         "downloads/{accession}/hifi/hifi_filtered_{accession}.fastq.gz"
     output:
         "downloads/{accession}/duplicate_free/no_duplicate_{accession}.fastq.gz"
+    log:
+        "logs/seqkit/duplicates/log_{accession}_duplicates.log"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -106,6 +116,8 @@ rule filteredReads:
         "downloads/{accession}/duplicate_free/no_duplicate_{accession}.fastq.gz"
     output:
         "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+    log:
+        "logs/seqkit/filterd/log_{accession}_filterd.log"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -123,7 +135,7 @@ rule seqkitFiltered:
         "envs/seqkit.yaml"
     shell:
         """
-        seqkit stats {input} -a -o {output}
+        seqkit stats {input} -a -o {output} 2> {log}
         """
 
 rule downloadMmul10:
@@ -147,7 +159,9 @@ rule minimap2:
     output:
         "downloads/{accession}/alignments/{accession}.sam"
     log:
-        
+        "logs/minimap2/log_{accession}_alignment.log"
+    benchmark:
+        "benchmarks/minimap2/benchmark_{accession}_alignment.txt"
     threads:
         10
     params:
@@ -156,7 +170,7 @@ rule minimap2:
         "envs/minimap2.yaml"
     shell:
         """
-        minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output}
+        minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
         """
 
 rule extractMappedReads:
@@ -164,7 +178,7 @@ rule extractMappedReads:
         ancient("downloads/{accession}/alignments/{accession}.sam")
         # samtools view -@ {threads} -Sb -F4 {input} chr7 > output_mapped_chr7.bam
     output:
-        expand("downloads/{accession}/alignments/extracted_{accession}.sam", chrs=["chr3", "chr7"])
+        expand("downloads/{accession}/alignments/extracted_{chr}_{accession}.sam", chrs=["chr3", "chr7"])
     conda:
         "envs/samtools.yaml"
     threads:
