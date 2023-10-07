@@ -1,0 +1,9 @@
+name: tcr_macaque
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - mamba
+  - singularity=3.8.6
+  - snakemake
+  - questionary
