@@ -7,6 +7,11 @@ current = os.getcwd()
 input_file = fetchall_args_input_file()
 ids = get_ids(f"input/{input_file}")
 
+
+if not os.path.exists(f"{current}/downloads"):
+    # If it doesn't exist, create it
+    os.makedirs(directory_path)
+
 files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("sra_")]
 if len(ids.keys()) > len(files):
     sra_download = fetchall_args_sra_download()
