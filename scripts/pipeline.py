@@ -43,7 +43,7 @@ def fetchall_args_sra_download():
     """
     selected_option = questionary.select(
                 "Select a option for downloading SRA files",
-                choices=["wget", "king", "sra"],
+                choices=["wget", "kingfisher", "sra"],
                 style=custom_style,
                 pointer="❯",
                 use_jk_keys=True,
