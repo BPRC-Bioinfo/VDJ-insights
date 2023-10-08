@@ -20,7 +20,7 @@ def parser_args():
         description=f"Choosing a downloading style", formatter_class=RawTextHelpFormatter)
     group1 = parser.add_argument_group('required arguments')
     group1.add_argument("-t", "--type", nargs="+", type=str, required=True, metavar="type", choices=["sra", "kingfisher", "wget"], default="wget",
-                        help="choose a downloading style.\nOptions include sra (sra), kingfisher (king) or wget")
+                        help="choose a downloading style.\nOptions include sra, kingfisher or wget")
     group1.add_argument("-i", "--input", nargs="+", type=str, required=True, metavar="input", 
                         help="needs a wget link from the ENA database when running --run-type in pipeline mode. When using manual mode it needs a input file.")
     group1.add_argument("-o", "--output", nargs="+", type=str, required=True, metavar="output", 
@@ -34,17 +34,15 @@ def parser_args():
     args = parser.parse_args()
     return args, parser
 
-def gunzip_file(file, new_file):
+def gzip_file(file):
     """
-    Decompress a gzip file and save it as a new file.
+    compresses a fastq file and save it as a compressed gz file.
     
     Parameters:
-        file (str): The gzip file to decompress.
-        new_file (str): The filename to save the decompressed data as.
+        file (str): The fastq file to compress.
     """
-    with open(file, 'rb') as f_in:
-        with gzip.open(f"{new_file}.fastq.gz", 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
+    gzip = f"gzip {file}"
+    subprocess.call(gzip, shell=True)
 
 def clean(fastq_file: str):
     """
@@ -58,12 +56,12 @@ def clean(fastq_file: str):
     """
     return fastq_file.split("/")[-1].split("_")[0]
 
-def sra():
+def sra(id):
     """
     Fetch SRA files and convert them to FASTQ format.
     """
     print(f"Fetching ids with sra!")
-    sra_get_prefetch()
+    sra_get_prefetch(id)
     sra_get_fastq_files()
     
 
@@ -133,8 +131,10 @@ def move_files(file, location, type, run_type):
             if current_file.endswith(".fastq.gz"):
                 print(f"Renaming and moving {current_file} to {location}!")
                 shutil.move(f"{current_pwd}/{current_file}", f"{current_pwd}/{location}")
-            else:
-                gunzip_file(current_file, current_file)
+            elif current_file.endswith(".fastq"):
+                print(current_file)
+                gzip_file(current_file)
+                shutil.move(f"{current_pwd}/{current_file}.gz", f"{current_pwd}/{location}")
     else:
         print("No fastq files found!")
             
@@ -143,14 +143,15 @@ def remove_prefetch():
     """
     Remove prefetch directories that are no longer needed.
     """
-    for dir in os.listdir('.'):
-        if os.path.isdir(f"{current_pwd}/{dir}") and dir != output_dir:
-            print(f"Removing {dir}!")
-            shutil.rmtree(f"{current_pwd}/{dir}")
+    for file in os.listdir('.'):
+        if file.startswith("prefetch"):
+            print(f"Removing {file}!")
+            shutil.rmtree(f"{current_pwd}/{file}")
 
 def options(chosen_type, chosen_input):
     if chosen_type == "sra":
         sra(clean(chosen_input))
+        # remove_prefetch()
     elif chosen_type == "kingfisher":
         kingfisher(clean(chosen_input))
     elif chosen_type == "wget":
@@ -179,7 +180,7 @@ def run():
     else:
         options(chosen_type, chosen_input)      
         move_files(clean(chosen_input), chosen_output, chosen_type, chosen_run_type)
-    # remove_prefetch()
+    
     
 
 if __name__ == "__main__":
