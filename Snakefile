@@ -3,7 +3,9 @@ import pandas as pd
 from scripts.pipeline import *
 
 current = os.getcwd()
-CHROMOSOMES = ["chr3", "chr7"]
+
+CHROMOSOMES = fetch_chromosome()
+print(CHROMOSOMES)
 
 input_file = fetchall_args_input_file()
 ids = get_ids(f"input/{input_file}")
@@ -23,7 +25,7 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam", accession=ids.keys(), chrs=CHROMOSOMES),
+        expand("downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
         # expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -199,7 +201,7 @@ rule sortIndexBam:
         "downloads/{accession}/alignments/extracted_{accession}.bam"
     output:
         sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
-        index_bam = "downloads/{accession}/alignments/index_{accession}.bam.bai",
+        index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
     log:
         "logs/samtools/sort_index_log_{accession}.log"
     conda:
@@ -214,18 +216,21 @@ rule sortIndexBam:
 
 rule extractChr:
     input:
-        "downloads/{accession}/alignments/sorted_{accession}.bam"
+        sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+        index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
     output:
         "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
     log:
         "logs/samtools/extract_log_{chrs}_{accession}.log"
+    params:
+        chromosome = lambda wildcards: CHROMOSOMES[wildcards.chrs]
     conda:
         "envs/samtools.yaml"
     threads:
         10
     shell:
         """
-        samtools view -@ {threads} {input} {wildcards.chrs} > {output} 2> {log}
+        samtools view -@ {threads} {input.sorted_bam} {params.chromosome} > {output} 2> {log}
         """
 
 
