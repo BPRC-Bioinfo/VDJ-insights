@@ -3,6 +3,7 @@ import pandas as pd
 from scripts.pipeline import *
 
 current = os.getcwd()
+CHROMOSOMES = ["chr3", "chr7"]
 
 input_file = fetchall_args_input_file()
 ids = get_ids(f"input/{input_file}")
@@ -22,7 +23,7 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/alignments/extracted_{accession}.bam", accession=ids.keys()),
+        expand("downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam", accession=ids.keys(), chrs=CHROMOSOMES),
         # expand("seqkit/raw_read_{accession}_stat.tsv", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -193,26 +194,40 @@ rule extractMappedReads:
         samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
         """
 
-# rule sortIndexBam:
-#     input:
-#         "downloads/{accession}/alignments/extracted_{accession}.bam"
-#     output:
-#         extracted_chr = "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam",
-#         index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
-#     params:
-#         sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
-#     log:
-#         "logs/samtools/log_chr_{accession}_alignment.log"
-#     conda:
-#         "envs/samtools.yaml"
-#     threads:
-#         10
-#     shell:
-#         """
-#         samtools sort -o {params.sorted_bam} {output.index_bam}
-#         samtools index {params.sorted_bam}
-#         samtool view -@ {threads} {output.index_bam} {wildcards.chrs}> {output.extracted_chr} 2> {log.chr_log}
-#         """
+rule sortIndexBam:
+    input:
+        "downloads/{accession}/alignments/extracted_{accession}.bam"
+    output:
+        sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+        index_bam = "downloads/{accession}/alignments/index_{accession}.bam.bai",
+    log:
+        "logs/samtools/sort_index_log_{accession}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools sort -o {output.sorted_bam} {input}
+        samtools index {output.sorted_bam} {output.index_bam} 2> {log}
+        """
+
+rule extractChr:
+    input:
+        "downloads/{accession}/alignments/sorted_{accession}.bam"
+    output:
+        "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
+    log:
+        "logs/samtools/extract_log_{chrs}_{accession}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} {input} {wildcards.chrs} > {output} 2> {log}
+        """
+
 
 # rule longqc:
 #     input:
