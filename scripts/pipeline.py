@@ -37,7 +37,6 @@ def fetch_chromosome():
     chromosome = {}
     for i in ["chr3", "chr7"]:
         egrep_cmd = f"cat downloads/reports/mmul10_assembly_report.txt | egrep '{i}' | head -1 | awk '{{print $5}}'"
-        print(egrep_cmd)
         result = subprocess.getoutput(egrep_cmd)
         chromosome[i] = result
     return chromosome
