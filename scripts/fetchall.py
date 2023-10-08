@@ -144,14 +144,14 @@ def remove_prefetch():
     Remove prefetch directories that are no longer needed.
     """
     for file in os.listdir('.'):
-        if file.startswith("prefetch"):
+        if file.startswith("SRR") and os.isdir(f"{current_pwd}/{file}"):
             print(f"Removing {file}!")
             shutil.rmtree(f"{current_pwd}/{file}")
 
 def options(chosen_type, chosen_input):
     if chosen_type == "sra":
         sra(clean(chosen_input))
-        # remove_prefetch()
+        remove_prefetch()
     elif chosen_type == "kingfisher":
         kingfisher(clean(chosen_input))
     elif chosen_type == "wget":
