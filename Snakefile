@@ -194,27 +194,26 @@ rule extractMappedReads:
         samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
         """
 
-# rule sortIndexBam:
-#     input:
-#         "downloads/{accession}/alignments/extracted_{accession}.bam"
-#     output:
-
-    
-#     log:
-#         "logs/samtools/log_chr_{accession}_alignment.log"
-#     conda:
-#         "envs/samtools.yaml"
-#     threads:
-#         10
-#     #     extracted_chr = "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam",
-#     #     index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
-#     #     sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
-#     shell:
-#     """
-#     samtools sort -o {params.sorted_bam} {params.bam}
-#     samtools index {params.sorted_bam}
-#     samtool view -@ {threads} {params.bam} {wildcards.chrs}> {output.extracted_chr} 2> {log.chr_log}
-#     """
+rule sortIndexBam:
+    input:
+        "downloads/{accession}/alignments/extracted_{accession}.bam"
+    output:
+        extracted_chr = "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam",
+        index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
+    params:
+        sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+    log:
+        "logs/samtools/log_chr_{accession}_alignment.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools sort -o {params.sorted_bam} {output.index_bam}
+        samtools index {params.sorted_bam}
+        samtool view -@ {threads} {output.index_bam} {wildcards.chrs}> {output.extracted_chr} 2> {log.chr_log}
+        """
 
 # rule longqc:
 #     input:
