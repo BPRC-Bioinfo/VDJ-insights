@@ -32,6 +32,10 @@ rule all:
 rule SRA_download:
     output:
         sra="downloads/sra_{accession}.fastq.gz"
+    log:
+        "logs/SRA/log_{accession}_sra.log"
+    benchmark:
+        "benchmarks/SRA/benchmark_{accession}_sra.txt"
     params:
         fastq_file = lambda wildcards: ids[wildcards.accession],
         download_type = sra_download
@@ -39,7 +43,7 @@ rule SRA_download:
         "envs/sra_download.yaml"
     shell:
         """
-        python scripts/fetchall.py -t {params.download_type} -r pipeline -i {params.fastq_file} -o {output.sra}
+        python scripts/fetchall.py -t {params.download_type} -r pipeline -i {params.fastq_file} -o {output.sra} 2> {log}
         """
 
 # Rule for initial QC
@@ -170,7 +174,7 @@ rule minimap2:
     benchmark:
         "benchmarks/minimap2/benchmark_{accession}_alignment.txt"
     threads:
-        20
+        10
     params:
         read_type = "map-hifi"
     conda:
