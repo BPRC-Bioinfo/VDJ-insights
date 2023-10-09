@@ -25,8 +25,8 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
-        expand("downloads/{accession}/coverage/bedtools/coverage_{accession}.txt", accession=ids.keys()),
-        # expand("downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
+        # expand("downloads/{accession}/coverage/bedtools/coverage_{accession}.txt", accession=ids.keys()),
+        expand("downloads/{accession}/converted/{chrs}_{accession}.fastq.gz", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
 
 # Rule to download data from the SRA database
 rule SRA_download:
@@ -230,7 +230,7 @@ rule extractChr:
         10
     shell:
         """
-        samtools view -@ {threads} {input.sorted_bam} {params.chromosome} > {output} 2> {log}
+        samtools view -@ {threads} -h {input.sorted_bam} {params.chromosome} > {output} 2> {log}
         """
 
 rule getCoverageSamtools:
@@ -258,6 +258,21 @@ rule getCoverageBedtools:
     shell:
         """
         bedtools genomecov -ibam {input.bam} -g {input.assembly} -bg> {output} 2> {log}
+        """
+rule convertBamToFastQ:
+    input:
+        "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
+    output:
+        "downloads/{accession}/converted/{chrs}_{accession}.fastq.gz"
+    log:
+        "logs/converted/log_converted_{chrs}_{accession}.log"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools fastq -@ {threads} {input} > {output} 2> {log}
         """
 # rule longqc:
 #     input:
