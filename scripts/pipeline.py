@@ -34,12 +34,13 @@ def get_ids(path):
         return id_dict
 
 def fetch_chromosome():
-    chromosome = {}
-    for i in ["chr3", "chr7"]:
-        egrep_cmd = f"cat downloads/reports/mmul10_assembly_report.txt | egrep '{i}' | head -1 | awk '{{print $5}}'"
+    chromosomes = {}
+    for chromosome in ["chr3", "chr7"]:
+        assembly_file = f"{current_cwd}/downloads/reports/mmul10_assembly_report.txt"
+        egrep_cmd = f"cat {assembly_file} | egrep '{chromosome}' | head -1 | cut -f 5"
         result = subprocess.getoutput(egrep_cmd)
-        chromosome[i] = result
-    return chromosome
+        chromosomes[chromosome] = result
+    return chromosomes
 
 
 
