@@ -5,7 +5,7 @@ from scripts.pipeline import *
 current = os.getcwd()
 
 CHROMOSOMES = fetch_chromosome()
-print(CHROMOSOMES)
+CHROMOSOMES_LENGTH = cal_chr_length()
 
 input_file = fetchall_args_input_file()
 ids = get_ids(f"input/{input_file}")
@@ -25,8 +25,8 @@ else:
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
+        expand("downloads/{accession}/assembly/flye/{chrs}", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
         # expand("downloads/{accession}/coverage/bedtools/coverage_{accession}.txt", accession=ids.keys()),
-        expand("downloads/{accession}/converted/{chrs}_{accession}.fastq.gz", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
 
 # Rule to download data from the SRA database
 rule SRA_download:
@@ -174,7 +174,7 @@ rule minimap2:
     benchmark:
         "benchmarks/minimap2/benchmark_{accession}_alignment.txt"
     threads:
-        10
+        24
     params:
         read_type = "map-hifi"
     conda:
@@ -263,6 +263,7 @@ rule getCoverageBedtools:
         """
         bedtools genomecov -ibam {input.bam} -g {input.assembly} -bg> {output} 2> {log}
         """
+
 rule convertBamToFastQ:
     input:
         "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
@@ -278,6 +279,43 @@ rule convertBamToFastQ:
         """
         samtools fastq -@ {threads} {input} > {output} 2> {log}
         """
+    
+
+
+rule seqkitChromosomes:
+    input:
+        "downloads/{accession}/converted/{chrs}_{accession}.fastq.gz"
+    output:
+        "seqkit_chromosomes/QC_{chrs}_{accession}_stat.tsv"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output}
+        """
+
+
+rule flyeAssembly:
+    input:
+        "downloads/{accession}/converted/{chrs}_{accession}.fastq.gz"
+    output:
+        "downloads/{accession}/assembly/flye/{chrs}"
+    log:
+        "logs/assembly/flye/log_flye_{chrs}_{accession}.log"
+    benchmark:
+        "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
+    params:
+        read_type = "pacbio-hifi",
+        chromosome_length = lambda wildcards: CHROMOSOMES_LENGTH[CHROMOSOMES[wildcards.chrs]]
+    threads:
+        24
+    conda:
+        "envs/flye.yaml"
+    shell:
+        """
+        flye --{params.read_type} {input} --out-dir {output} --genome-size {params.chromosome_length} --threads {threads}
+        """
+
 # rule longqc:
 #     input:
 #         "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"

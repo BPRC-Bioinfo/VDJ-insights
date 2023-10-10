@@ -43,7 +43,18 @@ def fetch_chromosome():
     return chromosomes
 
 
-
+def cal_chr_length():
+    mmul10 = {}
+    with open("downloads/mmul10.fna", "r") as f:
+        start = None 
+        for line in f:
+            if line.startswith(">"):
+                line = line.split()
+                start = f"{line[0][1::]}"
+                mmul10[start] = 0
+            else:
+                mmul10[start] += len(line.strip())
+    return mmul10
 
 def fetchall_args_sra_download():
     """
