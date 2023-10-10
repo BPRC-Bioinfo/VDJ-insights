@@ -176,12 +176,15 @@ seqkit*/*
 
 # .snakemake folder
 .snakemake/*
+
 # Data folder
 data/*
 
 # Benchmark folder
 benchmarks/*
 
-#logs
-
+# Logs folder
 logs/*
+
+# Demo script folder
+demo/*
