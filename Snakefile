@@ -3,9 +3,9 @@ import pandas as pd
 from scripts.pipeline import *
 
 current = os.getcwd()
-
-CHROMOSOMES = fetch_chromosome()
 CHROMOSOMES_LENGTH = cal_chr_length()
+CHROMOSOMES = fetch_chromosome()
+
 
 input_file = fetchall_args_input_file()
 ids = get_ids(f"input/{input_file}")
@@ -277,9 +277,8 @@ rule convertBamToFastQ:
         "envs/samtools.yaml"
     shell:
         """
-        samtools fastq -@ {threads} {input} > {output} 2> {log}
+        samtools fastq -@ {threads} {input} | gzip > {output} 2> {log}
         """
-    
 
 
 rule seqkitChromosomes:
@@ -306,14 +305,14 @@ rule flyeAssembly:
         "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
     params:
         read_type = "pacbio-hifi",
-        chromosome_length = lambda wildcards: CHROMOSOMES_LENGTH[CHROMOSOMES[wildcards.chrs]]
+        chromosome_length = lambda wildcards: CHROMOSOMES_LENGTH[CHROMOSOMES[wildcards.chrs]]/1000000000
     threads:
         24
     conda:
         "envs/flye.yaml"
     shell:
         """
-        flye --{params.read_type} {input} --out-dir {output} --genome-size {params.chromosome_length} --threads {threads}
+        flye --{params.read_type} {input} --out-dir {output} --threads {threads}
         """
 
 # rule longqc:
