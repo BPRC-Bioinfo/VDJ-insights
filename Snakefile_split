@@ -1,0 +1,64 @@
+ACCESSION = [item for sublist in glob_wildcards("downloads/sra_{accession}.fastq.gz") for item in sublist]
+print("ACCESSION:", ACCESSION)
+
+
+# Target rule specifying the desired final output
+rule all:
+    input:
+        expand("results_{accession}.txt", accession=ACCESSION)
+
+# Checkpoint for dynamically splitting the FASTQ file
+checkpoint split_fastq:
+    input:
+        fastq="downloads/sra_{accession}.fastq.gz"
+    output:
+        directory("split_files/{accession}/")        
+    shell:
+        """
+        # your shell commands for splitting the file
+        mkdir -p {output}
+
+        # Calculate size of the input file in GBs
+        input_size=$(stat -c%s "{input.fastq}")
+        input_size_gb=$((input_size / 1000000000))
+
+
+        # Calculate the number of output files needed for ~10 GB each
+        num_files=$((input_size_gb / 10 + 1))
+
+        # Calculate the number of threads per file based on the total number of available cores (24)
+        threads_per_file=$((24 / num_files))
+        if [ $threads_per_file -lt 1 ]; then
+            threads_per_file=1
+        fi
+
+        output_files=""
+        for i in $(seq 1 $num_files); do
+            output_files="$output_files -o {output}/split.$i.fastq.gz"
+        done
+
+        fastqsplitter -i {input.fastq} $output_files -t $threads_per_file
+        """
+
+# Input function to handle output of checkpoint
+def get_split_files(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    i_values = glob_wildcards(os.path.join(checkpoint_output, "split.{i}.fastq.gz")).i
+
+    expanded_paths = expand("split_files/{accession}/split.{i}.fastq.gz",
+                            accession=wildcards.accession,
+                            i=i_values)
+    return expanded_paths
+
+
+
+# Rule to utilize the split FASTQ files
+rule use_split_files:
+    input:
+        get_split_files  # Utilize the input function here
+    output:
+        "results_{accession}.txt"
+    shell:
+        """
+        touch {input} > {output}
+        """
