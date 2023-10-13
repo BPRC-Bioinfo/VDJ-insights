@@ -30,10 +30,23 @@ def get_split_files(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
     parts = glob_wildcards(os.path.join(checkpoint_output, "sra_{accession}.part_{i}.fastq.gz")).i
     
-    expanded_paths = expand("split_files/{accession}/sra_{accession}.part_{i}.fastq.gz",
+    expanded_paths = expand("split_files/{accession}/sra_{accession}.part_{i}.stats",
                             accession=wildcards.accession,
                             i=parts)
     return expanded_paths
+
+
+rule rawStats:
+    input:
+        "split_files/{accession}/sra_{accession}.part_{i}.fastq.gz"
+    output:
+        "split_files/{accession}/sra_{accession}.part_{i}.stats"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stat {input} > {output}
+        """
 
 
 # Rule to utilize the split FASTQ files
