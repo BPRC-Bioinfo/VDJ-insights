@@ -2,6 +2,7 @@ import os
 import subprocess
 import questionary
 from questionary import Style,confirm
+import json
 
 current_cwd = os.getcwd()
 
@@ -40,7 +41,8 @@ def fetch_chromosome():
         egrep_cmd = f"cat {assembly_file} | egrep '{chromosome}' | head -1 | cut -f 5"
         result = subprocess.getoutput(egrep_cmd)
         chromosomes[chromosome] = result
-    return chromosomes
+    with open(f"{current_cwd}/input/chromosome_conversion.json", "w") as f:
+        json.dump(chromosomes, f, indent=4)
 
 
 def cal_chr_length():
@@ -54,7 +56,8 @@ def cal_chr_length():
                 mmul10[start] = 0
             else:
                 mmul10[start] += len(line.strip())
-    return mmul10
+    with open(f"{current_cwd}/input/chromosome_lengths.json", "w") as f:
+        json.dump(mmul10, f, indent=4)
 
 def fetchall_args_sra_download():
     """
