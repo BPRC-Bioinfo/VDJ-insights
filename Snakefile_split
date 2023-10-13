@@ -1,11 +1,50 @@
-ACCESSION = [item for sublist in glob_wildcards("downloads/sra_{accession}.fastq.gz") for item in sublist]
-print("ACCESSION USED:", ACCESSION)
+import os
+import pandas as pd
+from scripts.pipeline import *
+import json
+current = os.getcwd()
+# CHROMOSOMES_LENGTH = cal_chr_length()
+# CHROMOSOMES = fetch_chromosome()
+# ACCESSION = [item for sublist in glob_wildcards("downloads/sra_{accession}.fastq.gz") for item in sublist]
+
+
+input_file = fetchall_args_input_file()
+ids = get_ids(f"input/{input_file}")
+
+
+if not os.path.exists(f"{current}/downloads"):
+    os.makedirs(f"{current}/downloads")
+
+files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("sra_")]
+if len(ids.keys()) > len(files):
+    sra_download = fetchall_args_sra_download()
+else:
+    sra_download = "wget"
+
+print("ACCESSION USED:", ids.keys())
 
 
 # Target rule specifying the desired final output
 rule all:
     input:
         expand("results_{accession}.txt", accession=ACCESSION)
+
+rule SRA_download:
+    output:
+        sra="downloads/sra_{accession}.fastq.gz"
+    log:
+        "logs/SRA/log_{accession}_sra.log"
+    benchmark:
+        "benchmarks/SRA/benchmark_{accession}_sra.txt"
+    params:
+        fastq_file = lambda wildcards: ids[wildcards.accession],
+        download_type = sra_download
+    conda:
+        "envs/sra_download.yaml"
+    shell:
+        """
+        python scripts/fetchall.py -t {params.download_type} -r pipeline -i {params.fastq_file} -o {output.sra} 2> {log}
+        """
 
 # Checkpoint for dynamically splitting the FASTQ file
 checkpoint split_fastq:
@@ -48,14 +87,61 @@ rule rawStats:
         seqkit stat {input} > {output}
         """
 
-
-# Rule to utilize the split FASTQ files
-rule use_split_files:
+# Rule for initial QC
+rule seqkit:
     input:
-        get_split_files  # Utilize the input function here
+        getSplitFastqFiles
     output:
-        "results_{accession}.txt"
+        "seqkit/raw_read_{accession}_stat.tsv"
     shell:
         """
-        echo {input} | tr ' ' '\n' > {output}
+        cat {input} > {output}
         """
+
+rule downloadMmul10:
+    output:
+        ref_report = "downloads/reports/mmul10_assembly_report.txt",
+        ref = "downloads/mmul10.fna",
+        chr_length = "input/chromosome_lengths.json",
+        chr_conversion = "input/chromosome_conversion.json"
+    params:
+        zipped_ref = "downloads/mmul10.fna.gz"
+    shell:
+        """
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        gunzip {params.zipped_ref}
+        python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
+        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        """
+
+
+
+
+
+
+
+
+
+# # Input function to handle output of checkpoint
+# def get_split_files(wildcards):
+#     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+#     accession = wildcards.accession
+#     i_values = glob_wildcards(os.path.join(checkpoint_output, "sra_{accession}.part_{i}.fastq.gz")).i
+    
+#     expanded_paths = expand("split_files/{accession}/sra_{accession}.part_{i}.fastq.gz",
+#                             accession=wildcards.accession,
+#                             i=i_values)
+#     return expanded_paths
+
+
+# # Rule to utilize the split FASTQ files
+# rule use_split_files:
+#     input:
+#         get_split_files  # Utilize the input function here
+#     output:
+#         "results_{accession}.txt"
+#     shell:
+#         """
+#         echo {input} | tr ' ' '\n' > {output}
+#         """
