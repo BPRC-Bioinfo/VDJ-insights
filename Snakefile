@@ -1,10 +1,10 @@
 import os
 import pandas as pd
 from scripts.pipeline import *
-
+import json
 current = os.getcwd()
-CHROMOSOMES_LENGTH = cal_chr_length()
-CHROMOSOMES = fetch_chromosome()
+# CHROMOSOMES_LENGTH = cal_chr_length()
+# CHROMOSOMES = fetch_chromosome()
 
 
 input_file = fetchall_args_input_file()
@@ -21,11 +21,11 @@ else:
     sra_download = "wget"
 
 
-
 # Define the top-level rule that depends on the output from other rules
 rule all:
     input:
         expand("downloads/{accession}/assembly/flye/{chrs}", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
+        # expand("supset/subset_sra_{accession}.fastq.gz", accession=ids.keys())
         # expand("downloads/{accession}/coverage/bedtools/coverage_{accession}.txt", accession=ids.keys()),
 
 # Rule to download data from the SRA database
@@ -45,6 +45,25 @@ rule SRA_download:
         """
         python scripts/fetchall.py -t {params.download_type} -r pipeline -i {params.fastq_file} -o {output.sra} 2> {log}
         """
+
+
+rule downloadMmul10:
+    output:
+        ref_report = "downloads/reports/mmul10_assembly_report.txt",
+        ref = "downloads/mmul10.fna",
+        chr_length = "input/chromosome_lengths.json",
+        chr_conversion = "input/chromosome_conversion.json"
+    params:
+        zipped_ref = "downloads/mmul10.fna.gz"
+    shell:
+        """
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        gunzip {params.zipped_ref}
+        python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
+        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        """
+
 
 # Rule for initial QC
 rule seqkit:
@@ -149,24 +168,12 @@ rule seqkitFiltered:
         seqkit stats {input} -a -o {output} 2> {log}
         """
 
-rule downloadMmul10:
-    output:
-        ref = "downloads/mmul10.fna",
-        ref_report = "downloads/reports/mmul10_assembly_report.txt",
-    params:
-        zipped_ref = "downloads/mmul10.fna.gz"
-    shell:
-        """
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
-        gunzip {params.zipped_ref}
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
-        """
 
 
 rule minimap2:
     input:
         read = "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz",
-        mmul10 = "downloads/mmul10.fna",
+        mmul10 = ancient("downloads/mmul10.fna"),
     output:
         "downloads/{accession}/alignments/{accession}.sam"
     log:
@@ -222,12 +229,12 @@ rule extractChr:
     input:
         sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
         index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
+        ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
+        chromosome_conversion = ancient("input/chromosome_conversion.json")
     output:
         "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
     log:
         "logs/samtools/extract_log_{chrs}_{accession}.log"
-    params:
-        chromosome = lambda wildcards: CHROMOSOMES[wildcards.chrs]
     conda:
         "envs/samtools.yaml"
     threads:
@@ -252,7 +259,7 @@ rule getCoverageSamtools:
 rule getCoverageBedtools:
     input:
         bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
-        assembly = "downloads/reports/mmul10_assembly_report.txt"
+        assembly = ancient("downloads/reports/mmul10_assembly_report.txt")
     output:
         "downloads/{accession}/coverage/bedtools/coverage_{accession}.txt"
     log:
@@ -325,4 +332,16 @@ rule flyeAssembly:
 #     shell:
 #         """
 #         LongQC sampleqc -x pb-sequel -o {output} -p 4 {input}
+#         """
+# rule supset:
+#     input:
+#         "downloads/sra_{accession}.fastq.gz"
+#     output:
+#         "supset/subset_sra_{accession}.fastq.gz"
+#         ""
+#     conda:
+#         "envs/seqkit.yaml"
+#     shell:
+#         """
+#         seqkit sample -p 0.1 {input} -o {output}
 #         """
