@@ -5,7 +5,7 @@ import json
 current = os.getcwd()
 # CHROMOSOMES_LENGTH = cal_chr_length()
 # CHROMOSOMES = fetch_chromosome()
-# ACCESSION = [item for sublist in glob_wildcards("downloads/sra_{accession}.fastq.gz") for item in sublist]
+ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz") for item in sublist]
 
 
 input_file = fetchall_args_input_file()
@@ -49,7 +49,7 @@ rule SRA_download:
 # Checkpoint for dynamically splitting the FASTQ file
 checkpoint split_fastq:
     input:
-        fastq="downloads/sra_{accession}.fastq.gz"
+        fastq="downloads/{accession}.fastq.gz"
     output:
         directory("downloads/{accession}/")        
     conda:
@@ -65,11 +65,11 @@ checkpoint split_fastq:
 
 
 # Input function to handle output of checkpoint
-def get_split_files(wildcards):
+def getSplitFastqFiles(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
-    parts = glob_wildcards(os.path.join(checkpoint_output, "sra_{accession}.part_{i}.fastq.gz")).i
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
     
-    expanded_paths = expand("split_files/{accession}/sra_{accession}.part_{i}.stats",
+    expanded_paths = expand("split_files/{accession}/{accession}.part_{i}.stats",
                             accession=wildcards.accession,
                             i=parts)
     return expanded_paths
@@ -77,9 +77,9 @@ def get_split_files(wildcards):
 
 rule rawStats:
     input:
-        "split_files/{accession}/sra_{accession}.part_{i}.fastq.gz"
+        "split_files/{accession}/{accession}.part_{i}.fastq.gz"
     output:
-        "split_files/{accession}/sra_{accession}.part_{i}.stats"
+        "split_files/{accession}/{accession}.part_{i}.stats"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -92,12 +92,13 @@ rule seqkit:
     input:
         getSplitFastqFiles
     output:
-        "seqkit/raw_read_{accession}_stat.tsv"
+        "results_{accession}.txt",
     shell:
         """
         cat {input} > {output}
         """
 
+'''
 rule downloadMmul10:
     output:
         ref_report = "downloads/reports/mmul10_assembly_report.txt",
@@ -145,3 +146,4 @@ rule downloadMmul10:
 #         """
 #         echo {input} | tr ' ' '\n' > {output}
 #         """
+'''
