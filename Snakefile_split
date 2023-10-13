@@ -27,12 +27,11 @@ checkpoint split_fastq:
 # Input function to handle output of checkpoint
 def get_split_files(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
-    accession = wildcards.accession
-    i_values = glob_wildcards(os.path.join(checkpoint_output, "sra_{accession}.part_{i}.fastq.gz")).i
+    parts = glob_wildcards(os.path.join(checkpoint_output, "sra_{accession}.part_{i}.fastq.gz")).i
     
     expanded_paths = expand("split_files/{accession}/sra_{accession}.part_{i}.fastq.gz",
                             accession=wildcards.accession,
-                            i=i_values)
+                            i=parts)
     return expanded_paths
 
 
