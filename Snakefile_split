@@ -12,7 +12,7 @@ checkpoint split_fastq:
     input:
         fastq="downloads/sra_{accession}.fastq.gz"
     output:
-        directory("split_files/{accession}/")        
+        directory("downloads/{accession}/")        
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -24,6 +24,7 @@ checkpoint split_fastq:
         seqkit split2 -s 1000000 -O {output} {input.fastq} 
         """
 
+
 # Input function to handle output of checkpoint
 def get_split_files(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
@@ -33,7 +34,6 @@ def get_split_files(wildcards):
                             accession=wildcards.accession,
                             i=parts)
     return expanded_paths
-
 
 
 # Rule to utilize the split FASTQ files
