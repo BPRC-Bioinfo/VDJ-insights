@@ -188,3 +188,13 @@ logs/*
 
 # Demo script folder
 demo/*
+
+# Test folder
+test/*
+
+# Some input files in the input folder
+input/input*
+input/chromosome*
+
+# Splitted files folder
+split_files/*
