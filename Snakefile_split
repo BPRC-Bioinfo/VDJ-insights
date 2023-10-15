@@ -4,17 +4,31 @@ from scripts.pipeline import *
 import json
 current = os.getcwd()
 
-ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz") for item in sublist]
+# ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz") for item in sublist]
+# print("ACCESSION USED:", ACCESSION)
+
+
+input_file = fetchall_args_input_file()
+ids = get_ids(f"input/{input_file}")
+
+
+if not os.path.exists(f"{current}/downloads"):
+    os.makedirs(f"{current}/downloads")
+
+files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("SRR")]
+if len(ids.keys()) > len(files):
+    sra_download = fetchall_args_sra_download()
+else:
+    sra_download = "wget"
 
 
 
-print("ACCESSION USED:", ACCESSION)
 
 
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("results_{accession}.txt", accession=ACCESSION)
+        expand("processed_{accession}.txt", accession=ids.keys())
 
 
 # Checkpoint for dynamically splitting the FASTQ file
@@ -69,7 +83,103 @@ rule seqkit:
         cat {input} > {output}
         """
 
+# Filter rule for removing adaptor for pacbio reads with seqkit rmdup.
+rule pbAdaptFilt:
+    input: 
+        "split_files/{accession}/{accession}.part_{i}.fastq.gz"
+    output: 
+        pbfilt = temp("split_files/{accession}/pb/pb_filtered_{accession}.part_{i}.filt.fastq.gz")
+    log:
+        "logs/adaptor/log_{accession}_pb.part_{i}.log"
+    benchmark:
+        "benchmarks/adaptfilt/benchmark_{accession}_pb.part_{i}.txt"
+    params:
+        filt = "split_files/{accession}/pb/{accession}.part_{i}.filt.fastq.gz" ,
+        input_dir = "split_files/{accession}",
+    singularity:
+        "docker://australianbiocommons/hifiadapterfilt"
+    shell:
+        """
+        cd {params.input_dir}
+        bash pbadapterfilt.sh -o pb -p {wildcards.accession}
+        cd ../../
+        mv {params.filt} {output.pbfilt}
+        """
+
+# Filter rule for removing adaptor for pacbio hifi reads with seqkit.
+rule hifiAdaptFilt:
+    input: 
+        "split_files/{accession}/pb/pb_filtered_{accession}.part_{i}.filt.fastq.gz"
+    output: 
+        filt = temp("split_files/{accession}/hifi/hifi_filtered_{accession}.part_{i}.fastq.gz")
+    log:
+        "logs/adaptor/log_{accession}_hifi.part_{i}.log"
+    benchmark:
+        "benchmarks/adaptfilt/benchmark_{accession}_hifi.part_{i}.txt"
+    params:
+        input_dir = "split_files/{accession}/pb",
+        output_dir = "hifi",
+        hififilt = "split_files/{accession}/pb/hifi/pb_filtered_{accession}.part_{i}.filt.filt.fastq.gz",
+    singularity:
+        "docker://australianbiocommons/hifiadapterfilt"
+    shell:
+        """
+        cd {params.input_dir}
+        bash hifiadapterfilt.sh -o {params.output_dir} -p pb_filtered_{wildcards.accession}
+        cd ../../../
+        mv {params.hififilt} {output.filt} 
+        """
+
+rule filteredReads:
+    input:
+        "split_files/{accession}/hifi/hifi_filtered_{accession}.part_{i}.fastq.gz"
+    output:
+        "split_files/{accession}/cleaned/filtered_{accession}.part_{i}.fastq.gz"
+    log:
+        "logs/seqkit/filterd/log_{accession}_filterd.part_{i}.log"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit seq {input} -m 5000 -o {output} 
+        """
+
+# QC rule for getting statistics for filterd reads with seqkit stats.
+rule seqkitFiltered:
+    input:
+        ancient("split_files/{accession}/cleaned/filtered_{accession}.part_{i}.fastq.gz")
+    output:
+        "split_files/{accession}/filtered_{accession}.part_{i}.stats"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output} 2> {log}
+        """
+
+def getProcessedStatsFiles(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
+    
+    expanded_paths = expand("split_files/{accession}/filtered_{accession}.part_{i}.stats",
+                            accession=wildcards.accession,
+                            i=parts)
+    return expanded_paths
+
+
+rule processedStats:
+    input:
+        getProcessedStatsFiles
+    output:
+        "processed_{accession}.txt"
+    shell:
+        """
+        cat {input} > {output}
+        """
+
 '''
+
+ 
 rule downloadMmul10:
     output:
         ref_report = "downloads/reports/mmul10_assembly_report.txt",
