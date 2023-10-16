@@ -198,3 +198,6 @@ input/chromosome*
 
 # Splitted files folder
 split_files/*
+
+# Filtered files folder
+filtered/*

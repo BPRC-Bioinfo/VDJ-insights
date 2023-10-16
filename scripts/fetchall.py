@@ -175,7 +175,7 @@ def run():
             for sra_file in f:
                 cleaned_id = clean(sra_file)
                 options(chosen_type, sra_file.strip())
-                move_path = f"{chosen_output}/sra_{cleaned_id}.fastq.gz"        
+                move_path = f"{chosen_output}/{cleaned_id}.fastq.gz"        
                 move_files(cleaned_id, move_path, chosen_type, chosen_run_type)
     else:
         options(chosen_type, chosen_input)      

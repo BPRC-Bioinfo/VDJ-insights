@@ -4,31 +4,33 @@ from scripts.pipeline import *
 import json
 current = os.getcwd()
 
-# ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz") for item in sublist]
+ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz") for item in sublist]
 # print("ACCESSION USED:", ACCESSION)
 
 
-input_file = fetchall_args_input_file()
-ids = get_ids(f"input/{input_file}")
+# input_file = fetchall_args_input_file()
+# ids = get_ids(f"input/{input_file}")
 
 
-if not os.path.exists(f"{current}/downloads"):
-    os.makedirs(f"{current}/downloads")
+# if not os.path.exists(f"{current}/downloads"):
+#     os.makedirs(f"{current}/downloads")
 
-files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("SRR")]
-if len(ids.keys()) > len(files):
-    sra_download = fetchall_args_sra_download()
-else:
-    sra_download = "wget"
+# files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("SRR")]
+# if len(ids.keys()) > len(files):
+#     sra_download = fetchall_args_sra_download()
+# else:
+#     sra_download = "wget"
 
 
+wildcard_constraints:
+    accession = "|".join(ACCESSION)
 
 
 
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("processed_{accession}.txt", accession=ids.keys())
+        expand("processed_{accession}.txt", accession=ACCESSION)
 
 
 # Checkpoint for dynamically splitting the FASTQ file
@@ -36,7 +38,7 @@ checkpoint split_fastq:
     input:
         fastq="downloads/{accession}.fastq.gz"
     output:
-        directory("split_files/{accession}/")        
+        directory("split_files/{accession}")        
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -52,9 +54,10 @@ checkpoint split_fastq:
 # Input function to handle output of checkpoint
 def getSplitFastqFiles(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
     
-    expanded_paths = expand("split_files/{accession}/{accession}.part_{i}.stats",
+    expanded_paths = expand("QC/raw/{accession}.part_{i}.stats",
                             accession=wildcards.accession,
                             i=parts)
     return expanded_paths
@@ -64,7 +67,7 @@ rule rawStats:
     input:
         "split_files/{accession}/{accession}.part_{i}.fastq.gz"
     output:
-        "split_files/{accession}/{accession}.part_{i}.stats"
+        "QC/raw/{accession}.part_{i}.stats"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -88,82 +91,102 @@ rule pbAdaptFilt:
     input: 
         "split_files/{accession}/{accession}.part_{i}.fastq.gz"
     output: 
-        pbfilt = temp("split_files/{accession}/pb/pb_filtered_{accession}.part_{i}.filt.fastq.gz")
+        pbfilt = temp("filtered/pb_filtered_{accession}.part_{i}.filt.fastq.gz")
+    threads:
+        24
     log:
         "logs/adaptor/log_{accession}_pb.part_{i}.log"
     benchmark:
         "benchmarks/adaptfilt/benchmark_{accession}_pb.part_{i}.txt"
     params:
-        filt = "split_files/{accession}/pb/{accession}.part_{i}.filt.fastq.gz" ,
         input_dir = "split_files/{accession}",
+        output_dir = "pb_{accession}_{i}",
+        filt = "split_files/{accession}/pb_{accession}_{i}/{accession}.part_{i}.filt.fastq.gz" ,
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
     shell:
         """
         cd {params.input_dir}
-        bash pbadapterfilt.sh -o pb -p {wildcards.accession}
+        bash pbadapterfilt.sh -o {params.output_dir} -p {wildcards.accession}.part_{wildcards.i} -t {threads}
         cd ../../
         mv {params.filt} {output.pbfilt}
+        rm -r {params.input_dir}/{params.output_dir}
         """
 
-# Filter rule for removing adaptor for pacbio hifi reads with seqkit.
 rule hifiAdaptFilt:
     input: 
-        "split_files/{accession}/pb/pb_filtered_{accession}.part_{i}.filt.fastq.gz"
+        "filtered/pb_filtered_{accession}.part_{i}.filt.fastq.gz"
     output: 
-        filt = temp("split_files/{accession}/hifi/hifi_filtered_{accession}.part_{i}.fastq.gz")
+        filt = temp("filtered/hifi_filtered_{accession}.part_{i}.fastq.gz")
+    threads:
+        24
     log:
         "logs/adaptor/log_{accession}_hifi.part_{i}.log"
     benchmark:
         "benchmarks/adaptfilt/benchmark_{accession}_hifi.part_{i}.txt"
     params:
-        input_dir = "split_files/{accession}/pb",
-        output_dir = "hifi",
-        hififilt = "split_files/{accession}/pb/hifi/pb_filtered_{accession}.part_{i}.filt.filt.fastq.gz",
+        input_dir = "filtered",
+        output_dir = "hifi_{accession}_{i}",
+        hififilt = "filtered/hifi_{accession}_{i}/pb_filtered_{accession}.part_{i}.filt.filt.fastq.gz",
     singularity:
         "docker://australianbiocommons/hifiadapterfilt"
     shell:
         """
         cd {params.input_dir}
-        bash hifiadapterfilt.sh -o {params.output_dir} -p pb_filtered_{wildcards.accession}
-        cd ../../../
+        bash hifiadapterfilt.sh -o {params.output_dir} -p pb_filtered_{wildcards.accession}.part_{wildcards.i} -t {threads}
+        cd ../
         mv {params.hififilt} {output.filt} 
+        rm -r {params.input_dir}/{params.output_dir}
         """
+
+rule removeDuplicateReads:
+    input:
+        "filtered/hifi_filtered_{accession}.part_{i}.fastq.gz"
+    output:
+        "filtered/no_duplicate_{accession}.part_{i}.fastq.gz"
+    log:
+        "logs/seqkit/duplicates/log_{accession}_duplicates.part_{i}.log"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit rmdup {input} -s -i -o {output} 2> {log}
+        """
+
 
 rule filteredReads:
     input:
-        "split_files/{accession}/hifi/hifi_filtered_{accession}.part_{i}.fastq.gz"
+        "filtered/no_duplicate_{accession}.part_{i}.fastq.gz"
     output:
-        "split_files/{accession}/cleaned/filtered_{accession}.part_{i}.fastq.gz"
+        "filtered/filtered_{accession}.part_{i}.fastq.gz"
     log:
         "logs/seqkit/filterd/log_{accession}_filterd.part_{i}.log"
     conda:
         "envs/seqkit.yaml"
     shell:
         """
-        seqkit seq {input} -m 5000 -o {output} 
+        seqkit seq {input} -m 5000 -o {output} 2> {log}
         """
 
-# QC rule for getting statistics for filterd reads with seqkit stats.
 rule seqkitFiltered:
     input:
-        ancient("split_files/{accession}/cleaned/filtered_{accession}.part_{i}.fastq.gz")
+        ancient("filtered/filtered_{accession}.part_{i}.fastq.gz")
     output:
-        "split_files/{accession}/filtered_{accession}.part_{i}.stats"
+        "QC/filtered/filtered_{accession}.part_{i}.stats"
     conda:
         "envs/seqkit.yaml"
     shell:
         """
-        seqkit stats {input} -a -o {output} 2> {log}
+        seqkit stats {input} -a -o {output}
         """
 
 def getProcessedStatsFiles(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
-    parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
-    
-    expanded_paths = expand("split_files/{accession}/filtered_{accession}.part_{i}.stats",
+    parts = glob_wildcards(f"{checkpoint_output}/{{accession}}.part_{{i}}.fastq.gz").i
+    expanded_paths = expand("QC/filtered/filtered_{accession}.part_{i}.stats",
                             accession=wildcards.accession,
                             i=parts)
+    print(expanded_paths)
     return expanded_paths
 
 
@@ -227,4 +250,6 @@ rule downloadMmul10:
 #         """
 #         echo {input} | tr ' ' '\n' > {output}
 #         """
+
+
 '''
