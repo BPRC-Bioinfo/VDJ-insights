@@ -29,15 +29,13 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("test_{accession}.txt", accession=ACCESSION)
+        expand("coverage_{accession}.txt", accession=ACCESSION)
 
 
 rule downloadMmul10:
     output:
         ref_report = "downloads/reports/mmul10_assembly_report.txt",
         ref = "downloads/mmul10.fna",
-        chr_length = "input/chromosome_lengths.json",
-        chr_conversion = "input/chromosome_conversion.json"
     params:
         zipped_ref = "downloads/mmul10.fna.gz"
     shell:
@@ -45,9 +43,25 @@ rule downloadMmul10:
         wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
         wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
         gunzip {params.zipped_ref}
+        """
+
+# Checkpoint to generate the JSON file
+checkpoint generate_json:
+    output:
+        chr_conversion="input/chromosome_conversion.json",
+        chr_length="input/chromosome_length.json"
+    shell:
+        """
         python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
         python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
         """
+
+
+# Function to load JSON file into a Python dictionary
+def load_chromosome_conversion(input_file):
+    with open(input_file, 'r') as f:
+        return json.load(f)
+
 
 # Checkpoint for dynamically splitting the FASTQ file
 checkpoint split_fastq:
@@ -273,6 +287,56 @@ rule sortIndexBam:
         """
 
 
+rule extractChr:
+    input:
+        sorted_bam = "alignments/sorted_{accession}.part_{i}.bam",
+        index_bam = "alignments/sorted_{accession}.part_{i}.bam.bai",
+        ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
+        chromosome_conversion = ancient("input/chromosome_conversion.json")
+    output:
+        "alignments/extracted_{chrs}_{accession}.part_{i}.bam"
+    params:
+        chromosome=lambda wildcards, input: load_chromosome_conversion("input/chromosome_conversion.json")[wildcards.chrs]
+    log:
+        "logs/samtools/extract_log_{chrs}_{accession}.part_{i}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -h {input.sorted_bam} {params.chromosome} > {output} 2> {log}
+        """
+
+
+rule getCoverageSamtools:
+    input:
+        "alignments/sorted_{accession}.part_{i}.bam"
+    output:
+        "coverage/coverage_{accession}.part_{i}.txt"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools coverage -@ {threads} {input} -o {output}
+        """
+
+
+# Function to generate chromosome-specific BAM file paths
+def chromosome_files(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    chr_conversion = load_chromosome_conversion("input/chromosome_conversion.json")
+    chromosomes = list(chr_conversion.keys())
+    expanded_paths = expand("alignments/extracted_{chrs}_{accession}.part_{i}.bam",
+                            chrs=chromosomes,
+                            accession=wildcards.accession,
+                            i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
+    return expanded_paths
+
+
+
 ### test rule ###
 
 
@@ -280,7 +344,7 @@ rule sortIndexBam:
 def intermediate_file(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
-    expanded_paths = expand("alignments/sorted_{accession}.part_{i}.bam",
+    expanded_paths = expand("coverage/coverage_{accession}.part_{i}.txt",
                             accession=wildcards.accession,
                             i=parts)
     return expanded_paths
@@ -289,9 +353,10 @@ def intermediate_file(wildcards):
 # Rule to utilize the split FASTQ files
 rule use_split_files:
     input:
-        intermediate_file
+        # chromosome_files
+        chromosome_files
     output:
-        "test_{accession}.txt"
+        "coverage_{accession}.txt"
     shell:
         """
         echo {input} | tr ' ' '\n' > {output}
