@@ -26,12 +26,28 @@ wildcard_constraints:
     accession = "|".join(ACCESSION)
 
 
-
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("processed_{accession}.txt", accession=ACCESSION)
+        expand("test_{accession}.txt", accession=ACCESSION)
 
+
+rule downloadMmul10:
+    output:
+        ref_report = "downloads/reports/mmul10_assembly_report.txt",
+        ref = "downloads/mmul10.fna",
+        chr_length = "input/chromosome_lengths.json",
+        chr_conversion = "input/chromosome_conversion.json"
+    params:
+        zipped_ref = "downloads/mmul10.fna.gz"
+    shell:
+        """
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        gunzip {params.zipped_ref}
+        python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
+        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        """
 
 # Checkpoint for dynamically splitting the FASTQ file
 checkpoint split_fastq:
@@ -200,56 +216,84 @@ rule processedStats:
         cat {input} > {output}
         """
 
-'''
 
- 
-rule downloadMmul10:
+rule minimap2:
+    input:
+        read = "filtered/filtered_{accession}.part_{i}.fastq.gz",
+        mmul10 = ancient("downloads/mmul10.fna"),
     output:
-        ref_report = "downloads/reports/mmul10_assembly_report.txt",
-        ref = "downloads/mmul10.fna",
-        chr_length = "input/chromosome_lengths.json",
-        chr_conversion = "input/chromosome_conversion.json"
+        "alignments/{accession}.part_{i}.sam"
+    log:
+        "logs/minimap2/log_{accession}_alignment.part_{i}.log"
+    benchmark:
+        "benchmarks/minimap2/benchmark_{accession}_alignment.part_{i}.txt"
+    threads: 
+        24
     params:
-        zipped_ref = "downloads/mmul10.fna.gz"
+        read_type = "map-pb"
+    conda:
+        "envs/minimap2.yaml"
     shell:
         """
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
-        gunzip {params.zipped_ref}
-        python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
-        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+        """
+
+rule extractMappedReads:
+    input:
+        "alignments/{accession}.part_{i}.sam"
+    output:
+        "alignments/extracted_{accession}.part_{i}.bam",
+    log:
+        "logs/samtools/log_{accession}_alignment.part_{i}.log",
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
+        """
+
+rule sortIndexBam:
+    input:
+        "alignments/extracted_{accession}.part_{i}.bam"
+    output:
+        sorted_bam = "alignments/sorted_{accession}.part_{i}.bam",
+        index_bam = "alignments/sorted_{accession}.part_{i}.bam.bai",
+    log:
+        "logs/samtools/sort_index_log_{accession}.part_{i}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools sort -@ {threads} -o {output.sorted_bam} {input}
+        samtools index -@ {threads} {output.sorted_bam} {output.index_bam} 2> {log}
         """
 
 
+### test rule ###
 
 
+# Input function to handle output of checkpoint
+def intermediate_file(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
+    expanded_paths = expand("alignments/sorted_{accession}.part_{i}.bam",
+                            accession=wildcards.accession,
+                            i=parts)
+    return expanded_paths
 
 
+# Rule to utilize the split FASTQ files
+rule use_split_files:
+    input:
+        intermediate_file
+    output:
+        "test_{accession}.txt"
+    shell:
+        """
+        echo {input} | tr ' ' '\n' > {output}
+        """
 
-
-
-# # Input function to handle output of checkpoint
-# def get_split_files(wildcards):
-#     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
-#     accession = wildcards.accession
-#     i_values = glob_wildcards(os.path.join(checkpoint_output, "sra_{accession}.part_{i}.fastq.gz")).i
-    
-#     expanded_paths = expand("split_files/{accession}/sra_{accession}.part_{i}.fastq.gz",
-#                             accession=wildcards.accession,
-#                             i=i_values)
-#     return expanded_paths
-
-
-# # Rule to utilize the split FASTQ files
-# rule use_split_files:
-#     input:
-#         get_split_files  # Utilize the input function here
-#     output:
-#         "results_{accession}.txt"
-#     shell:
-#         """
-#         echo {input} | tr ' ' '\n' > {output}
-#         """
-
-
-'''
