@@ -201,3 +201,6 @@ split_files/*
 
 # Filtered files folder
 filtered/*
+
+# Alignment folder
+alignments/*
