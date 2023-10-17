@@ -292,7 +292,7 @@ def chromosome_files(wildcards):
     chrom_file = checkpoints.generate_json.get().output[0]
     chr_conversion = load_chromosome_conversion(chrom_file)
     chromosomes = list(chr_conversion.keys())
-    expanded_paths = expand("converted/{chrs}_{accession}.part_{i}.fastq",
+    expanded_paths = expand("converted/{chrs}_{accession}.part_{i}.fastq.gz",
                             chrs=chromosomes,
                             accession=wildcards.accession,
                             i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
@@ -339,7 +339,7 @@ rule convertBamToFastQ:
     input:
         "alignments/extracted_{chrs}_{accession}.part_{i}.bam"
     output:
-        "converted/{chrs}_{accession}.part_{i}.fastq"
+        "converted/{chrs}_{accession}.part_{i}.fastq.gz"
     log:
         "logs/converted/log_converted_{chrs}_{accession}.part_{i}.log"
     threads:
@@ -348,7 +348,7 @@ rule convertBamToFastQ:
         "envs/samtools.yaml"
     shell:
         """
-        samtools fastq -@ {threads} {input} > {output} 2> {log}
+        samtools bam2fq -@ {threads} {input} | gzip -c > {output} 2> {log}
         """
 
 
