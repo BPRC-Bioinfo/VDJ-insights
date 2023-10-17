@@ -29,7 +29,7 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("coverage_{accession}.txt", accession=ACCESSION)
+        expand("converted_{accession}.txt", accession=ACCESSION)
 
 
 rule downloadMmul10:
@@ -49,11 +49,11 @@ rule downloadMmul10:
 checkpoint generate_json:
     output:
         chr_conversion="input/chromosome_conversion.json",
-        chr_length="input/chromosome_length.json"
+        # chr_length="input/chromosome_length.json"
+        # python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
     shell:
         """
         python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
-        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
         """
 
 
@@ -286,6 +286,18 @@ rule sortIndexBam:
         samtools index -@ {threads} {output.sorted_bam} {output.index_bam} 2> {log}
         """
 
+# Function to generate chromosome-specific BAM file paths
+def chromosome_files(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    chrom_file = checkpoints.generate_json.get().output[0]
+    chr_conversion = load_chromosome_conversion(chrom_file)
+    chromosomes = list(chr_conversion.keys())
+    expanded_paths = expand("converted/{chrs}_{accession}.part_{i}.fastq",
+                            chrs=chromosomes,
+                            accession=wildcards.accession,
+                            i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
+    return expanded_paths
+
 
 rule extractChr:
     input:
@@ -323,17 +335,22 @@ rule getCoverageSamtools:
         samtools coverage -@ {threads} {input} -o {output}
         """
 
+rule convertBamToFastQ:
+    input:
+        "alignments/extracted_{chrs}_{accession}.part_{i}.bam"
+    output:
+        "converted/{chrs}_{accession}.part_{i}.fastq"
+    log:
+        "logs/converted/log_converted_{chrs}_{accession}.part_{i}.log"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools fastq -@ {threads} {input} > {output} 2> {log}
+        """
 
-# Function to generate chromosome-specific BAM file paths
-def chromosome_files(wildcards):
-    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
-    chr_conversion = load_chromosome_conversion("input/chromosome_conversion.json")
-    chromosomes = list(chr_conversion.keys())
-    expanded_paths = expand("alignments/extracted_{chrs}_{accession}.part_{i}.bam",
-                            chrs=chromosomes,
-                            accession=wildcards.accession,
-                            i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
-    return expanded_paths
 
 
 
@@ -353,10 +370,9 @@ def intermediate_file(wildcards):
 # Rule to utilize the split FASTQ files
 rule use_split_files:
     input:
-        # chromosome_files
         chromosome_files
     output:
-        "coverage_{accession}.txt"
+        "converted_{accession}.txt"
     shell:
         """
         echo {input} | tr ' ' '\n' > {output}
