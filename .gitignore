@@ -192,6 +192,9 @@ demo/*
 # Test folder
 test/*
 
+# QC folder
+QC/*
+
 # Some input files in the input folder
 input/input*
 input/chromosome*
@@ -204,3 +207,9 @@ filtered/*
 
 # Alignment folder
 alignments/*
+
+# Coverage folder
+coverage/*
+
+# converted folder
+converted/*

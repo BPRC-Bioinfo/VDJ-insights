@@ -29,7 +29,7 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("converted_{accession}.txt", accession=ACCESSION)
+        expand("flye_{accession}.txt", accession=ACCESSION)
 
 
 rule downloadMmul10:
@@ -49,10 +49,10 @@ rule downloadMmul10:
 checkpoint generate_json:
     output:
         chr_conversion="input/chromosome_conversion.json",
-        # chr_length="input/chromosome_length.json"
-        # python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        chr_length="input/chromosome_lengths.json"
     shell:
         """
+        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
         python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
         """
 
@@ -236,7 +236,7 @@ rule minimap2:
         read = "filtered/filtered_{accession}.part_{i}.fastq.gz",
         mmul10 = ancient("downloads/mmul10.fna"),
     output:
-        "alignments/{accession}.part_{i}.sam"
+        temp("alignments/{accession}.part_{i}.sam")
     log:
         "logs/minimap2/log_{accession}_alignment.part_{i}.log"
     benchmark:
@@ -254,9 +254,9 @@ rule minimap2:
 
 rule extractMappedReads:
     input:
-        "alignments/{accession}.part_{i}.sam"
+        ancient("alignments/{accession}.part_{i}.sam")
     output:
-        "alignments/extracted_{accession}.part_{i}.bam",
+        temp("alignments/extracted_{accession}.part_{i}.bam")
     log:
         "logs/samtools/log_{accession}_alignment.part_{i}.log",
     conda:
@@ -270,10 +270,10 @@ rule extractMappedReads:
 
 rule sortIndexBam:
     input:
-        "alignments/extracted_{accession}.part_{i}.bam"
+        ancient("alignments/extracted_{accession}.part_{i}.bam")
     output:
-        sorted_bam = "alignments/sorted_{accession}.part_{i}.bam",
-        index_bam = "alignments/sorted_{accession}.part_{i}.bam.bai",
+        sorted_bam = temp("alignments/sorted_{accession}.part_{i}.bam"),
+        index_bam = temp("alignments/sorted_{accession}.part_{i}.bam.bai"),
     log:
         "logs/samtools/sort_index_log_{accession}.part_{i}.log"
     conda:
@@ -287,13 +287,15 @@ rule sortIndexBam:
         """
 
 # Function to generate chromosome-specific BAM file paths
-def chromosome_files(wildcards):
+def chromosome_files(wildcards, chrs):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
     chrom_file = checkpoints.generate_json.get().output[0]
     chr_conversion = load_chromosome_conversion(chrom_file)
     chromosomes = list(chr_conversion.keys())
-    expanded_paths = expand("converted/{chrs}_{accession}.part_{i}.fastq.gz",
-                            chrs=chromosomes,
+    if chrs not in chromosomes:
+        return []
+    expanded_paths = expand("alignments/extracted_{chrs}_{accession}.part_{i}.bam",
+                            chrs=chrs,
                             accession=wildcards.accession,
                             i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
     return expanded_paths
@@ -301,8 +303,8 @@ def chromosome_files(wildcards):
 
 rule extractChr:
     input:
-        sorted_bam = "alignments/sorted_{accession}.part_{i}.bam",
-        index_bam = "alignments/sorted_{accession}.part_{i}.bam.bai",
+        sorted_bam = ancient("alignments/sorted_{accession}.part_{i}.bam"),
+        index_bam = ancient("alignments/sorted_{accession}.part_{i}.bam.bai"),
         ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
         chromosome_conversion = ancient("input/chromosome_conversion.json")
     output:
@@ -320,28 +322,29 @@ rule extractChr:
         samtools view -@ {threads} -h {input.sorted_bam} {params.chromosome} > {output} 2> {log}
         """
 
-
-rule getCoverageSamtools:
+rule combineBAM:
     input:
-        "alignments/sorted_{accession}.part_{i}.bam"
+        ancient(lambda wildcards: chromosome_files(wildcards, wildcards.chrs))
     output:
-        "coverage/coverage_{accession}.part_{i}.txt"
+        "combined/{chrs}_{accession}.combined.bam"
     threads:
         10
     conda:
         "envs/samtools.yaml"
     shell:
         """
-        samtools coverage -@ {threads} {input} -o {output}
+        samtools merge -@ {threads} {output} {input} 
         """
+
+
 
 rule convertBamToFastQ:
     input:
-        "alignments/extracted_{chrs}_{accession}.part_{i}.bam"
+        ancient("combined/{chrs}_{accession}.combined.bam")
     output:
-        "converted/{chrs}_{accession}.part_{i}.fastq.gz"
+        "converted/{chrs}_{accession}.fastq.gz"
     log:
-        "logs/converted/log_converted_{chrs}_{accession}.part_{i}.log"
+        "logs/converted/log_converted_{chrs}_{accession}.log"
     threads:
         10
     conda:
@@ -352,7 +355,48 @@ rule convertBamToFastQ:
         """
 
 
+def chromosome_lengths(wildcards, chrs):
+    chr_conversion = checkpoints.generate_json.get().output[0]
+    chr_lengt = checkpoints.generate_json.get().output[1]
+    chr_conversion_dict = load_chromosome_conversion(chr_conversion)
+    chr_lenght_dict = load_chromosome_conversion(chr_lengt)
+    return chr_lenght_dict[chr_conversion_dict[chrs]]
 
+
+rule flyeAssembly:
+    input:
+        ancient("converted/{chrs}_{accession}.fastq.gz")
+    output:
+        "flye/{chrs}_{accession}"
+    log:
+        "logs/assembly/flye/log_flye_{chrs}_{accession}.log"
+    benchmark:
+        "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
+    params:
+        read_type = "pacbio-corr",
+        size = lambda wildcards: chromosome_lengths(wildcards, wildcards.chrs) 
+    threads:
+        24
+    conda:
+        "envs/flye.yaml"
+    shell:
+        """
+        flye --{params.read_type} {input} --out-dir {output} --genome-size {params.size} --asm-coverage 30 --threads {threads}
+        """
+
+rule getCoverageSamtools:
+    input:
+        "combined/{chrs}_{accession}.combined.bam"
+    output:
+        "coverage/coverage_{chrs}_{accession}.txt"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools coverage  {input} -o {output}
+        """
 
 ### test rule ###
 
@@ -360,19 +404,22 @@ rule convertBamToFastQ:
 # Input function to handle output of checkpoint
 def intermediate_file(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    chrom_file = checkpoints.generate_json.get().output[0]
+    chr_conversion = load_chromosome_conversion(chrom_file)
+    chromosomes = list(chr_conversion.keys())
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
-    expanded_paths = expand("coverage/coverage_{accession}.part_{i}.txt",
-                            accession=wildcards.accession,
-                            i=parts)
+    expanded_paths = expand("flye/{chrs}_{accession}",
+                            chrs=chromosomes,
+                            accession=wildcards.accession)
     return expanded_paths
 
 
 # Rule to utilize the split FASTQ files
 rule use_split_files:
     input:
-        chromosome_files
+        intermediate_file
     output:
-        "converted_{accession}.txt"
+        "flye_{accession}.txt"
     shell:
         """
         echo {input} | tr ' ' '\n' > {output}
