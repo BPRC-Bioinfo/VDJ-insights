@@ -44,7 +44,7 @@ rule makeMd5HashCode:
 rule verifyMd5HashCode:
     input:
         acc = "{accession}.md5.txt",
-        check = "filereport_read_run_SRR22963530.json"
+        check = "input/filereport_read_run_PRJNA476474.json"
     output:
         "result_{accession}.txt"
     run:

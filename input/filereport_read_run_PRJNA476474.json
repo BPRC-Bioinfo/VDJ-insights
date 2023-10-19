@@ -434,4 +434,6 @@
 {"run_accession":"SRR8137616","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4958517","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/006/SRR8137616/SRR8137616_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR813/006/SRR8137616","bam_ftp":""}
 ,
 {"run_accession":"SRR8137617","study_accession":"PRJNA476474","sample_accession":"SAMN09435472","experiment_accession":"SRX4958517","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/007/SRR8137617/SRR8137617_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR813/007/SRR8137617","bam_ftp":""}
+,
+{"study_accession":"PRJNA382404","sample_accession":"SAMN09993101","experiment_accession":"SRX18920200","run_accession":"SRR22963530","tax_id":"9544","scientific_name":"Macaca mulatta","fastq_md5":"f72e20ce0e469adbcbeb2c0c69193dc2","fastq_ftp":"ftp.sra.ebi.ac.uk/vol1/fastq/SRR229/030/SRR22963530/SRR22963530_subreads.fastq.gz","submitted_ftp":"","sra_ftp":"ftp.sra.ebi.ac.uk/vol1/srr/SRR229/030/SRR22963530","bam_ftp":""}
 ]
