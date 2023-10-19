@@ -389,7 +389,9 @@ rule hifiasmAssembly:
     input:
          ancient("converted/{chrs}_{accession}.fastq.gz")
     output:
-        "hifiasm/{chrs}_{accession}.asm",
+        directory("hifiasm/{chrs}_{accession}/"),
+    params:
+        prefix = "{chrs}_{accession}.asm",
     threads:
         24
     conda:
@@ -398,7 +400,9 @@ rule hifiasmAssembly:
         "logs/assembly/hifiasm/log_hifiasm_{chrs}_{accession}.log"
     shell:
         """
-        hifiasm -o {output} -t {threads} {input} 2> {log}
+        mkdir -p {output}
+        hifiasm -o {params.prefix} -t {threads} {input} 2> {log}
+        mv {wildcards.chrs}_{wildcards.accession}* {output}
         """
 
 
@@ -429,7 +433,7 @@ def intermediate_file(wildcards):
     chr_conversion = load_chromosome_conversion(chrom_file)
     chromosomes = list(chr_conversion.keys())
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
-    expanded_paths = expand("hifiasm/{chrs}_{accession}.asm",
+    expanded_paths = expand("hifiasm/{chrs}_{accession}",
                             chrs=chromosomes,
                             accession=wildcards.accession)
     return expanded_paths
