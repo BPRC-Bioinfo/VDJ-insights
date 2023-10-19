@@ -29,7 +29,44 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("hifiasm_{accession}.txt", accession=ACCESSION)
+        expand("result_{accession}.txt", accession=ACCESSION)
+
+rule makeMd5HashCode:
+    input:
+        "downloads/{accession}.fastq.gz"
+    output:
+        "{accession}.md5.txt"
+    shell:
+        """
+        md5sum {input} | awk '{{print $1}}' > {output}
+        """
+
+rule verifyMd5HashCode:
+    input:
+        acc = "{accession}.md5.txt",
+        check = "filereport_read_run_SRR22963530.json"
+    output:
+        "result_{accession}.txt"
+    run:
+        with open(input.acc, 'r') as f:
+            original = f.read().strip()
+        
+        with open(input.check, 'r') as f:
+            match_file = json.load(f)
+        
+        for sample in match_file:
+            if sample["run_accession"] == wildcards.accession:
+                check_sample = sample["fastq_md5"]
+        with open(output[0], 'w') as f:
+            if original == check_sample:
+                f.write("correct")
+                with open(f"{wildcards.accession}_correct.txt", 'w') as f2:
+                    f2.write("correct")
+            else:
+                f.write("incorrect")
+
+
+
 
 
 rule downloadMmul10:
@@ -58,7 +95,7 @@ checkpoint generate_json:
 
 
 # Function to load JSON file into a Python dictionary
-def load_chromosome_conversion(input_file):
+def load_json_file(input_file):
     with open(input_file, 'r') as f:
         return json.load(f)
 
@@ -290,7 +327,7 @@ rule sortIndexBam:
 def chromosome_files(wildcards, chrs):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
     chrom_file = checkpoints.generate_json.get().output[0]
-    chr_conversion = load_chromosome_conversion(chrom_file)
+    chr_conversion = load_json_file(chrom_file)
     chromosomes = list(chr_conversion.keys())
     if chrs not in chromosomes:
         return []
@@ -310,7 +347,7 @@ rule extractChr:
     output:
         "alignments/extracted_{chrs}_{accession}.part_{i}.bam"
     params:
-        chromosome=lambda wildcards, input: load_chromosome_conversion("input/chromosome_conversion.json")[wildcards.chrs]
+        chromosome=lambda wildcards, input: load_json_file("input/chromosome_conversion.json")[wildcards.chrs]
     log:
         "logs/samtools/extract_log_{chrs}_{accession}.part_{i}.log"
     conda:
@@ -358,8 +395,8 @@ rule convertBamToFastQ:
 def chromosome_lengths(wildcards, chrs):
     chr_conversion = checkpoints.generate_json.get().output[0]
     chr_lengt = checkpoints.generate_json.get().output[1]
-    chr_conversion_dict = load_chromosome_conversion(chr_conversion)
-    chr_lenght_dict = load_chromosome_conversion(chr_lengt)
+    chr_conversion_dict = load_json_file(chr_conversion)
+    chr_lenght_dict = load_json_file(chr_lengt)
     return chr_lenght_dict[chr_conversion_dict[chrs]]
 
 
@@ -430,7 +467,7 @@ rule getCoverageSamtools:
 def intermediate_file(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
     chrom_file = checkpoints.generate_json.get().output[0]
-    chr_conversion = load_chromosome_conversion(chrom_file)
+    chr_conversion = load_json_file(chrom_file)
     chromosomes = list(chr_conversion.keys())
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
     expanded_paths = expand("hifiasm/{chrs}_{accession}",
