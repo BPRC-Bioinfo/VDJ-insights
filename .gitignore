@@ -208,8 +208,15 @@ filtered/*
 # Alignment folder
 alignments/*
 
+# Combined folder
+combined/*
+
 # Coverage folder
 coverage/*
 
-# converted folder
+# Converted folder
 converted/*
+
+# Assemlby folders
+flye/*
+hifiasm/*
