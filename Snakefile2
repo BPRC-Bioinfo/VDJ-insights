@@ -1,0 +1,388 @@
+import os
+import pandas as pd
+from scripts.pipeline import *
+import json
+current = os.getcwd()
+
+ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz") for item in sublist]
+
+wildcard_constraints:
+    accession = "|".join(ACCESSION)
+
+print(ACCESSION)
+    
+# Target rule specifying the desired final output
+rule all:
+    input:
+        expand("final_{accession}.txt", accession=ACCESSION)
+
+rule downloadMmul10:
+    output:
+        ref_report = "downloads/reports/mmul10_assembly_report.txt",
+        ref = "downloads/mmul10.fna",
+    params:
+        zipped_ref = "downloads/mmul10.fna.gz"
+    shell:
+        """
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        gunzip {params.zipped_ref}
+        """
+
+# Checkpoint to generate the JSON file
+checkpoint generate_json:
+    output:
+        chr_conversion="input/chromosome_conversion.json",
+        chr_length="input/chromosome_lengths.json"
+    shell:
+        """
+        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
+        """
+
+
+# Function to load JSON file into a Python dictionary
+def load_json_file(input_file):
+    with open(input_file, 'r') as f:
+        return json.load(f)
+
+
+# Checkpoint for dynamically splitting the FASTQ file
+checkpoint split_fastq:
+    input:
+        fastq="downloads/{accession}.fastq.gz"
+    output:
+        directory("split_files/{accession}")        
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        # your shell commands for splitting the file
+        mkdir -p {output}
+
+        #run seqkit split2       
+        seqkit split2 -s 1000000 -O {output} {input.fastq} 
+        """
+
+
+# Input function to handle output of checkpoint
+def getSplitFastqFiles(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i
+    
+    expanded_paths = expand("QC/raw/{accession}.part_{i}.stats",
+                            accession=wildcards.accession,
+                            i=parts)
+    return expanded_paths
+
+
+rule rawStats:
+    input:
+        "downloads/{accession}.fastq.gz"
+    output:
+        "QC/raw/{accession}.stats"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stat {input} > {output}
+        """
+
+# Rule for initial QC
+rule seqkit:
+    input:
+        getSplitFastqFiles
+    output:
+        "results_{accession}.txt",
+    shell:
+        """
+        cat {input} > {output}
+        """
+
+
+rule removeDuplicateReads:
+    input:
+        "split_files/{accession}/{accession}.part_{i}.fastq.gz"
+    output:
+        "filtered/no_duplicate_{accession}.part_{i}.fastq.gz"
+    log:
+        "logs/seqkit/duplicates/log_{accession}_duplicates.part_{i}.log"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit rmdup {input} -s -i -o {output} 2> {log}
+        """
+
+
+rule filteredReads:
+    input:
+        "filtered/no_duplicate_{accession}.part_{i}.fastq.gz"
+    output:
+        "filtered/filtered_{accession}.part_{i}.fastq.gz"
+    log:
+        "logs/seqkit/filterd/log_{accession}_filterd.part_{i}.log"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit seq {input} -m 5000 -o {output} 2> {log}
+        """
+
+
+
+
+def getProcessedStatsFiles(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    parts = glob_wildcards(f"{checkpoint_output}/{{accession}}.part_{{i}}.fastq.gz").i
+    expanded_paths = expand("QC/filtered/filtered_{accession}.part_{i}.stats",
+                            accession=wildcards.accession,
+                            i=parts)
+    return expanded_paths
+
+
+rule processedStats:
+    input:
+        getProcessedStatsFiles
+    output:
+        "processed_{accession}.txt"
+    shell:
+        """
+        cat {input} > {output}
+        """
+
+
+# Function to generate chromosome-specific BAM file paths
+def all_fastq_files(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    expanded_paths = expand("filtered/filtered_{accession}.part_{i}.fastq.gz",
+                            accession=wildcards.accession,
+                            i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
+    print(expanded_paths)
+    return expanded_paths
+
+
+
+rule combineFastQ:
+    input:
+        ancient(lambda wildcards: all_fastq_files(wildcards))
+    output:
+        "combined/{accession}.combined.fastq.gz"
+    shell:
+        """
+        cat {input} > {output}
+        """
+
+rule seqkitFiltered:
+    input:
+        ancient("combined/{accession}.combined.fastq.gz")
+    output:
+        "QC/filtered/filtered_{accession}.stats"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output}
+        """
+rule minimap2:
+    input:
+        read = "combined/{accession}.combined.fastq.gz",
+        mmul10 = ancient("downloads/mmul10.fna"),
+    output:
+        temp("alignments/{accession}.sam")
+    log:
+        "logs/minimap2/log_{accession}_alignment.log"
+    benchmark:
+        "benchmarks/minimap2/benchmark_{accession}_alignment.txt"
+    threads: 
+        24
+    params:
+        read_type = "map-hifi"
+    conda:
+        "envs/minimap2.yaml"
+    shell:
+        """
+        minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+        """
+
+rule extractMappedReads:
+    input:
+        ancient("alignments/{accession}.sam")
+    output:
+        temp("alignments/extracted_{accession}.bam")
+    log:
+        "logs/samtools/log_{accession}_alignment.log",
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
+        """
+
+rule sortIndexBam:
+    input:
+        ancient("alignments/extracted_{accession}.bam")
+    output:
+        sorted_bam = temp("alignments/sorted_{accession}.bam"),
+        index_bam = temp("alignments/sorted_{accession}.bam.bai"),
+    log:
+        "logs/samtools/sort_index_log_{accession}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools sort -@ {threads} -o {output.sorted_bam} {input}
+        samtools index -@ {threads} {output.sorted_bam} {output.index_bam} 2> {log}
+        """
+
+rule extractChr:
+    input:
+        sorted_bam = ancient("alignments/sorted_{accession}.bam"),
+        index_bam = ancient("alignments/sorted_{accession}.bam.bai"),
+        ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
+        chromosome_conversion = ancient("input/chromosome_conversion.json")
+    output:
+        "alignments/extracted_{chrs}_{accession}.bam"
+    params:
+        chromosome=lambda wildcards, input: load_json_file("input/chromosome_conversion.json")[wildcards.chrs]
+    log:
+        "logs/samtools/extract_log_{chrs}_{accession}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -h {input.sorted_bam} {params.chromosome} > {output} 2> {log}
+        """
+
+
+rule convertBamToFastQ:
+    input:
+        ancient("alignments/extracted_{chrs}_{accession}.bam")
+    output:
+        "converted/{chrs}_{accession}.fastq.gz"
+    log:
+        "logs/converted/log_converted_{chrs}_{accession}.log"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools bam2fq -@ {threads} {input} | gzip -c > {output} 2> {log}
+        """
+
+rule seqkitChromosomes:
+    input:
+        ancient("converted/{chrs}_{accession}.fastq.gz")
+    output:
+        "QC/chromosome/{chrs}_{accession}.stats"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output}
+        """
+
+
+def chromosome_lengths(wildcards, chrs):
+    chr_conversion = checkpoints.generate_json.get().output[0]
+    chr_lengt = checkpoints.generate_json.get().output[1]
+    chr_conversion_dict = load_json_file(chr_conversion)
+    chr_lenght_dict = load_json_file(chr_lengt)
+    return chr_lenght_dict[chr_conversion_dict[chrs]]
+
+
+rule flyeAssembly:
+    input:
+        ancient("converted/{chrs}_{accession}.fastq.gz")
+    output:
+        directory("flye/{chrs}_{accession}")
+    log:
+        "logs/assembly/flye/log_flye_{chrs}_{accession}.log"
+    benchmark:
+        "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
+    params:
+        read_type = "pacbio-hifi",
+        size = lambda wildcards: chromosome_lengths(wildcards, wildcards.chrs) 
+    threads:
+        24
+    conda:
+        "envs/flye.yaml"
+    shell:
+        """
+        flye --{params.read_type} {input} --out-dir {output} --genome-size {params.size} --asm-coverage 30 --threads {threads} 2> {log}
+        """
+
+
+rule hifiasmAssembly:
+    input:
+         ancient("converted/{chrs}_{accession}.fastq.gz")
+    output:
+        directory("hifiasm/{chrs}_{accession}/"),
+    params:
+        prefix = "{chrs}_{accession}.asm",
+    threads:
+        24
+    conda:
+        "envs/hifiasm.yaml"
+    log:
+        "logs/assembly/hifiasm/log_hifiasm_{chrs}_{accession}.log"
+    shell:
+        """
+        mkdir -p {output}
+        hifiasm -o {params.prefix} -t {threads} {input} 2> {log}
+        mv {wildcards.chrs}_{wildcards.accession}* {output}
+        """
+
+
+rule getCoverageSamtools:
+    input:
+        "alignments/extracted_{chrs}_{accession}.bam"
+    output:
+        "coverage/coverage_{chrs}_{accession}.txt"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools coverage  {input} -o {output}
+        """
+
+### test rule ###
+
+
+# Input function to handle output of checkpoint
+def intermediate_file(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession).output[0]
+    chrom_file = checkpoints.generate_json.get().output[0]
+    chr_conversion = load_json_file(chrom_file)
+    chromosomes = list(chr_conversion.keys())
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.fastq.gz"))
+    hifiasm_paths = expand("hifiasm/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
+    flye_path = expand("flye/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
+    coverage_path = expand("coverage/coverage_{chrs}_{accession}.txt", chrs=chromosomes, accession=wildcards.accession)
+    raw_path = expand("QC/raw/{accession}.stats", accession=wildcards.accession)
+    filtered_path = expand("QC/filtered/filtered_{accession}.stats", accession=wildcards.accession)
+    chrs_path = expand("QC/chromosome/{chrs}_{accession}.stats", chrs=chromosomes, accession=wildcards.accession)
+    return hifiasm_paths + flye_path + coverage_path + raw_path + filtered_path + chrs_path
+
+
+# Rule to utilize the split FASTQ files
+rule use_split_files:
+    input:
+        intermediate_file
+    output:
+        "final_{accession}.txt"
+    shell:
+        """
+        echo {input} | tr ' ' '\n' > {output}
+        """
+
