@@ -9,7 +9,6 @@ ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz"
 wildcard_constraints:
     accession = "|".join(ACCESSION)
 
-print(ACCESSION)
     
 # Target rule specifying the desired final output
 rule all:
@@ -159,7 +158,6 @@ def all_fastq_files(wildcards):
     expanded_paths = expand("filtered/filtered_{accession}.part_{i}.fastq.gz",
                             accession=wildcards.accession,
                             i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
-    print(expanded_paths)
     return expanded_paths
 
 
@@ -356,8 +354,55 @@ rule getCoverageSamtools:
         samtools coverage  {input} -o {output}
         """
 
-### test rule ###
 
+def get_hifiasm_assembly_files(wildcards):
+    all_wildcards = glob_wildcards("hifiasm/{path}/{chrs}_{TRASH}_{accession}.asm.bp.{haplo}_ctg.gfa")
+    haplo_gfa_files = list(set(expand("hifiasm/{path}/{path}.asm.bp.{haplo}_ctg.gfa",
+                            path=all_wildcards.path,
+                            haplo=all_wildcards.haplo)))
+    return haplo_gfa_files
+
+
+rule genHaplo:
+    input:
+        get_hifiasm_assembly_files
+    output:
+        "hifiasm_{accession}.txt"
+    shell:
+        """
+        echo {input} > {output}
+        """
+
+
+
+rule gfaToFasta:
+    input:
+        "hifiasm/{chrs}_{accession}/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa"
+    output:
+         "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"
+    conda:
+        "envs/gfatools.yaml"
+    shell:
+        """
+        gfatools gfa2fa {input} > {output}       
+        """
+
+
+
+rule scaffoldAssemlby:
+    input:
+        file = "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta",
+        ref = "downloads/mmul10.fna"
+    output:
+        directory("scaffhold/{chrs}_{accession}_{haplo}")
+    log:
+        "logs/scaffholding/log_scaffholding_{chrs}_{accession}_{haplo}.log"
+    conda:
+        "envs/ragtag.yaml"
+    shell:
+        """
+        ragtag.py scaffold {input.ref} {input.file} -o {output} 2> {log}
+        """
 
 # Input function to handle output of checkpoint
 def intermediate_file(wildcards):
@@ -367,12 +412,13 @@ def intermediate_file(wildcards):
     chromosomes = list(chr_conversion.keys())
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}.fastq.gz"))
     hifiasm_paths = expand("hifiasm/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
-    flye_path = expand("flye/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
+    # flye_path = expand("flye/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
     coverage_path = expand("coverage/coverage_{chrs}_{accession}.txt", chrs=chromosomes, accession=wildcards.accession)
     raw_path = expand("QC/raw/{accession}.stats", accession=wildcards.accession)
     filtered_path = expand("QC/filtered/filtered_{accession}.stats", accession=wildcards.accession)
     chrs_path = expand("QC/chromosome/{chrs}_{accession}.stats", chrs=chromosomes, accession=wildcards.accession)
-    return hifiasm_paths + flye_path + coverage_path + raw_path + filtered_path + chrs_path
+    haplo_path = expand("scaffhold/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=["hap1.p", "hap2.p", "p"])
+    return hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + haplo_path + ["hifiasm_{accession}.txt"]
 
 
 # Rule to utilize the split FASTQ files
