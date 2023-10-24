@@ -388,20 +388,21 @@ rule gfaToFasta:
         """
 
 
-
 rule scaffoldAssemlby:
     input:
         file = "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta",
         ref = "downloads/mmul10.fna"
     output:
         directory("scaffhold/{chrs}_{accession}_{haplo}")
+    threads:
+        4
     log:
         "logs/scaffholding/log_scaffholding_{chrs}_{accession}_{haplo}.log"
     conda:
         "envs/ragtag.yaml"
     shell:
         """
-        ragtag.py scaffold {input.ref} {input.file} -o {output} 2> {log}
+        ragtag.py scaffold -o {output} -t {threads} {input.ref} {input.file} 2> {log}
         """
 
 # Input function to handle output of checkpoint
