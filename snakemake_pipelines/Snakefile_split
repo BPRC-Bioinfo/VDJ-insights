@@ -21,6 +21,41 @@ ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz"
 # else:
 #     sra_download = "wget"
 
+# rule makeMd5HashCode:
+#     input:
+#         "downloads/{accession}.fastq.gz"
+#     output:
+#         "{accession}.md5.txt"
+#     shell:
+#         """
+#         md5sum {input} | awk '{{print $1}}' > {output}
+#         """
+
+# rule verifyMd5HashCode:
+#     input:
+#         acc = "{accession}.md5.txt",
+#         check = "input/filereport_read_run_PRJNA476474.json"
+#     output:
+#         "result_{accession}.txt"
+#     run:
+#         with open(input.acc, 'r') as f:
+#             original = f.read().strip()
+        
+#         with open(input.check, 'r') as f:
+#             match_file = json.load(f)
+        
+#         for sample in match_file:
+#             if sample["run_accession"] == wildcards.accession:
+#                 check_sample = sample["fastq_md5"]
+#         with open(output[0], 'w') as f:
+#             if original == check_sample:
+#                 f.write("correct")
+#                 with open(f"{wildcards.accession}_correct.txt", 'w') as f2:
+#                     f2.write("correct")
+#             else:
+#                 f.write("incorrect")
+
+
 
 wildcard_constraints:
     accession = "|".join(ACCESSION)
@@ -30,44 +65,6 @@ wildcard_constraints:
 rule all:
     input:
         expand("result_{accession}.txt", accession=ACCESSION)
-
-rule makeMd5HashCode:
-    input:
-        "downloads/{accession}.fastq.gz"
-    output:
-        "{accession}.md5.txt"
-    shell:
-        """
-        md5sum {input} | awk '{{print $1}}' > {output}
-        """
-
-rule verifyMd5HashCode:
-    input:
-        acc = "{accession}.md5.txt",
-        check = "input/filereport_read_run_PRJNA476474.json"
-    output:
-        "result_{accession}.txt"
-    run:
-        with open(input.acc, 'r') as f:
-            original = f.read().strip()
-        
-        with open(input.check, 'r') as f:
-            match_file = json.load(f)
-        
-        for sample in match_file:
-            if sample["run_accession"] == wildcards.accession:
-                check_sample = sample["fastq_md5"]
-        with open(output[0], 'w') as f:
-            if original == check_sample:
-                f.write("correct")
-                with open(f"{wildcards.accession}_correct.txt", 'w') as f2:
-                    f2.write("correct")
-            else:
-                f.write("incorrect")
-
-
-
-
 
 rule downloadMmul10:
     output:
