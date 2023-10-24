@@ -223,3 +223,7 @@ hifiasm/*
 
 # Scaffhold files
 scaffhold/*
+
+# BUSCO files
+BUSCO/*
+busco_downloads /*
