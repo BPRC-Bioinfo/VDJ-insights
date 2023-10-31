@@ -226,4 +226,8 @@ scaffhold/*
 
 # BUSCO files
 BUSCO/*
-busco_downloads /*
+busco_downloads/*
+
+# Flanking genes files
+flanking/*
+flank_aligment/*

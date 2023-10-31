@@ -9,6 +9,9 @@ ACCESSION = [item for sublist in glob_wildcards("downloads/{accession}.fastq.gz"
 wildcard_constraints:
     accession = "|".join(ACCESSION)
 
+with open("input/flanking_genes.txt", "r") as f:
+    FLANKING_GENES = [gene.strip() for gene in f.readlines()]
+
     
 # Target rule specifying the desired final output
 rule all:
@@ -276,6 +279,16 @@ rule convertBamToFastQ:
         samtools bam2fq -@ {threads} {input} | gzip -c > {output} 2> {log}
         """
 
+rule extractChromosomseFromMmul10:
+    input:
+        ref = "downloads/mmul10.fna"
+    output:
+        "downloads/mmul10_{chrs}.fna"
+    shell:
+        """
+        number=$(echo {wildcards.chrs} | egrep -o "[0-9]")
+        awk -v num="$number" '$0 ~ "chromosome " num {{flag=1;print;next}} /^>/{{flag=0}} flag' {input.ref} > {output}
+        """
 rule seqkitChromosomes:
     input:
         ancient("converted/{chrs}_{accession}.fastq.gz")
@@ -406,13 +419,46 @@ rule scaffoldAssemlby:
         """
 
 
+
+rule downloadFlankingGenes:
+    output:
+        expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING_GENES)
+    conda:
+        "envs/flanking.yaml"
+    shell:
+        """
+        mkdir -p flanking/{wildcards.fgene}
+        cd flanking/{wildcards.fgene}
+        datasets download gene symbol {wildcards.fgene} --taxon macaca mulatta --include gene --filename {wildcards.fgene}.zip
+        unzip {wildcards.fgene}.zip
+        """
+
+
+
+rule combineFlankingGenes:
+    input:
+        expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING_GENES)
+    output:
+        "flanking/all_flanking_genes.fna"
+    shell:
+        """
+        > {output}
+        for file in {input}; do
+            header=$(head -1 "$file" | egrep "^>" | awk '{{print $2":" $5":"$NF}}' | tr -d '[]')
+            sequence=$(cat "$file" | egrep -v "^>")
+            echo -e ">$header\n$sequence" >> {output}
+        done
+        """
+
+
+
 rule BUSCODownloadDataset:
     input:
        "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta" 
     output:
         directory("BUSCO/{chrs}_{accession}_{haplo}")
     params:
-        dataset = "euarchontoglires_odb10"
+        dataset = "primates_odb10"
     conda:
         "envs/busco.yaml"
     log:
@@ -421,13 +467,6 @@ rule BUSCODownloadDataset:
         """
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
         """
-
-
-
-# rule pilon:
-#     input:
-#         ref = "downloads/mmul10.fna"
-#     output:
         
         
 
