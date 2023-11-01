@@ -12,11 +12,12 @@ wildcard_constraints:
 with open("input/flanking_genes.txt", "r") as f:
     FLANKING_GENES = [gene.strip() for gene in f.readlines()]
 
-    
+print(FLANKING_GENES)
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("final_{accession}.txt", accession=ACCESSION)
+        expand("final_{accession}.txt", accession=ACCESSION),
+        "flanking/all_flanking_genes.fna"
 
 rule downloadMmul10:
     output:
@@ -339,6 +340,9 @@ rule hifiasmAssembly:
         directory("hifiasm/{chrs}_{accession}/"),
     params:
         prefix = "{chrs}_{accession}.asm",
+        kmer = 54,
+        window = 39
+
     threads:
         24
     conda:
@@ -348,7 +352,7 @@ rule hifiasmAssembly:
     shell:
         """
         mkdir -p {output}
-        hifiasm -o {params.prefix} -t {threads} {input} 2> {log}
+        hifiasm -o {params.prefix} -t {threads} -k {params.kmer} -w {params.window} {input} 2> {log}
         mv {wildcards.chrs}_{wildcards.accession}* {output}
         """
 
@@ -422,7 +426,7 @@ rule scaffoldAssemlby:
 
 rule downloadFlankingGenes:
     output:
-        expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING_GENES)
+        "flanking/{fgene}/ncbi_dataset/data/gene.fna"
     conda:
         "envs/flanking.yaml"
     shell:
@@ -484,9 +488,9 @@ def intermediate_file(wildcards):
     raw_path = expand("QC/raw/{accession}.stats", accession=wildcards.accession)
     filtered_path = expand("QC/filtered/filtered_{accession}.stats", accession=wildcards.accession)
     chrs_path = expand("QC/chromosome/{chrs}_{accession}.stats", chrs=chromosomes, accession=wildcards.accession)
-    haplo_path = expand("scaffhold/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
-    busco_path = expand("BUSCO/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
-    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + haplo_path + ["hifiasm_{accession}.txt"] + busco_path
+    # haplo_path = expand("scaffhold/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
+    # busco_path = expand("BUSCO/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
+    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"]
     return all_paths
 
 
