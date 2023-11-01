@@ -174,8 +174,9 @@ downloads/*
 # seqkit folders
 seqkit*/*
 
-# .snakemake folder
+# .snakemake related folders
 .snakemake/*
+.tests/*
 
 # Data folder
 data/*
