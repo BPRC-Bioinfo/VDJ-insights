@@ -16,8 +16,9 @@ print(FLANKING_GENES)
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("final_{accession}.txt", accession=ACCESSION),
-        "flanking/all_flanking_genes.fna"
+        expand("downloads/{chrs}_mmul10.fna", chrs=["chr3", "chr7"])
+        # expand("final_{accession}.txt", accession=ACCESSION),
+        # "flanking/all_flanking_genes.fna"
 
 rule downloadMmul10:
     output:
@@ -31,6 +32,17 @@ rule downloadMmul10:
         wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
         gunzip {params.zipped_ref}
         """
+
+rule splitChromosomes:
+    input:
+       ref = "downloads/mmul10.fna"
+    output:
+        "downloads/{chrs}_mmul10.fna"
+    shell:
+        """
+        chromosome=$(echo "{wildcards.chrs}" | egrep -o "[0-9]")
+        awk -v chr="chromosome $chromosome" '$0 ~ chr {{print; while(getline > 0) {{ if (/^>/) {{ exit }} else {{ print }} }}}}' {input.ref} > {output}
+        """ 
 
 # Checkpoint to generate the JSON file
 checkpoint generate_json:
@@ -239,7 +251,7 @@ rule sortIndexBam:
     shell:
         """
         samtools sort -@ {threads} -o {output.sorted_bam} {input}
-        samtools index -@ {threads} {output.sorted_bam} {output.index_bam} 2> {log}
+        samtools index -@ {threads} -o {output.index_bam} {output.sorted_bam} 2> {log}
         """
 
 rule extractChr:
