@@ -1,7 +1,7 @@
 import os
 import subprocess
 import questionary
-from questionary import Style,confirm
+from questionary import Style
 import json
 
 current_cwd = os.getcwd()
@@ -16,13 +16,14 @@ custom_style = Style([
     ('highlighted', 'fg:#a6e0ff bold'),
 ])
 
+
 def get_ids(path):
     """
     creates a dictionary with as key the SRA identifier and as value a ENA link.
-    
+
     Parameters:
         path (str): path to the input.txt file to be used.
-    
+
     Returns:
         id_dict (dict): dictionary with SRA identifier and ENA link.
     """
@@ -33,6 +34,7 @@ def get_ids(path):
             id_list = id.strip().split("/")
             id_dict[id_list[-2]] = id.strip()
         return id_dict
+
 
 def fetch_chromosome():
     chromosomes = {}
@@ -48,7 +50,7 @@ def fetch_chromosome():
 def cal_chr_length():
     mmul10 = {}
     with open("downloads/mmul10.fna", "r") as f:
-        start = None 
+        start = None
         for line in f:
             if line.startswith(">"):
                 line = line.split()
@@ -58,6 +60,7 @@ def cal_chr_length():
                 mmul10[start] += len(line.strip())
     with open(f"{current_cwd}/input/chromosome_lengths.json", "w") as f:
         json.dump(mmul10, f, indent=4)
+
 
 def fetchall_args_sra_download():
     """
@@ -77,13 +80,14 @@ def fetchall_args_sra_download():
             ).ask()
     return selected_option
 
+
 def fetchall_args_input_file():
     """
     Visual prompt for asking which input file you want to use.
     Returns:
         selected_option (str): chosen input file as string.
     """
-    input_files = [ f for f in os.listdir(f"{current_cwd}/input/") if f.endswith(".txt")]
+    input_files = [f for f in os.listdir(f"{current_cwd}/input/") if f.endswith(".txt")]
     selected_input = questionary.select(
                 "Select a option as input file",
                 choices=input_files,
@@ -94,7 +98,3 @@ def fetchall_args_input_file():
                 qmark=""
             ).ask()
     return selected_input
-
-
-if __name__ == "__main__":
-    print(get_ids("input/input.txt"))
