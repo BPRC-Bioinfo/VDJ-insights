@@ -222,8 +222,8 @@ converted/*
 flye/*
 hifiasm/*
 
-# Scaffhold files
-scaffhold/*
+# Scaffold files
+scaffold/*
 
 # BUSCO files
 BUSCO/*

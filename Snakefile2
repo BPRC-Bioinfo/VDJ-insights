@@ -16,9 +16,8 @@ print(FLANKING_GENES)
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("downloads/{chrs}_mmul10.fna", chrs=["chr3", "chr7"])
-        # expand("final_{accession}.txt", accession=ACCESSION),
-        # "flanking/all_flanking_genes.fna"
+        expand("final_{accession}.txt", accession=ACCESSION),
+        "flanking/all_flanking_genes.fna"
 
 rule downloadMmul10:
     output:
@@ -201,7 +200,7 @@ rule seqkitFiltered:
         """
 rule minimap2:
     input:
-        read = "combined/{accession}.combined.fastq.gz",
+        read = ancient("combined/{accession}.combined.fastq.gz"),
         mmul10 = ancient("downloads/mmul10.fna"),
     output:
         temp("alignments/{accession}.sam")
@@ -294,7 +293,7 @@ rule convertBamToFastQ:
 
 rule extractChromosomseFromMmul10:
     input:
-        ref = "downloads/mmul10.fna"
+        ref = ancient("downloads/mmul10.fna")
     output:
         "downloads/mmul10_{chrs}.fna"
     shell:
@@ -347,7 +346,7 @@ rule flyeAssembly:
 
 rule hifiasmAssembly:
     input:
-         ancient("converted/{chrs}_{accession}.fastq.gz")
+        ancient("converted/{chrs}_{accession}.fastq.gz")
     output:
         directory("hifiasm/{chrs}_{accession}/"),
     params:
@@ -371,7 +370,7 @@ rule hifiasmAssembly:
 
 rule getCoverageSamtools:
     input:
-        "alignments/extracted_{chrs}_{accession}.bam"
+        ancient("alignments/extracted_{chrs}_{accession}.bam")
     output:
         "coverage/coverage_{chrs}_{accession}.txt"
     threads:
@@ -394,7 +393,7 @@ def get_hifiasm_assembly_files(wildcards):
 
 rule genHaplo:
     input:
-        get_hifiasm_assembly_files
+        ancient(get_hifiasm_assembly_files)
     output:
         "hifiasm_{accession}.txt"
     shell:
@@ -406,7 +405,7 @@ rule genHaplo:
 
 rule gfaToFasta:
     input:
-        "hifiasm/{chrs}_{accession}/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa"
+        ancient("hifiasm/{chrs}_{accession}/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa")
     output:
          "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"
     conda:
@@ -419,12 +418,12 @@ rule gfaToFasta:
 
 rule scaffoldAssemlby:
     input:
-        file = "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta",
-        ref = "downloads/mmul10.fna"
+        file = ancient("converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"),
+        ref = ancient("downloads/mmul10.fna")
     output:
-        directory("scaffhold/{chrs}_{accession}_{haplo}")
+        directory("scaffold/{chrs}_{accession}_{haplo}")
     threads:
-        4
+        24
     log:
         "logs/scaffholding/log_scaffholding_{chrs}_{accession}_{haplo}.log"
     conda:
@@ -453,7 +452,7 @@ rule downloadFlankingGenes:
 
 rule combineFlankingGenes:
     input:
-        expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING_GENES)
+        ancient(expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING_GENES))
     output:
         "flanking/all_flanking_genes.fna"
     shell:
@@ -470,7 +469,7 @@ rule combineFlankingGenes:
 
 rule BUSCODownloadDataset:
     input:
-       "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta" 
+       ancient("converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta")
     output:
         directory("BUSCO/{chrs}_{accession}_{haplo}")
     params:
@@ -500,9 +499,9 @@ def intermediate_file(wildcards):
     raw_path = expand("QC/raw/{accession}.stats", accession=wildcards.accession)
     filtered_path = expand("QC/filtered/filtered_{accession}.stats", accession=wildcards.accession)
     chrs_path = expand("QC/chromosome/{chrs}_{accession}.stats", chrs=chromosomes, accession=wildcards.accession)
-    # haplo_path = expand("scaffhold/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
+    scaffold_path = expand("scaffold/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
     # busco_path = expand("BUSCO/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
-    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"]
+    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path
     return all_paths
 
 
