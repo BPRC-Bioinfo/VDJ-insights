@@ -499,7 +499,33 @@ rule combineFlankingGenes:
         """
 
 
+rule combineChromosomes:
+    input:
+        "converted/gfatofasta/{chrs}_{accession}.p.fasta"
+    output:
+        "combined_chromosomes.fasta"
+    shell:
+        """
+        cat {input} >> {output}
+        """
 
+
+rule mapFlankingGenes:
+    input:
+        reads = "combined_chromosomes.fasta"
+        flanking_genes = "flanking/all_flanking_genes.fna"
+    output:
+        "flank_aligment/flank_combined_chromosomes.sam"
+    conda:
+        "envs/minimap2.yaml"
+    threads:
+        24
+    shell:
+        """
+        minimap2 -ax splice -t {threads} {input.reads} {input.flanking_genes} > {output}
+        """
+
+    
 rule BUSCODownloadDataset:
     input:
         ancient("converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta")
@@ -535,7 +561,7 @@ def intermediate_file(wildcards):
     chrs_path = expand("QC/chromosome/{chrs}_{accession}_{machine}.stats", chrs=chromosomes, accession=wildcards.accession, machine=wildcards.machine)
     scaffold_path = expand("scaffold/{chrs}_{accession}_{haplo}/ragtag.scaffold.fasta", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
     # busco_path = expand("BUSCO/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
-    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path
+    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path + ["flank_aligment/flank_combined_chromosomes.sam"]
     print(all_paths)
     return all_paths
 
