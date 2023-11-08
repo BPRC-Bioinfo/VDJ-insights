@@ -168,12 +168,10 @@ rule processedStats:
 # Function to generate chromosome-specific BAM file paths
 def all_fastq_files(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession, machine=wildcards.machine).output[0]
-    print(checkpoint_output)
     expanded_paths = expand("filtered/filtered_{accession}_{machine}.part_{i}.fastq.gz",
                             accession=wildcards.accession,
                             machine=wildcards.machine,
                             i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
-    print(expanded_paths)
     return expanded_paths
 
 
@@ -239,7 +237,7 @@ rule extractMappedReads:
         10
     shell:
         """
-        samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
+        samtools view -@ {threads} -bh -F4 {input} > {output} 2> {log}
         """
 
 rule sortIndexBam:
@@ -278,7 +276,7 @@ rule extractChr:
         10
     shell:
         """
-        samtools view -@ {threads} -h {input.sorted_bam} {params.chromosome} > {output} 2> {log}
+        samtools view -@ {threads} -b {input.sorted_bam} {params.chromosome} > {output} 2> {log}
         """
 
 
@@ -498,12 +496,17 @@ rule combineFlankingGenes:
         done
         """
 
-
+def chromosomes_file(wildcards):
+    chrom_file = checkpoints.generate_json.get().output[0]
+    chr_conversion = load_json_file(chrom_file)
+    chromosomes = list(chr_conversion.keys())
+    return expand("converted/gfatofasta/{chrs}_{accession}_p.fasta", chrs=chromosomes, accession=wildcards.accession)
+    
 rule combineChromosomes:
     input:
-        "converted/gfatofasta/{chrs}_{accession}.p.fasta"
+        chromosomes_file 
     output:
-        "combined_chromosomes.fasta"
+        "{accession}_combined_chromosomes.fasta"
     shell:
         """
         cat {input} >> {output}
@@ -512,10 +515,10 @@ rule combineChromosomes:
 
 rule mapFlankingGenes:
     input:
-        reads = "combined_chromosomes.fasta"
+        reads = "{accession}_combined_chromosomes.fasta",
         flanking_genes = "flanking/all_flanking_genes.fna"
     output:
-        "flank_aligment/flank_combined_chromosomes.sam"
+        "flank_aligment/{accession}_flank_aligned_chromosomes.sam"
     conda:
         "envs/minimap2.yaml"
     threads:
@@ -547,7 +550,6 @@ rule BUSCODownloadDataset:
 # Input function to handle output of checkpoint
 def intermediate_file(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession, machine=wildcards.machine).output[0]
-    print(checkpoint_output)
     chrom_file = checkpoints.generate_json.get().output[0]
     chr_conversion = load_json_file(chrom_file)
     haplotypes = ["hap1.p", "hap2.p", "p"]
@@ -561,8 +563,7 @@ def intermediate_file(wildcards):
     chrs_path = expand("QC/chromosome/{chrs}_{accession}_{machine}.stats", chrs=chromosomes, accession=wildcards.accession, machine=wildcards.machine)
     scaffold_path = expand("scaffold/{chrs}_{accession}_{haplo}/ragtag.scaffold.fasta", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
     # busco_path = expand("BUSCO/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
-    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path + ["flank_aligment/flank_combined_chromosomes.sam"]
-    print(all_paths)
+    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path + ["flank_aligment/{accession}_flank_aligned_chromosomes.sam"]
     return all_paths
 
 
