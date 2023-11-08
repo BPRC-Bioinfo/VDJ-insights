@@ -415,7 +415,7 @@ rule gfaToFasta:
     input:
         ancient("hifiasm/{chrs}_{accession}/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa")
     output:
-         "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"
+        "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"
     conda:
         "envs/gfatools.yaml"
     shell:
@@ -555,7 +555,7 @@ def intermediate_file(wildcards):
     haplotypes = ["hap1.p", "hap2.p", "p"]
     chromosomes = list(chr_conversion.keys())
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}_{machine}.fastq.gz"))
-    hifiasm_paths = expand("hifiasm/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
+    hifiasm_paths = expand("hifiasm/{chrs}_{accession}/", chrs=chromosomes, accession=wildcards.accession)
     # flye_path = expand("flye/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
     coverage_path = expand("coverage/coverage_{chrs}_{accession}_{machine}.txt", chrs=chromosomes, accession=wildcards.accession, machine=wildcards.machine)
     raw_path = expand("QC/raw/{accession}_{machine}.stats", accession=wildcards.accession, machine=wildcards.machine)
