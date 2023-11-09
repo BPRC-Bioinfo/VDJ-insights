@@ -352,7 +352,7 @@ def chromosome_lengths(wildcards, chrs):
 #         """
 
 
-rule hifiasmAssembly:
+checkpoint hifiasmAssembly:
     input:
         pacbio = ancient("converted/{chrs}_{accession}_pacbio.fastq.gz"),
         nanopore = ancient("converted/{chrs}_{accession}_nanopore.fastq.gz") 
@@ -413,7 +413,7 @@ rule genHaplo:
 
 rule gfaToFasta:
     input:
-        ancient("hifiasm/{chrs}_{accession}/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa")
+        gfa = lambda wildcards: checkpoints.hifiasmAssembly.get(**wildcards).output[0] + "/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa"
     output:
         "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"
     conda:
