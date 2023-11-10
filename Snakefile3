@@ -500,13 +500,13 @@ def chromosomes_file(wildcards):
     chrom_file = checkpoints.generate_json.get().output[0]
     chr_conversion = load_json_file(chrom_file)
     chromosomes = list(chr_conversion.keys())
-    return expand("converted/gfatofasta/{chrs}_{accession}_p.fasta", chrs=chromosomes, accession=wildcards.accession)
+    return expand("converted/gfatofasta/{chrs}_{accession}_{chosen}.p.fasta", chrs=chromosomes, accession=wildcards.accession, chosen=["hap1", "hap2"])
     
 rule combineChromosomes:
     input:
         chromosomes_file 
     output:
-        "{accession}_combined_chromosomes.fasta"
+        temp("combined/{accession}_combined_chromosomes.fasta")
     shell:
         """
         cat {input} >> {output}
@@ -515,17 +515,19 @@ rule combineChromosomes:
 
 rule mapFlankingGenes:
     input:
-        reads = "{accession}_combined_chromosomes.fasta",
+        reads = "combined/{accession}_combined_chromosomes.fasta",
         flanking_genes = "flanking/all_flanking_genes.fna"
     output:
-        "flank_aligment/{accession}_flank_aligned_chromosomes.sam"
+        sam_file = "flank_aligment/{accession}_flank_aligned_chromosomes.sam",
+        info = "QC/flanking/{accession}_flank_aligned_info.csv"
     conda:
         "envs/minimap2.yaml"
     threads:
         24
     shell:
         """
-        minimap2 -ax splice -t {threads} {input.reads} {input.flanking_genes} > {output}
+        minimap2 -ax splice -t {threads} {input.reads} {input.flanking_genes} > {output.sam_file}
+        cat {output.sam_file} | egrep -v "@" | cut -f1-4 | sort -k 3 > {output.info}
         """
 
     
