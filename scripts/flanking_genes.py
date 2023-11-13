@@ -6,6 +6,7 @@ import os
 contig_file = snakemake.input.contig_file
 location_file = snakemake.input.location_file
 output_dir = snakemake.output.output_dir
+accession  = contig_file.split('/')[-1].split('_')[0]
 
 def get_matching_lines(file_path, pattern):
     """
@@ -68,8 +69,8 @@ def write_contig_files(unicom):
     for ttype, haplo, chrom, contigs in unicom.values.tolist():
         ttype = ttype.lower().replace(" & ", "-")
         for contig in contigs:
-            input_file = f"converted/gfatofasta/chr{chrom}_EAW_hap{haplo}.p.fasta"
-            output_file = f"contig/chr{chrom}_EAW_{ttype}_h{haplo}.fasta"
+            input_file = f"converted/gfatofasta/chr{chrom}_{accession}_hap{haplo}.p.fasta"
+            output_file = f"contig/chr{chrom}_{accession}_{ttype}_h{haplo}.fasta"
             command = f"awk '/{contig}/{{flag=1;print;next}}/^>/{{flag=0}}flag'  {input_file} >> {output_file}" 
             subprocess.call(command, shell=True)
                
