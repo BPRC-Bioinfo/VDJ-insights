@@ -558,7 +558,7 @@ rule mapContigFiles:
         10
     shell:
         """
-        minimap2 -x asm5 -t {threads} {params.mmul10_chrom} {input.contig_file} > {output}
+        minimap2 -x asm5 -t {threads} downloads/{params.mmul10_chrom} {input.contig_file} > {output}
         """
 
 
