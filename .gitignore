@@ -231,4 +231,7 @@ busco_downloads/*
 
 # Flanking genes files
 flanking/*
-flank_aligment/*
+flank_alignment/*
+
+# Contig files
+contig/*

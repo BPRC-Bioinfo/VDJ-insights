@@ -234,7 +234,7 @@ rule extractMappedReads:
     conda:
         "envs/samtools.yaml"
     threads:
-        10
+        24
     shell:
         """
         samtools view -@ {threads} -bh -F4 {input} > {output} 2> {log}
@@ -255,7 +255,7 @@ rule sortIndexBam:
     shell:
         """
         samtools sort -@ {threads} -o {output.sorted_bam} {input}
-        samtools index -@ {threads} -o {output.index_bam} {output.sorted_bam} 2> {log}
+        samtools index -@ {threads} {output.sorted_bam} 2> {log}
         """
 
 rule extractChr:
@@ -497,69 +497,91 @@ rule combineFlankingGenes:
         """
 
 
-def chromosomes_file(wildcards):
-    chrom_file = checkpoints.generate_json.get().output[0]
-    chr_conversion = load_json_file(chrom_file)
-    chromosomes = list(chr_conversion.keys())
-    return expand("converted/gfatofasta/{chrs}_{accession}_{chosen}.p.fasta", chrs=chromosomes, accession=wildcards.accession, chosen=["hap1", "hap2"])
-
-
-rule combineChromosomes:
+rule flankingByChromosomes:
     input:
-        chromosomes_file 
+        flanking = "flanking/all_flanking_genes.fna"
+    params:
+        chrs_id = "flanking/{chrs}_{accession}_flanking_genes_id.txt" 
     output:
-        temp("combined/{accession}_combined_chromosomes.fasta")
+        "flanking/{chrs}_{accession}_flanking_genes.fna"
+    conda:
+        "envs/seqtk.yaml"
     shell:
         """
-        cat {input} >> {output}
+        chromosome_number=$(echo "{wildcards.chrs}" | egrep -o "[0-9]")
+        cat {input} | egrep "chromosome=$chromosome_number" | tr -d ">" > {params.chrs_id}
+        seqtk subseq {input} {params.chrs_id} > {output}
         """
 
 
 rule mapFlankingGenes:
     input:
-        reads = "combined/{accession}_combined_chromosomes.fasta",
-        flanking_genes = "flanking/all_flanking_genes.fna"
+        reads = "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta",
+        flanking_genes = "flanking/{chrs}_{accession}_flanking_genes.fna"
     output:
-        sam_file = "flank_aligment/{accession}_flank_aligned_chromosomes.sam",
-        info = "QC/flanking/{accession}_flank_aligned_info.csv"
+        sam_file = "flank_alignment/{chrs}_{accession}_{haplo}_aligned.sam",
+        info = "QC/flanking/{chrs}_{accession}_{haplo}_aligned_info.csv"
     conda:
         "envs/minimap2.yaml"
     threads:
-        24
+        6
     shell:
         """
         minimap2 -ax splice -t {threads} {input.reads} {input.flanking_genes} > {output.sam_file}
-        cat {output.sam_file} | egrep -v "@" | cut -f1-4 | sort -k 3 > {output.info}
+        cat {output.sam_file} | egrep -v "@" | cut -f1-4 > {output.info}
         """
+
+
+rule flankSamToBed:
+    input:
+        "flank_alignment/{chrs}_{accession}_{haplo}_aligned.sam"
+    output:
+        "flank_alignment/{chrs}_{accession}_{haplo}_flank_aligned.bed"
+    params:
+        bam = "flank_alignment/{chrs}_{accession}_{haplo}_flank_aligned.bam",
+        sorted_bam = "flank_alignment/sorted_{chrs}_{accession}_{haplo}_flank_aligned.bam"
+    conda:
+        "envs/xtools.yaml"
+    shell:
+        """
+        samtools view -Sb {input} > {params.bam}
+        samtools sort {params.bam} -o {params.sorted_bam}
+        bedtools bamtobed -i {params.sorted_bam} > {output}
+        """
+
+
 
 checkpoint contigFiles:
     input:
-        contig_file = "QC/flanking/EAW_flank_aligned_info.csv",
-        location_file = "input/locations.txt"
+        qc_folder = "QC/flanking",
+        location_file = "input/locations.txt",
+        flank_folder = "flank_alignment"
+    conda:
+        "envs/bedtools.yaml"
     output:
         output_dir = directory("contig/")
     script:
         "scripts/flanking_genes.py" 
 
-def get_contig_files(wildcards):
-    contig = checkpoints.contigFiles.get().output[0]
-    return os.path.join(contig, "{chrs}_{accession}_{combi}.fasta")
+# def get_contig_files(wildcards):
+#     contig = checkpoints.contigFiles.get().output[0]
+#     return os.path.join(contig, "{chrs}_{accession}_{combi}.fasta")
 
-rule mapContigFiles:
-    input:
-        contig_file = get_contig_files
-    output:
-        "alignments/flanking/{chrs}_{accession}_{combi}.sam"
-    params:
-        mmul10_chrom = lambda wildcards: wildcards.chrs + "_mmul10.fa"
-    conda:
-        "envs/minimap2.yaml"
-    threads:
-        10
-    shell:
-        """
-        minimap2 -x asm5 -t {threads} downloads/{params.mmul10_chrom} {input.contig_file} > {output}
-        """
+# rule mapContigFiles:
+#     input:
+#         contig_file = get_contig_files
+#     output:
+#         "alignments/flanking/{chrs}_{accession}_{combi}.sam"
+#     params:
+#         mmul10_chrom = lambda wildcards: wildcards.chrs + "_mmul10.fa"
+#     conda:
+#         "envs/minimap2.yaml"
+#     threads:
+#         10
+#     shell:
+#         """
+#         minimap2 -x asm5 -t {threads} downloads/{params.mmul10_chrom} {input.contig_file} > {output}
+#         """
 
 
 rule BUSCODownloadDataset:
@@ -595,11 +617,13 @@ def intermediate_file(wildcards):
     filtered_path = expand("QC/filtered/filtered_{accession}_{machine}.stats", accession=wildcards.accession, machine=wildcards.machine)
     chrs_path = expand("QC/chromosome/{chrs}_{accession}_{machine}.stats", chrs=chromosomes, accession=wildcards.accession, machine=wildcards.machine)
     scaffold_path = expand("scaffold/{chrs}_{accession}_{haplo}/ragtag.scaffold.fasta", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
+    test = expand("flank_alignment/{chrs}_{accession}_{haplo}_flank_aligned.bed", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
     # busco_path = expand("BUSCO/{chrs}_{accession}_{haplo}", chrs=chromosomes, accession=wildcards.accession, haplo=haplotypes)
-    contig_prefix = checkpoints.contigFiles.get().output[0]
-    TRASH, COMBI = glob_wildcards(os.path.join(contig_prefix, "{trash}_EAW_{combi}.fasta"))
-    contig = expand("alignments/flanking/{chrs}_{accession}_{combi}.sam", chrs=chromosomes, accession=wildcards.accession, combi=COMBI)
-    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path + ["flank_aligment/{accession}_flank_aligned_chromosomes.sam"] + contig
+    # contig_prefix = checkpoints.contigFiles.get().output[0]
+    # TRASH, COMBI = glob_wildcards(os.path.join(contig_prefix, "{trash}_EAW_{combi}.fasta"))
+    # contig = expand("alignments/flanking/{chrs}_{accession}_{combi}.sam", chrs=chromosomes, accession=wildcards.accession, combi=COMBI)
+
+    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path + test + ["contig/"]
     return all_paths
 
 
