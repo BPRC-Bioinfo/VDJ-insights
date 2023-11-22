@@ -91,17 +91,7 @@ def get_region(file):
 
     for key, value in region.items():
         sorted_values = sorted(value, key=int)
-        yield [key, sorted_values[0], sorted_values[-1]]
-
-
-def write_contig_files(unicom):
-    for ttype, haplo, chrom, contigs in unicom.values.tolist():
-        ttype = ttype.lower().replace(" & ", "-")
-        for contig in contigs:
-            input_file = f"converted/gfatofasta/chr{chrom}_{accession}_hap{haplo}.p.fasta"
-            output_file = f"contig/chr{chrom}_{accession}_hap{haplo}.fasta"
-            command = f"awk '/{contig}/{{flag=1;print;next}}/^>/{{flag=0}}flag'  {input_file} >> {output_file}"
-            subprocess.call(command, shell=True)
+        yield [key, sorted_values[1], sorted_values[2]]
 
 
 def process_data(location_file, output_dir, info_files, bed_files):
