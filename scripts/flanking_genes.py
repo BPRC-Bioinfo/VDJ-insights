@@ -1,6 +1,9 @@
 import pandas as pd
 import subprocess
+import logging
 import os
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def make_new_QC(info_files):
     flanking_info = []
@@ -98,7 +101,40 @@ def get_region(file):
                 yield [tag, positions[0], positions[-1]]
         except ValueError:
             print(f"Error parsing lines: '{line1.strip()}', '{line2.strip()}'")
-        
+
+
+def create_bed_file(unicom, accession):
+    contigs = {}
+    for region in get_regions_files(unicom, accession):
+        contigs[region[0]] = [region[1], region[2]]
+        contig_name = region[0].split(":")[0]
+        with open(os.path.join(output_dir, f"{region[0]}.bed"), "w") as bed:
+            bed.write("\t".join([contig_name, region[1], region[2]]))
+
+
+def create_region_file(unicom, combinations, accession):
+    for ttype, haplo, chrom, contig in unicom.values.tolist():
+        fgenes_combi = combinations[ttype]
+        fgenes_reverse = f"{fgenes_combi[-1]}:{fgenes_combi[0]}"
+        bedfile = f"{contig[0]}:{':'.join(fgenes_combi)}"
+        bedfile_reverse = f"{contig[0]}:{fgenes_reverse}"
+        ttype = ttype.lower().replace(" & ", "-")
+        ffile = f"converted/gfatofasta/chr{chrom}_{accession}_hap{haplo}.p.fasta"
+        bedfile = os.path.join(output_dir, bedfile)
+        bedfile_reverse = os.path.join(output_dir, bedfile_reverse)
+        output_region = os.path.join(output_dir, f"{accession}_{ttype}_hap{haplo}.fasta")
+        if os.path.exists(f"{bedfile}.bed"):
+            logging.info(f"Bed file detected. Generating sequence fasta file for {ttype} region in haplotype {haplo}, "
+                         f"with these flanking genes: {' & '.join(fgenes_combi)}.")
+            command = f"bedtools getfasta -fi {ffile} -bed {bedfile}.bed -fo {output_region}"
+            subprocess.check_call(command, shell=True)
+        elif os.path.exists(f"{bedfile_reverse}.bed"):
+            logging.info(f"Bed file detected. Generating sequence fasta file for {ttype} region in haplotype {haplo}, "
+                         f"utilizing reverse flanking genes: {fgenes_reverse.replace(':', ' & ')}.")
+            command = f"bedtools getfasta -fi {ffile} -bed {bedfile_reverse}.bed -fo {output_region}"
+            subprocess.check_call(command, shell=True)
+        else:
+            logging.warning("Bed file does not exist. Unable to create sequence region file.")
 
 
 def process_data(location_file, output_dir, info_files, bed_files):
@@ -114,30 +150,11 @@ def process_data(location_file, output_dir, info_files, bed_files):
     os.makedirs(output_dir, exist_ok=True)
     flanking_genes, accession = make_new_QC(info_files)
     combinations = process_locations(location_file)
-    print(combinations)
     df = make_df(combinations, flanking_genes)
     unicom = unique(df)
-    print(unicom)
-    contigs = {}
-    for region in get_regions_files(unicom, accession):
-        contigs[region[0]] = [region[1], region[2]]
-        contig_name = region[0].split(":")[0]
-        with open(os.path.join(output_dir, f"{region[0]}.bed"), "w") as bed:
-            bed.write("\t".join([contig_name, region[1], region[2]]))
-    for ttype, haplo, chrom, contig in unicom.values.tolist():
-        try:
-            bedfilename = f"{contig[0]}:{':'.join(combinations[ttype])}"
-            print(bedfilename)
-            ttype = ttype.lower().replace(" & ", "-")
-            ffile = f"converted/gfatofasta/chr{chrom}_{accession}_hap{haplo}.p.fasta"
-            bedfile = os.path.join(output_dir, f"{contig[0]}.bed")
-            output_region = os.path.join(output_dir, f"{accession}_{ttype}_hap{haplo}.fasta")
-            command = f"bedtools getfasta -fi {ffile} -bed {bedfile} -fo {output_region}"
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing command: {command}. Removing {output_region}!")
-            subprocess.check_call(command, shell=True)
-            os.remove(output_region)
-    return contigs
+    create_bed_file(unicom, accession)
+    create_region_file(unicom, combinations, accession)
+    
 
 if __name__ == "__main__":
     current_path = os.getcwd()
@@ -152,4 +169,4 @@ if __name__ == "__main__":
     output_dir = "contig/"
 
     # Execute the main genomic data processing function
-    contigs = process_data(location_file, output_dir, info_files, bed_files)
+    process_data(location_file, output_dir, info_files, bed_files)
