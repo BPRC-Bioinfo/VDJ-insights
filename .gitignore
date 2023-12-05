@@ -209,6 +209,9 @@ filtered/*
 # Alignment folder
 alignments/*
 
+#Chromosome folder
+chrom_folder/*
+
 # Combined folder
 combined/*
 
@@ -235,3 +238,6 @@ flank_alignment/*
 
 # Contig files
 contig/*
+
+# Final files
+final/*

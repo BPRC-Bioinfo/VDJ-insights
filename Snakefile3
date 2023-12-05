@@ -18,7 +18,7 @@ print(FLANKING_GENES)
 rule all:
     input:
         # expand("hifiasm/{chrs}_{accession}/", chrs=["chr3", "chr7"], accession=ACCESSION, machine=MACHINE),
-        expand("final_{accession}_{machine}.txt", accession=ACCESSION, machine=MACHINE),
+        expand("final/final_{accession}_{machine}.txt", accession=ACCESSION, machine=MACHINE),
         "flanking/all_flanking_genes.fna"
 
 rule downloadMmul10:
@@ -193,9 +193,11 @@ rule seqkitFiltered:
         "QC/filtered/filtered_{accession}_{machine}.stats"
     conda:
         "envs/seqkit.yaml"
+    threads:
+        10
     shell:
         """
-        seqkit stats {input} -a -o {output}
+        seqkit stats {input} -a -j {threads} -o {output}
         """
 
 rule minimap2:
@@ -237,7 +239,7 @@ rule extractMappedReads:
         24
     shell:
         """
-        samtools view -@ {threads} -bh -F4 {input} > {output} 2> {log}
+        samtools view -@ {threads} -bh {input} > {output} 2> {log}
         """
 
 rule sortIndexBam:
@@ -265,9 +267,11 @@ rule extractChr:
         ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
         chromosome_conversion = ancient("input/chromosome_conversion.json")
     output:
-        "alignments/extracted_{chrs}_{accession}_{machine}.bam"
+        fastq_file = "alignments/extracted_{chrs}_{accession}_{machine}.fastq",
+        bam_file = "alignments/extracted_{chrs}_{accession}_{machine}.bam"
     params:
-        chromosome=lambda wildcards, input: load_json_file("input/chromosome_conversion.json")[wildcards.chrs]
+        chromosome_list=lambda wildcards, input: " ".join(load_json_file("input/chromosome_conversion.json")[wildcards.chrs]),
+        folder = temp(directory("chrom_folder"))
     log:
         "logs/samtools/extract_log_{chrs}_{accession}_{machine}.log"
     conda:
@@ -276,13 +280,20 @@ rule extractChr:
         10
     shell:
         """
-        samtools view -@ {threads} -b {input.sorted_bam} {params.chromosome} > {output} 2> {log}
+        mkdir -p {params.folder}
+        touch {output.fastq_file}
+        for chr in {params.chromosome_list}; do
+            samtools view -@ {threads} -b {input.sorted_bam} $chr > {params.folder}/{{$chr}}_{wildcards.machine}.bam
+            samtools bam2fq -@ {threads} {params.folder}/{{$chr}}_{wildcards.machine}.bam > {params.folder}/{{$chr}}_{wildcards.machine}.fastq
+            cat {params.folder}/{{$chr}}_{wildcards.machine}.fastq >> {output.fastq_file}
+        done
+        samtools merge {output.bam_file} {params.folder}/*.bam
         """
 
 
 rule convertBamToFastQ:
     input:
-        ancient("alignments/extracted_{chrs}_{accession}_{machine}.bam")
+        ancient("alignments/extracted_{chrs}_{accession}_{machine}.fastq")
     output:
         "converted/{chrs}_{accession}_{machine}.fastq.gz"
     log:
@@ -293,7 +304,7 @@ rule convertBamToFastQ:
         "envs/samtools.yaml"
     shell:
         """
-        samtools bam2fq -@ {threads} {input} | gzip -c > {output} 2> {log}
+        cat {input} | gzip -c > {output} 2> {log}
         """
 
 
@@ -316,9 +327,11 @@ rule seqkitChromosomes:
         "QC/chromosome/{chrs}_{accession}_{machine}.stats"
     conda:
         "envs/seqkit.yaml"
+    threads:
+        10
     shell:
         """
-        seqkit stats {input} -a -o {output}
+        seqkit stats {input} -a -j {threads} -o {output}
         """
 
 
@@ -330,26 +343,27 @@ def chromosome_lengths(wildcards, chrs):
     return chr_lenght_dict[chr_conversion_dict[chrs]]
 
 
-# rule flyeAssembly:
-#     input:
-#         ancient("converted/{chrs}_{accession}.fastq.gz")
-#     output:
-#         directory("flye/{chrs}_{accession}")
-#     log:
-#         "logs/assembly/flye/log_flye_{chrs}_{accession}.log"
-#     benchmark:
-#         "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
-#     params:
-#         read_type = "pacbio-hifi",
-#         size = lambda wildcards: chromosome_lengths(wildcards, wildcards.chrs) 
-#     threads:
-#         24
-#     conda:
-#         "envs/flye.yaml"
-#     shell:
-#         """
-#         flye --{params.read_type} {input} --out-dir {output} --genome-size {params.size} --asm-coverage 30 --threads {threads} 2> {log}
-#         """
+rule flyeAssembly:
+    input:
+        pacbio = ancient("converted/{chrs}_{accession}_pacbio.fastq.gz"),
+        nanopore = ancient("converted/{chrs}_{accession}_nanopore.fastq.gz")
+    output:
+        "flye/{chrs}_{accession}/assembly.fasta"
+    log:
+        "logs/assembly/flye/log_flye_{chrs}_{accession}.log"
+    benchmark:
+        "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
+    params:
+        folder = "flye/{chrs}_{accession}"
+    threads:
+        24
+    conda:
+        "envs/flye.yaml"
+    shell:
+        """
+        flye --nano-hq {input.pacbio} {input.nanopore} --iterations 0 --out-dir {params.folder} --threads {threads} 2> {log} 
+        flye --pacbio-hifi {input.pacbio} --resume-from polishing --out-dir {params.folder} --threads {threads} 2> {log}
+        """
 
 
 checkpoint hifiasmAssembly:
@@ -403,7 +417,7 @@ rule genHaplo:
     input:
         ancient(get_hifiasm_assembly_files)
     output:
-        "hifiasm_{accession}.txt"
+        "final/hifiasm_{accession}.txt"
     shell:
         """
         echo {input} > {output}
@@ -549,39 +563,13 @@ rule flankSamToBed:
         bedtools bamtobed -i {params.sorted_bam} > {output}
         """
 
-
-
 checkpoint contigFiles:
-    input:
-        qc_folder = "QC/flanking",
-        location_file = "input/locations.txt",
-        flank_folder = "flank_alignment"
-    conda:
-        "envs/bedtools.yaml"
     output:
         output_dir = directory("contig/")
+    conda:
+        "envs/bedtools.yaml"
     script:
         "scripts/flanking_genes.py" 
-
-# def get_contig_files(wildcards):
-#     contig = checkpoints.contigFiles.get().output[0]
-#     return os.path.join(contig, "{chrs}_{accession}_{combi}.fasta")
-
-# rule mapContigFiles:
-#     input:
-#         contig_file = get_contig_files
-#     output:
-#         "alignments/flanking/{chrs}_{accession}_{combi}.sam"
-#     params:
-#         mmul10_chrom = lambda wildcards: wildcards.chrs + "_mmul10.fa"
-#     conda:
-#         "envs/minimap2.yaml"
-#     threads:
-#         10
-#     shell:
-#         """
-#         minimap2 -x asm5 -t {threads} downloads/{params.mmul10_chrom} {input.contig_file} > {output}
-#         """
 
 
 rule BUSCODownloadDataset:
@@ -611,7 +599,7 @@ def intermediate_file(wildcards):
     chromosomes = list(chr_conversion.keys())
     parts = glob_wildcards(os.path.join(checkpoint_output, "{accession}_{machine}.fastq.gz"))
     hifiasm_paths = expand("hifiasm/{chrs}_{accession}/", chrs=chromosomes, accession=wildcards.accession)
-    # flye_path = expand("flye/{chrs}_{accession}", chrs=chromosomes, accession=wildcards.accession)
+    flye_path = expand("flye/{chrs}_{accession}/assembly.fasta", chrs=chromosomes, accession=wildcards.accession)
     coverage_path = expand("coverage/coverage_{chrs}_{accession}_{machine}.txt", chrs=chromosomes, accession=wildcards.accession, machine=wildcards.machine)
     raw_path = expand("QC/raw/{accession}_{machine}.stats", accession=wildcards.accession, machine=wildcards.machine)
     filtered_path = expand("QC/filtered/filtered_{accession}_{machine}.stats", accession=wildcards.accession, machine=wildcards.machine)
@@ -623,7 +611,7 @@ def intermediate_file(wildcards):
     # TRASH, COMBI = glob_wildcards(os.path.join(contig_prefix, "{trash}_EAW_{combi}.fasta"))
     # contig = expand("alignments/flanking/{chrs}_{accession}_{combi}.sam", chrs=chromosomes, accession=wildcards.accession, combi=COMBI)
 
-    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["hifiasm_{accession}.txt"] + scaffold_path + test + ["contig/"]
+    all_paths = hifiasm_paths + coverage_path + raw_path + filtered_path + chrs_path + ["final/hifiasm_{accession}.txt"] + flye_path + scaffold_path + test
     return all_paths
 
 
@@ -632,7 +620,7 @@ rule use_split_files:
     input:
         intermediate_file
     output:
-        "final_{accession}_{machine}.txt"
+        "final/final_{accession}_{machine}.txt"
     shell:
         """
         echo {input} | tr ' ' '\n' > {output}

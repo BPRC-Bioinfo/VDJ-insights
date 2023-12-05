@@ -19,7 +19,8 @@ custom_style = Style([
 
 def get_ids(path):
     """
-    creates a dictionary with as key the SRA identifier and as value a ENA link.
+    creates a dictionary with as key the SRA identifier and as value
+    a ENA link.
 
     Parameters:
         path (str): path to the input.txt file to be used.
@@ -40,8 +41,8 @@ def fetch_chromosome():
     chromosomes = {}
     for chromosome in ["chr3", "chr7"]:
         assembly_file = f"{current_cwd}/downloads/reports/mmul10_assembly_report.txt"
-        egrep_cmd = f"cat {assembly_file} | egrep '{chromosome}' | head -1 | cut -f 5"
-        result = subprocess.getoutput(egrep_cmd)
+        egrep_cmd = f"cat {assembly_file} | egrep '{chromosome}' | cut -f 5"
+        result = subprocess.getoutput(egrep_cmd).split("\n")
         chromosomes[chromosome] = result
     with open(f"{current_cwd}/input/chromosome_conversion.json", "w") as f:
         json.dump(chromosomes, f, indent=4)

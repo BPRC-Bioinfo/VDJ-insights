@@ -3,7 +3,6 @@ Flanking genes
 Alpha & Delta
 Chromosome 7: start gene: SALL2
 Chromosome 7: end gene: DAD1
-Chromosome 7: end gene: ABHD4
 
 Beta
 Chromosome 3: start gene:  MGAM2

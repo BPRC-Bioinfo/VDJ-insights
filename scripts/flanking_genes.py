@@ -81,17 +81,24 @@ def get_regions_files(unicom, accession):
 
 
 def get_region(file):
-    region = {}
-    for line in file:
-        contig, start, stop, gene = line.split()[0:4]
-        if contig not in region:
-            region[contig] = [start, stop]
-        else:
-            region[contig].extend([start, stop])
+    while True:
+        line1 = file.readline()
+        if not line1:  # Check if line1 is empty (end of file)
+            break
 
-    for key, value in region.items():
-        sorted_values = sorted(value, key=int)
-        yield [key, sorted_values[1], sorted_values[2]]
+        line2 = file.readline()
+        if not line2:  # Check if line2 is empty (end of file)
+            break
+        try:
+            contig, start, stop, gene = line1.split()[0:4]
+            contig2, start2, stop2, gene2 = line2.split()[0:4]
+            if contig == contig2:
+                tag = f"{contig}:{gene.split(':')[0]}:{gene2.split(':')[0]}"
+                positions = sorted([start, start2, stop, stop2], key=int)
+                yield [tag, positions[0], positions[-1]]
+        except ValueError:
+            print(f"Error parsing lines: '{line1.strip()}', '{line2.strip()}'")
+        
 
 
 def process_data(location_file, output_dir, info_files, bed_files):
@@ -107,36 +114,42 @@ def process_data(location_file, output_dir, info_files, bed_files):
     os.makedirs(output_dir, exist_ok=True)
     flanking_genes, accession = make_new_QC(info_files)
     combinations = process_locations(location_file)
+    print(combinations)
     df = make_df(combinations, flanking_genes)
     unicom = unique(df)
-    
+    print(unicom)
     contigs = {}
     for region in get_regions_files(unicom, accession):
         contigs[region[0]] = [region[1], region[2]]
+        contig_name = region[0].split(":")[0]
         with open(os.path.join(output_dir, f"{region[0]}.bed"), "w") as bed:
-            bed.write("\t".join(region))
-    
+            bed.write("\t".join([contig_name, region[1], region[2]]))
     for ttype, haplo, chrom, contig in unicom.values.tolist():
         try:
+            bedfilename = f"{contig[0]}:{':'.join(combinations[ttype])}"
+            print(bedfilename)
             ttype = ttype.lower().replace(" & ", "-")
             ffile = f"converted/gfatofasta/chr{chrom}_{accession}_hap{haplo}.p.fasta"
             bedfile = os.path.join(output_dir, f"{contig[0]}.bed")
             output_region = os.path.join(output_dir, f"{accession}_{ttype}_hap{haplo}.fasta")
             command = f"bedtools getfasta -fi {ffile} -bed {bedfile} -fo {output_region}"
-            subprocess.check_call(command, shell=True)
         except subprocess.CalledProcessError as e:
             print(f"Error executing command: {command}. Removing {output_region}!")
+            subprocess.check_call(command, shell=True)
             os.remove(output_region)
-            
-    
     return contigs
 
 if __name__ == "__main__":
     current_path = os.getcwd()
-    location_file = snakemake.input.location_file
-    output_dir = snakemake.output.output_dir
-    info_files = snakemake.input.qc_folder
-    bed_files = snakemake.input.flank_folder
+    # location_file = snakemake.input.location_file
+    # output_dir = snakemake.output.output_dir
+    # info_files = snakemake.input.qc_folder
+    # bed_files = snakemake.input.flank_folder
+
+    location_file = "input/locations.txt"
+    info_files = "QC/flanking"
+    bed_files = "flank_alignment"
+    output_dir = "contig/"
 
     # Execute the main genomic data processing function
     contigs = process_data(location_file, output_dir, info_files, bed_files)
