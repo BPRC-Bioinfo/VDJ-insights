@@ -239,5 +239,19 @@ flank_alignment/*
 # Contig files
 contig/*
 
+# Libraries files
+library/*
+
+# Segment mapping files
+segments_mapping/*
+alignments_excel/*
+# RSS files
+RSS/*
+
+
+
+
 # Final files
 final/*
+
+
