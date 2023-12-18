@@ -1,22 +1,50 @@
-import os
+import re
+import logging
 import tempfile
 import subprocess
+import pandas as pd
 from Bio.Seq import Seq
+from pathlib import Path
 import json
-import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-cwd = os.getcwd()
+cwd = Path.cwd()
 accession = "EAW"
 folder = "contig"
 start, stop = 100, 85
-positive = {}
-negative = {}
+all_info = []
+positive, negative, separated_segments = {}, {}, {}
 
-def write_temp_file(bed_content, original_file):
-    base_fasta = "_".join(original_file.split(".")[0].split("_")[1:]) + ".fasta"
-    ref_fasta = os.path.join(cwd, folder, base_fasta)
+
+def write_fasta_file(dictionary, folder):
+    for key, value in dictionary.items():
+        for region, segments in value.items():
+            ffile = cwd / folder / f"{key}{region}.fasta"
+            with open(ffile, 'w') as f:
+                for header, segment in segments.items():
+                    for x, rss in enumerate(segment):
+                        f.write(f">{header}-{x+1}\n{rss}\n")
+
+
+def create_segments_dict():
+    Path(cwd / "RSS").mkdir(parents=True, exist_ok=True)
+    merged_data = {**positive, **negative}
+    for key, value in merged_data.items():
+        prefix = [i for i in key.split("_") if i.startswith(("TR", "LOC"))][0]
+        prefix = re.sub(r"[0-9]", "", prefix)
+        if prefix.startswith("TR"):
+            region, segment = prefix[0:3], prefix[3]
+            separated_segments.setdefault(region, {}).setdefault(segment, {})[key] = value
+
+
+def add_to_dict(name, dictionary, rss):
+    dictionary.setdefault(name, []).append(rss)
+
+
+def create_sequence(bed_content, original_file):
+    base_fasta = "_".join(original_file.stem.split("_")[1:]) + ".fasta"
+    ref_fasta = cwd / folder / base_fasta
     extension = '.bed'
     extension2 = '.fasta'
     with tempfile.NamedTemporaryFile(suffix=extension, mode="w+", delete=True) as temp:
@@ -35,64 +63,65 @@ def write_temp_file(bed_content, original_file):
             return sequence
 
 
-def add_to_dict(name, dictionary, rss):
-    if name not in dictionary:
-        dictionary[name] = [rss]
-    else:
-        if rss not in dictionary[name]:
-            dictionary[name].append(rss)
- 
+def create_rss(combination):
+    name, reference, begin, end, strand, filename = combination
+    TR_seg = {
+        "V": {"+": [end, str(int(end) + 39)], "-": [str(int(begin) - 39), begin]},
+        "D": {"+": [str(int(begin) - 28), str(int(end) + 28)], "-": [str(int(begin) - 28), str(int(end) + 28)]},
+        "J": {"+": [str(int(begin) - 39), begin], "-": [end, str(int(end) + 39)]}
+    }
+    prefix = [i for i in name.split("_") if i.startswith(("TR", "LOC"))][0]
+    prefix = re.sub(r"[0-9]", "", prefix)
+    if prefix.startswith("TR"):
+        segment = prefix[3]
+        rss_bed = TR_seg[segment][strand]
+        bed_content = [reference, rss_bed[0], rss_bed[-1]]
+        rss = create_sequence(bed_content, Path(filename))
+        if strand == '+':
+            add_to_dict(name, positive, rss)
+        elif strand == '-':
+            rss = Seq(rss)
+            rss = str(rss.reverse_complement())
+            add_to_dict(name, negative, rss)
+
+def make_df():
+    headers = ["name", "reference", "start", "stop", "strand", "file"]
+    df = pd.DataFrame(all_info, columns=headers)
+    unique_combinations = df.drop_duplicates(subset=['name', 'start', 'stop'])
+    return unique_combinations.values.tolist()
+
 
 def parse_bedfile(folder, filename):
-    bedfile = os.path.join(cwd, folder, filename)
+    bedfile = cwd / folder / filename
     with open(bedfile, 'r') as f:
         for line in f:
             sline = line.split()
-            ref, start, stop, name, strand = (sline[0], sline[1], 
-                                              sline[2], sline[3], 
+            ref, start, stop, name, strand = (sline[0], sline[1],
+                                              sline[2], sline[3],
                                               sline[-1])
-            if strand == '+':
-                rss = write_temp_file([ref, stop, str(int(stop)+39)], filename)
-                add_to_dict(name, positive, rss)
-            elif strand == '-':
-                rss = write_temp_file([ref, str(int(start)-39), start], filename)
-                rss = Seq(rss)
-                rss = str(rss.reverse_complement())
-                add_to_dict(name, negative, rss)
-                
+            all_info.append([name, ref, start, stop, strand, str(filename)])
 
-def write_fasta_file(dictionary, folder, filename):
-    ffile = os.path.join(cwd, folder, filename)
-    with open(ffile, 'w') as f:
-        for key, value in dictionary.items():
-            for x, rss in enumerate(value):
-                f.write(f">{key}-{x+1}\n{rss}\n")
-        
-    
-    
-def write_json_file():
-    rss_folder = os.path.join(cwd, "RSS")
-    if not os.path.exists(rss_folder):
-        os.mkdir(rss_folder)
-    logging.info("Writing RSS sequences from the positive strand to positive.json!")
-    with open(os.path.join(rss_folder, "positive.json"), "w") as f:
-        f.write(json.dumps(positive, indent=4))
-    logging.info("Writing RSS sequences from the negative strand to negative.json!")
-    with open(os.path.join(rss_folder, "negative.json"), "w") as f:
-        f.write(json.dumps(negative, indent=4))
-    complete = {**positive, **negative}
-    write_fasta_file(complete, rss_folder, "complete.fasta")
-    
-def main():
+
+def gather_list():
     logging.info(f"Fetching RSS sequences from files in the range of {start}%acc to {stop}%acc.")
     for accuracy in range(start, stop - 1, -1):
         logging.info(f"Retrieving RSS sequences from the {accuracy}%acc bedfile!")
-        folder = os.path.join(cwd, "segments_mapping", f"{accuracy}%acc", "secondary_mapping")
-        for bfile in os.listdir(folder):
-            if accession in bfile and bfile.endswith("bed"):
-                parse_bedfile(folder, bfile)
-    write_json_file()
+        minimap2_folder = cwd / "segments_mapping" / f"{accuracy}%acc" / "secondary_mapping"
+        for minibfile in minimap2_folder.glob(f"*_{accession}*.bed"):
+            parse_bedfile(minimap2_folder, minibfile)
+    bowtie2_folder = cwd / "bowtie2" / f"100%acc"
+    for bowbfile in bowtie2_folder.glob(f"*_{accession}*.bed"):
+        parse_bedfile(bowtie2_folder, bowbfile)
+    return make_df()
+
+
+def main():
+    unique = gather_list()
+    for i in unique:
+        create_rss(i)
+    create_segments_dict()
+    write_fasta_file(separated_segments, "RSS")
+
 
 if __name__ == '__main__':
     main()
-        

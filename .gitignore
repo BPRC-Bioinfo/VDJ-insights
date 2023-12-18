@@ -225,6 +225,9 @@ converted/*
 flye/*
 hifiasm/*
 
+# Mapping information folder
+quast/*
+
 # Scaffold files
 scaffold/*
 
@@ -244,10 +247,12 @@ library/*
 
 # Segment mapping files
 segments_mapping/*
+bowtie2/*
+bowtie2_db/*
 alignments_excel/*
+
 # RSS files
 RSS/*
-
 
 
 
