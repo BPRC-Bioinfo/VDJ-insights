@@ -13,7 +13,9 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("final/hifiasm_{accession}_{machine}.txt", accession=ACCESSION, machine=MACHINE)
+        expand("alignments/sorted_{accession}_{machine}.bam", accession=ACCESSION, machine=MACHINE),
+        expand("flye/{chrs}_{accession}/assembly.fasta", chrs=["chr3", "chr7"], accession=ACCESSION),
+        expand("converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta", chrs=["chr3", "chr7"], accession=ACCESSION, haplo=["hap1.p", "hap2.p", "p"])
 
 rule downloadMmul10:
     output:
@@ -395,8 +397,22 @@ rule genHaplo:
     input:
         ancient(get_hifiasm_assembly_files)
     output:
-        "final/hifiasm_{accession}_{machine}.txt"
+        "final/hifiasm_{accession}.txt"
     shell:
         """
         echo {input} > {output}
+        """
+
+
+
+rule gfaToFasta:
+    input:
+        gfa = lambda wildcards: checkpoints.hifiasmAssembly.get(**wildcards).output[0] + "/{chrs}_{accession}.asm.bp.{haplo}_ctg.gfa"
+    output:
+        "converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta"
+    conda:
+        "envs/gfatools.yaml"
+    shell:
+        """
+        gfatools gfa2fa {input} > {output}       
         """
