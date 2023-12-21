@@ -84,6 +84,7 @@ def create_rss(combination):
             rss = str(rss.reverse_complement())
             add_to_dict(name, negative, rss)
 
+
 def make_df():
     headers = ["name", "reference", "start", "stop", "strand", "file"]
     df = pd.DataFrame(all_info, columns=headers)
