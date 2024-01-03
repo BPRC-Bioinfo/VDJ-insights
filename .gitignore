@@ -205,6 +205,7 @@ split_files/*
 
 # Filtered files folder
 filtered/*
+raw_sequences/*
 
 # Alignment folder
 alignments/*
@@ -250,7 +251,7 @@ segments_mapping/*
 bowtie2/*
 bowtie2_db/*
 alignments_excel/*
-
+blast_db/*
 # RSS files
 RSS/*
 

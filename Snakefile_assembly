@@ -13,9 +13,9 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("alignments/sorted_{accession}_{machine}.bam", accession=ACCESSION, machine=MACHINE),
-        expand("flye/{chrs}_{accession}/assembly.fasta", chrs=["chr3", "chr7"], accession=ACCESSION),
+        expand("raw_sequences/raw_{accession}_{machine}.combined.fastq.gz", accession=ACCESSION, machine=MACHINE),
         expand("converted/gfatofasta/{chrs}_{accession}_{haplo}.fasta", chrs=["chr3", "chr7"], accession=ACCESSION, haplo=["hap1.p", "hap2.p", "p"])
+        # expand("flye/{chrs}_{accession}/assembly.fasta", chrs=["chr3", "chr7"], accession=ACCESSION),
 
 rule downloadMmul10:
     output:
@@ -43,6 +43,8 @@ rule splitChromosomes:
 
 # Checkpoint to generate the JSON file
 checkpoint generate_json:
+    input:
+        "downloads/mmul10.fna"
     output:
         chr_conversion="input/chromosome_conversion.json",
         chr_length="input/chromosome_lengths.json"
@@ -182,6 +184,45 @@ rule combineFastQ:
         cat {input} > {output}
         """
 
+
+rule getHeaders:
+    input:
+        "filtered/filtered_{accession}_{machine}.part_{i}.fastq.gz"
+    output:
+        "raw_sequences/headers_{accession}_{machine}_{i}.txt"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit fx2tab --id-regexp "^(\\S+)" --name {input} > {output}
+        """
+
+def all_fastq_header_files(wildcards):
+    checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession, machine=wildcards.machine).output[0]
+    expanded_paths = expand("raw_sequences/headers_{accession}_{machine}_{i}.txt",
+                            accession=wildcards.accession,
+                            machine=wildcards.machine,
+                            i=glob_wildcards(os.path.join(checkpoint_output, "{accession}.part_{i}.fastq.gz")).i)
+    return expanded_paths
+
+
+rule combineAllHeaders:
+    input:
+        header_files=ancient(lambda wildcards: all_fastq_header_files(wildcards)),
+        fastq="downloads/{accession}_{machine}.fastq.gz"
+    output:
+        "raw_sequences/raw_{accession}_{machine}.combined.fastq.gz"
+    params:
+        all_headers=temp("raw_sequences/headers_{accession}_{machine}.combined.txt")
+    conda:
+        "envs/seqtk.yaml"
+    shell:
+        """
+        cat {input.header_files} > {params.all_headers}
+        seqtk subseq {input.fastq} {params.all_headers} > {output}
+        """
+
+
 rule seqkitFiltered:
     input:
         ancient("combined/{accession}_{machine}.combined.fastq.gz")
@@ -198,7 +239,7 @@ rule seqkitFiltered:
 
 rule minimap2:
     input:
-        read = ancient("combined/{accession}_{machine}.combined.fastq.gz"),
+        read = ancient("raw_sequences/raw_{accession}_{machine}.combined.fastq.gz"),
         mmul10 = ancient("downloads/mmul10.fna"),
     output:
         temp("alignments/{accession}_{machine}.sam")
