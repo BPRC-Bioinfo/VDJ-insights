@@ -4,10 +4,12 @@ import tempfile
 import subprocess
 import pandas as pd
 from Bio.Seq import Seq
+from Bio import SeqIO
 from pathlib import Path
 import json
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 cwd = Path.cwd()
 accession = "EAW"
@@ -35,7 +37,8 @@ def create_segments_dict():
         prefix = re.sub(r"[0-9]", "", prefix)
         if prefix.startswith("TR"):
             region, segment = prefix[0:3], prefix[3]
-            separated_segments.setdefault(region, {}).setdefault(segment, {})[key] = value
+            separated_segments.setdefault(
+                region, {}).setdefault(segment, {})[key] = value
 
 
 def add_to_dict(name, dictionary, rss):
@@ -48,6 +51,7 @@ def create_sequence(bed_content, original_file):
     extension = '.bed'
     extension2 = '.fasta'
     with tempfile.NamedTemporaryFile(suffix=extension, mode="w+", delete=True) as temp:
+        print("\t".join(bed_content))
         temp.write("\t".join(bed_content))
         temp.flush()
         temp.seek(0)
@@ -56,6 +60,7 @@ def create_sequence(bed_content, original_file):
         with tempfile.NamedTemporaryFile(suffix=extension2, mode="w+", delete=True) as temp2:
             temp2_file_path = temp2.name
             command = f"bedtools getfasta -fi {ref_fasta} -bed {temp_file_path} -fo {temp2_file_path}"
+            print(command)
             subprocess.call(command, shell=True)
 
             temp2.seek(0)
@@ -104,10 +109,13 @@ def parse_bedfile(folder, filename):
 
 
 def gather_list():
-    logging.info(f"Fetching RSS sequences from files in the range of {start}%acc to {stop}%acc.")
+    logging.info(
+        f"Fetching RSS sequences from files in the range of {start}%acc to {stop}%acc.")
     for accuracy in range(start, stop - 1, -1):
-        logging.info(f"Retrieving RSS sequences from the {accuracy}%acc bedfile!")
-        minimap2_folder = cwd / "segments_mapping" / f"{accuracy}%acc" / "secondary_mapping"
+        logging.info(
+            f"Retrieving RSS sequences from the {accuracy}%acc bedfile!")
+        minimap2_folder = cwd / "segments_mapping" / \
+            f"{accuracy}%acc" / "secondary_mapping"
         for minibfile in minimap2_folder.glob(f"*_{accession}*.bed"):
             parse_bedfile(minimap2_folder, minibfile)
     bowtie2_folder = cwd / "bowtie2" / f"100%acc"
@@ -116,7 +124,18 @@ def gather_list():
     return make_df()
 
 
+def load_header(row: pd.DataFrame):
+    fasta, start, stop = row["Path"], row["Start coord"], row["End coord"]
+    with open(fasta, 'r') as fasta_file:
+        record = SeqIO.read(fasta_file, 'fasta')
+        header = f"{record.id} {start} {stop}"
+        print(header)
+
+
 def main():
+    cwd = Path.cwd()
+    # df = pd.read_excel(cwd / 'annotation_report.xlsx')
+    # # df.apply(load_header, axis=1)
     unique = gather_list()
     for i in unique:
         create_rss(i)

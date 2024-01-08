@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 from bowtie2 import bowtie2_main
 from minimap2 import minimap2_main
+from write_annotation_report import write_report_report
 from pathlib import Path
 import pandas as pd
 
@@ -23,8 +24,8 @@ def select_row(df):
         return df[df['tool'] == 'bowtie2']
 
 
-def get_or_create(cwd):
-    report = cwd / "demo" / "report.xlsx"
+def get_or_create(annotation_folder):
+    report = annotation_folder / "report.xlsx"
     if not report.exists():
         df = combine_df()
         write_report(df, report)
@@ -33,22 +34,27 @@ def get_or_create(cwd):
         return pd.read_excel(report)
 
 
+def make_dir(dir):
+    Path(dir).mkdir(parents=True, exist_ok=True)
+
+
 def make_blast_db(cwd):
     db = cwd / "blast_db"
     if not db.exists():
         reference = cwd / "library" / "retained.fasta"
-        Path(db).mkdir(parents=True, exist_ok=True)
+        make_dir(db)
         command = f"makeblastdb -in {reference} -dbtype nucl -out {db}/blast_db"
         subprocess.run(command, shell=True)
     return db
 
 
 def run_blast(row, db, cut_off) -> str:
-    header, sequence, start, stop, path = row['name'], row[
-        "sequence"], row["start"], row["stop"], row["fasta-file"]
+    header, sequence, start, stop, path, strand = row['name'], row[
+        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"]
     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.fasta') as fasta_file, \
             tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as result_file:
-        fasta_file.write(f">{header}:{start}:{stop}:{path}\n{sequence}\n")
+        fasta_file.write(
+            f">{header}:{start}:{stop}:{strand}:{path}\n{sequence}\n")
         fasta_file.flush()
         blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq"
         command = f"blastn -query {fasta_file.name} -db {db}/blast_db -outfmt '{blast_columns}' -perc_identity {cut_off} -out {result_file.name}"
@@ -87,16 +93,18 @@ def make_blast_df(filtered_df: pd.DataFrame, db):
 
 def main():
     cwd = Path.cwd()
+    annotation_folder = cwd / "annotation"
+    make_dir(annotation_folder)
     db = make_blast_db(cwd)
-    df = get_or_create(cwd)
+    df = get_or_create(annotation_folder)
     filtered_df = df.groupby(["name", "start", "stop"]).apply(select_row)
     filtered_df: pd.DataFrame = filtered_df.reset_index(drop=True)
     filtered_df = filtered_df.query("region != 'LOC'")
     blast_df = make_blast_df(filtered_df, db)
     blast_df = blast_df.drop_duplicates(
         subset=blast_df.columns[:12]).reset_index(drop=True)
-
-    blast_df.to_excel(cwd / "demo" / "blast_results.xlsx", index=False)
+    blast_df.to_excel(annotation_folder / "blast_results.xlsx", index=False)
+    write_report_report(annotation_folder)
 
 
 if __name__ == '__main__':

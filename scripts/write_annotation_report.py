@@ -1,74 +1,84 @@
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-
-
-def make_plot(path, value_counts, type):
-    plt.figure(figsize=(15, 6))
-    value_counts.plot(kind=type)
-    plt.xlabel('Mismatches')
-    plt.ylabel('Count')
-    plt.title('Count of Mismatches')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig(path)
+from Bio.Seq import Seq
 
 
 def main_df(df):
     mask = ~df['query seq'].str.contains(
         '-') & ~df['subject seq'].str.contains('-')
     df = df[mask]
-    # Ensure that '% identity' is a float
     df['% identity'] = df['% identity'].astype(float)
-
-    # Create reference and comparison DataFrames
     reference_df = df.query("`% identity` == 100.000")
     comperere_df = df.query("`% identity` != 100.000")
-
-    # Merge the DataFrames
     merged_df = pd.merge(comperere_df, reference_df[[
                          'query', 'subject']], on='query', suffixes=('', '_100'))
     return merged_df
 
 
-def add_change_values_df(df,):
-    # Calculate % Mismatches of Total Alignment
+def add_change_values_df(df):
     df['% Mismatches of total alignment'] = (
         df['mismatches'] / df['alignment length']) * 100
-
-    # Calculate lengths of the sequences
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     path_df = df['query'].str.split(':', expand=True)
-    df['query'] = path_df[0]
-    df['start'] = path_df[1]
-    df['stop'] = path_df[2]
-    df['path'] = path_df[3]
-    # Select and rename required columns
+    df[['query', 'start', 'stop', 'strand', 'path']] = path_df[[0, 1, 2, 3, 4]]
     output_df = df[[
         'subject_100', 'query',
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
-        'path'
+        'subject seq', 'query seq',
+        'strand', 'path'
     ]]
     output_df.columns = [
-        'Reference seq', 'Old name-like',
+        'Reference', 'Old name-like',
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
-        'Path'
+        'Reference seq', 'Old name-like seq',
+        'Strand', 'Path'
     ]
-    output_df = output_df.sort_values(by="Reference seq")
+    output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
+    output_df['Count'] = output_df.groupby(
+        ['Reference', 'Old name-like']).cumcount() + 1
+    output_df['Modified'] = output_df['Old name-like'] + \
+        '-' + output_df['Count'].astype(str)
+    output_df['Old name-like'] = output_df['Modified']
+    output_df.drop(['Modified', 'Count'], axis=1, inplace=True)
     return output_df
 
 
-def main():
-    cwd = Path.cwd()
-    df = pd.read_excel(cwd / "demo" / "blast_results.xlsx")
+def annotation(df, annotation_folder):
+    df = df[['Reference', 'Old name-like', 'Mismatches',
+             '% Mismatches of total alignment', 'Start coord',
+             'End coord', 'Path']]
+    df.to_excel(annotation_folder / 'annotation_report.xlsx', index=False)
+
+
+def rss(df, annotation_folder):
+    df = df[['Old name-like', 'Start coord',
+             'End coord', 'Strand', 'Path']]
+    df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
+
+
+def orf(row):
+    header, sequence, strand = row[[
+        'Old name-like', 'Old name-like seq', 'Strand']]
+    return f">{header}\n{sequence}"
+
+    # # df = df[['Old name-like', 'Old name-like seq', 'Strand']]
+    # df.to_excel(annotation_folder / 'orf_report.xlsx', index=False)
+
+
+def write_report_report(annotation_folder):
+    df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = main_df(df)
     df = add_change_values_df(df)
-    df.to_excel(cwd / 'annotation_report.xlsx', index=False)
+    annotation(df, annotation_folder)
+    rss(df, annotation_folder)
 
 
 if __name__ == '__main__':
-    main()
+    cwd = Path.cwd()
+    annotation_folder = cwd / "annotation"
+    write_report_report(annotation_folder)

@@ -71,14 +71,14 @@ def fetchall_args_sra_download():
         selected_option (str): chosen option as string.
     """
     selected_option = questionary.select(
-                "Select a option for downloading SRA files",
-                choices=["wget", "kingfisher", "sra"],
-                style=custom_style,
-                pointer="❯",
-                use_jk_keys=True,
-                show_selected=True,
-                qmark=""
-            ).ask()
+        "Select a option for downloading SRA files",
+        choices=["wget", "kingfisher", "sra"],
+        style=custom_style,
+        pointer="❯",
+        use_jk_keys=True,
+        show_selected=True,
+        qmark=""
+    ).ask()
     return selected_option
 
 
@@ -88,14 +88,15 @@ def fetchall_args_input_file():
     Returns:
         selected_option (str): chosen input file as string.
     """
-    input_files = [f for f in os.listdir(f"{current_cwd}/input/") if f.endswith(".txt")]
+    input_files = [f for f in os.listdir(
+        f"{current_cwd}/input/") if f.endswith(".txt")]
     selected_input = questionary.select(
-                "Select a option as input file",
-                choices=input_files,
-                style=custom_style,
-                pointer="❯",
-                use_jk_keys=True,
-                show_selected=True,
-                qmark=""
-            ).ask()
+        "Select a option as input file",
+        choices=input_files,
+        style=custom_style,
+        pointer="❯",
+        use_jk_keys=True,
+        show_selected=True,
+        qmark=""
+    ).ask()
     return selected_input

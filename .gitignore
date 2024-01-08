@@ -255,6 +255,9 @@ blast_db/*
 # RSS files
 RSS/*
 
+# Annotation files
+annotation/*
+
 
 
 # Final files
