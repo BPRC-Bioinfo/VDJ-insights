@@ -51,7 +51,7 @@ def add_change_values_df(df):
 def annotation(df, annotation_folder):
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
-             'End coord', 'Path']]
+             'End coord', 'Function', 'Path']]
     df.to_excel(annotation_folder / 'annotation_report.xlsx', index=False)
 
 
@@ -61,19 +61,21 @@ def rss(df, annotation_folder):
     df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
 
 
-def orf(row):
-    header, sequence, strand = row[[
-        'Old name-like', 'Old name-like seq', 'Strand']]
-    return f">{header}\n{sequence}"
-
-    # # df = df[['Old name-like', 'Old name-like seq', 'Strand']]
-    # df.to_excel(annotation_folder / 'orf_report.xlsx', index=False)
+def add_orf(row):
+    sequence, strand = row[['Old name-like seq', 'Strand']]
+    sequence = Seq(sequence)
+    if strand == "-":
+        sequence = sequence.reverse_complement()
+    aa = sequence.translate()
+    row["Function"] = "F/ORF" if "*" not in aa else "P"
+    return row
 
 
 def write_report_report(annotation_folder):
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = main_df(df)
     df = add_change_values_df(df)
+    df = df.apply(add_orf, axis=1)
     annotation(df, annotation_folder)
     rss(df, annotation_folder)
 
