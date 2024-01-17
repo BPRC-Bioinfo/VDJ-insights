@@ -34,14 +34,14 @@ def get_region_and_segment(name):
         return "LOC", "-"
 
 
-def parse_bed(file_path, accuracy, fasta):
+def parse_bed(file_path, accuracy, fasta, bowtie_type):
     entries = []
     with open(file_path, "r") as file:
         for line in file:
             line = line.strip().split("\t")
             region, segment = get_region_and_segment(line[3])
             line.extend([get_sequence(line, fasta),
-                        accuracy, str(file_path), "bowtie2", region, segment, fasta])
+                        accuracy, str(file_path), bowtie_type, region, segment, fasta])
             entries.append(line)
     return entries
 
@@ -54,10 +54,35 @@ def run_command(command):
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
-def all_commands(files: MappingFiles, fasta_file, rfasta):
+def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file):
+    N = 1 if acc < 50 else 0
+    L = int(15 + (acc / 100) * 5)
+    score_min_base = -0.1 + (acc / 100) * 0.08
+    score_min = f"L,0,{score_min_base:.2f}"
+    command = f"bowtie2 -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    return command
+
+
+def make_bowtie_command(acc, bowtie_db, rfasta, sam_file):
+    # Map score to mismatches
+    # Higher score (towards 100) means fewer mismatches allowed
+    mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
+
+    # Constructing the Bowtie1 command
+    command = f"bowtie -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    return command
+
+
+def all_commands(files: MappingFiles, fasta_file, rfasta, acc, bowtie_type):
+    if bowtie_type == "bowtie2":
+        bowtie_command = make_bowtie2_command(
+            acc, files.bowtie_db, rfasta, files.sam)
+    else:
+        bowtie_command = make_bowtie_command(
+            acc, files.bowtie_db, rfasta, files.sam)
     commands = [
-        f"bowtie2-build {fasta_file} {files.bowtie_db}",
-        f"bowtie2 --very-sensitive -N 0 -L 22 --score-min L,0,-0.02 -f -x {files.bowtie_db} -U {rfasta} -S {files.sam}",
+        f"{bowtie_type}-build {fasta_file} {files.bowtie_db}",
+        bowtie_command,
         f"samtools sort -o {files.bam} {files.sam}",
         f"samtools index {files.bam}",
         f"bedtools bamtobed -i {files.bam} > {files.bed}",
@@ -87,17 +112,17 @@ def make_df(all_entries):
     return unique_combinations.reset_index(drop=True)
 
 
-def run(cwd, indir, outdir, rfasta, beddir):
+def run(cwd, indir, outdir, rfasta, beddir, acc, bowtie_type):
     for fasta in indir.glob("*.fasta"):
         prefix = fasta.stem
         index = outdir / prefix
         create_directory(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
-            for command in all_commands(files, fasta, rfasta):
+            for command in all_commands(files, fasta, rfasta, acc, bowtie_type):
                 run_command(command)
         if files.bed.exists():
-            entries = parse_bed(files.bed, 100, fasta)
+            entries = parse_bed(files.bed, acc, fasta, bowtie_type)
             logging.info(f"Parsed {len(entries)} entries from {files.bed}")
             yield entries
         else:
@@ -109,19 +134,22 @@ def create_directory(location):
     Path(location).mkdir(parents=True, exist_ok=True)
 
 
-def bowtie2_main():
+def bowtie2_main(bowtie_type):
     cwd = Path.cwd()
-    outdir = cwd / "bowtie2_db"
+    outdir = cwd / f"{bowtie_type}_db"
     indir = cwd / "contig"
     rfasta = cwd / "library" / "retained.fasta"
-    beddir = cwd / "bowtie2" / "100%acc"
+    start, stop = 100, 0
     all_entries = []
-    create_directory(beddir)
-    for current_entry in run(cwd, indir, outdir, rfasta, beddir):
-        all_entries.extend(current_entry)
+    for acc in range(start, stop - 1, -1):
+        beddir = cwd / bowtie_type / f"{acc}%acc"
+        create_directory(beddir)
+        for current_entry in run(cwd, indir, outdir, rfasta, beddir, acc, bowtie_type):
+            all_entries.extend(current_entry)
     df = make_df(all_entries)
     return df
 
 
 if __name__ == "__main__":
-    bowtie2_main()
+    bowtie_type = "bowtie"
+    bowtie2_main(bowtie_type)

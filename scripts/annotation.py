@@ -1,16 +1,17 @@
 import subprocess
-import tempfile
+from tempfile import NamedTemporaryFile as NTF
 from bowtie2 import bowtie2_main
 from minimap2 import minimap2_main
-from write_annotation_report import write_report_report
+from write_annotation_report import write_annotation_reports
 from pathlib import Path
 import pandas as pd
 
 
 def combine_df():
     minimap2_df = minimap2_main()
-    bowtie2_df = bowtie2_main()
-    return pd.concat([minimap2_df, bowtie2_df])
+    bowtie_df = bowtie2_main("bowtie")
+    bowtie2_df = bowtie2_main("bowtie2")
+    return pd.concat([minimap2_df, bowtie_df, bowtie2_df])
 
 
 def write_report(df, report):
@@ -20,8 +21,10 @@ def write_report(df, report):
 def select_row(df):
     if 'V' in df['segment'].values:
         return df[df['tool'] == 'minimap2']
-    else:
+    elif 'J' in df['segment'].values:
         return df[df['tool'] == 'bowtie2']
+    else:
+        return df[df['tool'] == 'bowtie']
 
 
 def get_or_create(annotation_folder):
@@ -48,16 +51,25 @@ def make_blast_db(cwd):
     return db
 
 
-def run_blast(row, db, cut_off) -> str:
-    header, sequence, start, stop, path, strand = row['name'], row[
+def make_blast_command(fasta_file, db, cutoff, result_file, segment):
+    blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq"
+    if segment == "V":
+        command = f"blastn -query {fasta_file} -db {db}/blast_db -outfmt '{blast_columns}' -perc_identity {cutoff} -out {result_file}"
+    else:
+        command = f"blastn -task blastn-short -query {fasta_file} -db {db}/blast_db -outfmt '{blast_columns}' -perc_identity {cutoff} -out {result_file}"
+    return command
+
+
+def run_blast(row, db, cutoff) -> str:
+    header, sequence, start, stop, path, strand = row["name"], row[
         "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"]
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.fasta') as fasta_file, \
-            tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as result_file:
+    with NTF(mode='w+', delete=False, suffix='.fasta') as fasta_file, \
+            NTF(mode='w+', delete=False, suffix='.txt') as result_file:
         fasta_file.write(
             f">{header}:{start}:{stop}:{strand}:{path}\n{sequence}\n")
         fasta_file.flush()
-        blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq"
-        command = f"blastn -query {fasta_file.name} -db {db}/blast_db -outfmt '{blast_columns}' -perc_identity {cut_off} -out {result_file.name}"
+        command = make_blast_command(
+            fasta_file.name, db, cutoff, result_file.name, row["segment"])
         subprocess.run(command, shell=True)
         result_file.flush()
         with open(result_file.name, 'r') as file:
@@ -66,7 +78,7 @@ def run_blast(row, db, cut_off) -> str:
                 all_hits = []
                 for number, hit in enumerate(blast_result):
                     hits = hit.strip().split("\t")
-                    hits.extend([number + 1, cut_off, start, stop])
+                    hits.extend([number + 1, cutoff, start, stop])
                     all_hits.append(hits)
                 return all_hits
 
@@ -100,11 +112,15 @@ def main():
     filtered_df = df.groupby(["name", "start", "stop"]).apply(select_row)
     filtered_df: pd.DataFrame = filtered_df.reset_index(drop=True)
     filtered_df = filtered_df.query("region != 'LOC'")
-    blast_df = make_blast_df(filtered_df, db)
-    blast_df = blast_df.drop_duplicates(
-        subset=blast_df.columns[:12]).reset_index(drop=True)
-    blast_df.to_excel(annotation_folder / "blast_results.xlsx", index=False)
-    write_report_report(annotation_folder)
+    blast_file = annotation_folder / "blast_results.xlsx"
+    if not blast_file.exists():
+        blast_df = make_blast_df(filtered_df, db)
+        blast_df = blast_df.drop_duplicates(
+            subset=blast_df.columns[:12]).reset_index(drop=True)
+        blast_df.to_excel(blast_file, index=False)
+    else:
+        blast_df = pd.read_excel(blast_file)
+    write_annotation_reports(annotation_folder)
 
 
 if __name__ == '__main__':

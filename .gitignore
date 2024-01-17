@@ -250,6 +250,9 @@ library/*
 segments_mapping/*
 bowtie2/*
 bowtie2_db/*
+bowtie/*
+bowtie_db/*
+
 alignments_excel/*
 blast_db/*
 # RSS files
@@ -257,6 +260,7 @@ RSS/*
 
 # Annotation files
 annotation/*
+meme/*
 
 
 

@@ -10,21 +10,23 @@ def main_df(df):
     df = df[mask]
     df['% identity'] = df['% identity'].astype(float)
     reference_df = df.query("`% identity` == 100.000")
-    comperere_df = df.query("`% identity` != 100.000")
-    merged_df = pd.merge(comperere_df, reference_df[[
-                         'query', 'subject']], on='query', suffixes=('', '_100'))
-    return merged_df
+    df = df.query("`% identity` < 100.000")
+    return df, reference_df
 
 
-def add_change_values_df(df):
+def add_values(df):
     df['% Mismatches of total alignment'] = (
         df['mismatches'] / df['alignment length']) * 100
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     path_df = df['query'].str.split(':', expand=True)
     df[['query', 'start', 'stop', 'strand', 'path']] = path_df[[0, 1, 2, 3, 4]]
+    return df
+
+
+def change_values_df(df):
     output_df = df[[
-        'subject_100', 'query',
+        'subject', 'query',
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
@@ -55,10 +57,10 @@ def annotation(df, annotation_folder):
     df.to_excel(annotation_folder / 'annotation_report.xlsx', index=False)
 
 
-def rss(df, annotation_folder):
-    df = df[['Old name-like', 'Start coord',
-             'End coord', 'Strand', 'Path']]
-    df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
+def rss(df, annotation_folder, filename):
+    df = df[['Reference', 'Old name-like', 'Start coord',
+             'End coord', 'Strand', 'Path', 'Function']]
+    df.to_excel(annotation_folder / filename, index=False)
 
 
 def add_orf(row):
@@ -71,16 +73,18 @@ def add_orf(row):
     return row
 
 
-def write_report_report(annotation_folder):
+def write_annotation_reports(annotation_folder):
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
-    df = main_df(df)
-    df = add_change_values_df(df)
+    df = add_values(df)
+    df, ref_df = main_df(df)
+    df = change_values_df(df)
     df = df.apply(add_orf, axis=1)
+    ref_df = change_values_df(ref_df)
     annotation(df, annotation_folder)
-    rss(df, annotation_folder)
+    rss(df, annotation_folder, 'RSS_report.xlsx')
 
 
 if __name__ == '__main__':
     cwd = Path.cwd()
     annotation_folder = cwd / "annotation"
-    write_report_report(annotation_folder)
+    write_annotation_reports(annotation_folder)
