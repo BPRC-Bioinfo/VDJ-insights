@@ -43,184 +43,184 @@ rule all:
         # expand("results/{sample}/assemblies_chrs/hifiasm/{sample}_pacnano_chr{chr}_hifiasm.fa", sample = SAMPLES, chr = CHROMOSOMES),
         # expand("results/{sample}/de_novo/hifiasm/{sample}_pacnano_hifiasmUL.bp.p_utg.gfa", sample = SAMPLES)
 
-# rule refDownload:
-#     output:
-#         "Mmul10/GCA_003339765.3_Mmul_10_genomic.fna",
-#         "Mmul10/GCA_003339765.3_Mmul_10_assembly_report.txt"
-#     params:
-#         dir = "Mmul10/",
-#         gz = "Mmul10/GCA_003339765.3_Mmul_10_genomic.fna.gz"
-#     shell:
-#         """
-#         wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -P {params.dir}
-#         gunzip {params.gz}
-#         wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P {params.dir}
-#         """
+rule refDownload:
+    output:
+        "Mmul10/GCA_003339765.3_Mmul_10_genomic.fna",
+        "Mmul10/GCA_003339765.3_Mmul_10_assembly_report.txt"
+    params:
+        dir = "Mmul10/",
+        gz = "Mmul10/GCA_003339765.3_Mmul_10_genomic.fna.gz"
+    shell:
+        """
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -P {params.dir}
+        gunzip {params.gz}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P {params.dir}
+        """
 
-# rule extractChromosomes:
-#     input:
-#         fa = ancient("Mmul10/GCA_003339765.3_Mmul_10_genomic.fna"),
-#         report = ancient("Mmul10/GCA_003339765.3_Mmul_10_assembly_report.txt")
-#     output:
-#         fa = temp("Mmul10/Mmul10_chr{chr}.fasta"),
-#         temp = temp("Mmul10/Mmul_chr{chr}")
-#     conda:
-#         "envs/seqkit.yaml"
-#     shell:
-#         """
-#         awk -F'\t' -v var={wildcards.chr} '$1=="chr"var {{print $5}}' {input.report} > {output.temp}
-#         seqkit grep -f {output.temp} {input.fa} > {output.fa}
-#         sed "s/>/>chr{wildcards.chr} /g" {output.fa} -i
-#         """
+rule extractChromosomes:
+    input:
+        fa = ancient("Mmul10/GCA_003339765.3_Mmul_10_genomic.fna"),
+        report = ancient("Mmul10/GCA_003339765.3_Mmul_10_assembly_report.txt")
+    output:
+        fa = temp("Mmul10/Mmul10_chr{chr}.fasta"),
+        temp = temp("Mmul10/Mmul_chr{chr}")
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        awk -F'\t' -v var={wildcards.chr} '$1=="chr"var {{print $5}}' {input.report} > {output.temp}
+        seqkit grep -f {output.temp} {input.fa} > {output.fa}
+        sed "s/>/>chr{wildcards.chr} /g" {output.fa} -i
+        """
 
-# rule Mmul10:
-#     input:
-#         expand("Mmul10/Mmul10_chr{chr}.fasta", chr = CHROMOSOMES)
-#     output:
-#         "Mmul10/Mmul10_chrs.fasta"
-#     shell:
-#         """
-#         cat {input} > {output}
-#         """
+rule Mmul10:
+    input:
+        expand("Mmul10/Mmul10_chr{chr}.fasta", chr = CHROMOSOMES)
+    output:
+        "Mmul10/Mmul10_chrs.fasta"
+    shell:
+        """
+        cat {input} > {output}
+        """
 
-# rule pacbio_input:
-#     input:
-#         lambda wildcards: expand("raws/{sample}/pacbio/{pacbio}.fastq.gz", sample = wildcards.sample, pacbio = extractFastq(wildcards.sample, "pacbio")),
-#     output:
-#         "results/{sample}/info/{sample}_pacbio_raws.txt"
-#     shell:
-#         """
-#         echo {input} | tr " " "\n" > {output}
-#         """
+rule pacbio_input:
+    input:
+        lambda wildcards: expand("raws/{sample}/pacbio/{pacbio}.fastq.gz", sample = wildcards.sample, pacbio = extractFastq(wildcards.sample, "pacbio")),
+    output:
+        "results/{sample}/info/{sample}_pacbio_raws.txt"
+    shell:
+        """
+        echo {input} | tr " " "\n" > {output}
+        """
 
-# rule pacbio_combineFastq:
-#     input:
-#         files = lambda wildcards: expand("raws/{sample}/pacbio/{pacbio}.fastq.gz", sample = wildcards.sample, pacbio = extractFastq(wildcards.sample, "pacbio")),
-#         list = "results/{sample}/info/{sample}_pacbio_raws.txt"
-#     output:
-#         "results/{sample}/raws/{sample}_pacbio.fastq.gz"
-#     shell:
-#         """
-#         cat {input.files} > {output}
-#         """
+rule pacbio_combineFastq:
+    input:
+        files = lambda wildcards: expand("raws/{sample}/pacbio/{pacbio}.fastq.gz", sample = wildcards.sample, pacbio = extractFastq(wildcards.sample, "pacbio")),
+        list = "results/{sample}/info/{sample}_pacbio_raws.txt"
+    output:
+        "results/{sample}/raws/{sample}_pacbio.fastq.gz"
+    shell:
+        """
+        cat {input.files} > {output}
+        """
 
-# rule nanopore_input:
-#     input:
-#         lambda wildcards: expand("raws/{sample}/nanopore/{nano}.fastq.gz", sample = wildcards.sample, nano = extractFastq(wildcards.sample, "nanopore")),
-#     output:
-#         "results/{sample}/info/{sample}_nanopore_raws.txt"
-#     shell:
-#         """
-#         echo {input} | tr " " "\n" > {output}
-#         """
+rule nanopore_input:
+    input:
+        lambda wildcards: expand("raws/{sample}/nanopore/{nano}.fastq.gz", sample = wildcards.sample, nano = extractFastq(wildcards.sample, "nanopore")),
+    output:
+        "results/{sample}/info/{sample}_nanopore_raws.txt"
+    shell:
+        """
+        echo {input} | tr " " "\n" > {output}
+        """
 
-# rule nanopore_fastq:
-#     input:
-#         files = lambda wildcards: expand("raws/{sample}/nanopore/{nano}.fastq.gz", sample = wildcards.sample, nano = extractFastq(wildcards.sample, "nanopore")),
-#         list = "results/{sample}/info/{sample}_nanopore_raws.txt"
-#     output:
-#         "results/{sample}/raws/{sample}_nanopore.fastq.gz"
-#     shell:
-#         """
-#         cat {input.files} > {output}
-#         """
+rule nanopore_fastq:
+    input:
+        files = lambda wildcards: expand("raws/{sample}/nanopore/{nano}.fastq.gz", sample = wildcards.sample, nano = extractFastq(wildcards.sample, "nanopore")),
+        list = "results/{sample}/info/{sample}_nanopore_raws.txt"
+    output:
+        "results/{sample}/raws/{sample}_nanopore.fastq.gz"
+    shell:
+        """
+        cat {input.files} > {output}
+        """
 
-# rule rawReadStats:
-#     input:
-#         "results/{sample}/raws/{sample}_{machine}.fastq.gz",
-#     output:
-#         "results/{sample}/info/{sample}_{machine}_stat_raw.txt"
-#     conda:
-#         "envs/seqkit.yaml"
-#     shell:
-#         """
-#         seqkit stat {input} > {output}
-#         """
+rule rawReadStats:
+    input:
+        "results/{sample}/raws/{sample}_{machine}.fastq.gz",
+    output:
+        "results/{sample}/info/{sample}_{machine}_stat_raw.txt"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stat {input} > {output}
+        """
 
-# rule shortReadsFilter:
-#     input:
-#         stat = "results/{sample}/info/{sample}_{machine}_stat_raw.txt",
-#         fq = "results/{sample}/raws/{sample}_{machine}.fastq.gz",
-#     output:
-#         "results/{sample}/{sample}_{machine}_5000.fastq.gz"
-#     conda:
-#         "envs/seqkit.yaml"
-#     benchmark:
-#         "benchmarks/02_{sample}_{machine}_readsFilter.time"
-#     shell:
-#         """
-#         # Filter with read length
-#         seqkit seq -m 5000 {input.fq} | seqkit rmdup -s -o {output}
-#         """
+rule shortReadsFilter:
+    input:
+        stat = "results/{sample}/info/{sample}_{machine}_stat_raw.txt",
+        fq = "results/{sample}/raws/{sample}_{machine}.fastq.gz",
+    output:
+        "results/{sample}/{sample}_{machine}_5000.fastq.gz"
+    conda:
+        "envs/seqkit.yaml"
+    benchmark:
+        "benchmarks/02_{sample}_{machine}_readsFilter.time"
+    shell:
+        """
+        # Filter with read length
+        seqkit seq -m 5000 {input.fq} | seqkit rmdup -s -o {output}
+        """
 
-# rule filteredReadStats:
-#     input:
-#         "results/{sample}/{sample}_{machine}_5000.fastq.gz"
-#     output:
-#         "results/{sample}/info/{sample}_{machine}_5000_stat_filtered.txt"
-#     conda:
-#         "envs/seqkit.yaml"
-#     shell:
-#         """
-#         seqkit stat {input} > {output}
-#         """
+rule filteredReadStats:
+    input:
+        "results/{sample}/{sample}_{machine}_5000.fastq.gz"
+    output:
+        "results/{sample}/info/{sample}_{machine}_5000_stat_filtered.txt"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stat {input} > {output}
+        """
 
-# rule refMapping:
-#     input:
-#         info = "results/{sample}/info/{sample}_{machine}_5000_stat_filtered.txt",
-#         fq = "results/{sample}/{sample}_{machine}_5000.fastq.gz",
-#         ref = "Mmul10/Mmul10_chrs.fasta"
-#     output:
-#         temp("{sample}_{machine}_Mmul10.sam")
-#     conda:
-#         "envs/minimap2.yaml"
-#     threads: 22
-#     log:
-#         "logs/03_{sample}_{machine}_mapMmul10.log"
-#     benchmark:
-#         "benchmarks/03_{sample}_{machine}_Mmul10.time"
-#     shell:
-#         """
-#         if [[ "{wildcards.machine}" == "pacbio" ]]; then
-#             minimap2 -ax map-hifi -t {threads} {input.ref} {input.fq} > {output} 2> {log}
-#         elif [[ "{wildcards.machine}" == "nanopore" ]]; then
-#             minimap2 -ax map-ont -t {threads} {input.ref} {input.fq} > {output} 2> {log}
-#         fi
-#         """
+rule refMapping:
+    input:
+        info = "results/{sample}/info/{sample}_{machine}_5000_stat_filtered.txt",
+        fq = "results/{sample}/{sample}_{machine}_5000.fastq.gz",
+        ref = "Mmul10/Mmul10_chrs.fasta"
+    output:
+        temp("{sample}_{machine}_Mmul10.sam")
+    conda:
+        "envs/minimap2.yaml"
+    threads: 22
+    log:
+        "logs/03_{sample}_{machine}_mapMmul10.log"
+    benchmark:
+        "benchmarks/03_{sample}_{machine}_Mmul10.time"
+    shell:
+        """
+        if [[ "{wildcards.machine}" == "pacbio" ]]; then
+            minimap2 -ax map-hifi -t {threads} {input.ref} {input.fq} > {output} 2> {log}
+        elif [[ "{wildcards.machine}" == "nanopore" ]]; then
+            minimap2 -ax map-ont -t {threads} {input.ref} {input.fq} > {output} 2> {log}
+        fi
+        """
 
 
-# rule bamView:
-#     input:
-#         "{sample}_{machine}_Mmul10.sam"
-#     output:
-#         "{sample}_{machine}_Mmul10.bam" 
-#     conda:
-#         "envs/samtools.yaml"
-#     threads: 8
-#     shell:
-#         """
-#         samtools view -@ {threads} -bh {input} > {output}
-#         """
+rule bamView:
+    input:
+        "{sample}_{machine}_Mmul10.sam"
+    output:
+        "{sample}_{machine}_Mmul10.bam" 
+    conda:
+        "envs/samtools.yaml"
+    threads: 8
+    shell:
+        """
+        samtools view -@ {threads} -bh {input} > {output}
+        """
         
 
-# rule bamSort:
-#     input:
-#         "{sample}_{machine}_Mmul10.bam"
-#     output:
-#         sort = "results/{sample}/{sample}_{machine}_sorted.bam",
-#         bai = "results/{sample}/{sample}_{machine}_sorted.bam.bai",
-#     conda:
-#         "envs/samtools.yaml"
-#     threads: 8
-#     benchmark:
-#         "benchmarks/04_{sample}_{machine}_mapMmul10_sort.time"
-#     shell:
-#         """
-#         touch {output.sort}
-#         # -b output bam -h include header -S sam_input -o output
-#         samtools sort -@ {threads} -o {output.sort} {input}
-#         samtools index {output.sort}
-#         """
+rule bamSort:
+    input:
+        "{sample}_{machine}_Mmul10.bam"
+    output:
+        sort = "results/{sample}/{sample}_{machine}_sorted.bam",
+        bai = "results/{sample}/{sample}_{machine}_sorted.bam.bai",
+    conda:
+        "envs/samtools.yaml"
+    threads: 8
+    benchmark:
+        "benchmarks/04_{sample}_{machine}_mapMmul10_sort.time"
+    shell:
+        """
+        touch {output.sort}
+        # -b output bam -h include header -S sam_input -o output
+        samtools sort -@ {threads} -o {output.sort} {input}
+        samtools index {output.sort}
+        """
 
 # rule bamInfo:
 #     input:
@@ -237,21 +237,21 @@ rule all:
 # info = "results/{sample}/info/default_{sample}_{machine}_readsMappedChrs.txt",
 #         """
 
-# rule separateChrs:
-#     input:
-#         bam = "results/{sample}/{sample}_{machine}_sorted.bam",
-#     output:
-#         temp("{sample}_{machine}_chr{chr}.bam"),
-#     conda:
-#         "envs/samtools.yaml"
-#     threads: 8
-#     benchmark:
-#         "benchmarks/05_{sample}_{machine}_chr{chr}.time"
-#     shell:
-#         """
-#         # Extract individual chrs
-#         samtools view -b {input.bam} chr{wildcards.chr} > {output}
-#         """
+rule separateChrs:
+    input:
+        bam = "results/{sample}/{sample}_{machine}_sorted.bam",
+    output:
+        temp("{sample}_{machine}_chr{chr}.bam"),
+    conda:
+        "envs/samtools.yaml"
+    threads: 8
+    benchmark:
+        "benchmarks/05_{sample}_{machine}_chr{chr}.time"
+    shell:
+        """
+        # Extract individual chrs
+        samtools view -b {input.bam} chr{wildcards.chr} > {output}
+        """
 
 # rule bamInfoChrs:
 #     input:
@@ -276,21 +276,21 @@ rule all:
 #         """
 #         cov = "results/{sample}/info/{sample}_{machine}_chrsAverageCoverage.txt",
 
-# rule chrFastq:
-#     input:
-#         bam = "{sample}_{machine}_chr{chr}.bam",
-#     output:
-#         "results/{sample}/chr{chr}/{sample}_{machine}_chr{chr}.fastq.gz",
-#     conda:
-#         "envs/samtools.yaml"
-#     threads: 8
-#     benchmark:
-#         "benchmarks/06_{sample}_{machine}_chr{chr}_fastq.time"
-#     shell:
-#         """
-#         # Extract fastq
-#         samtools fastq -@ {threads} -0 {output} {input.bam}
-#         """
+rule chrFastq:
+    input:
+        bam = "{sample}_{machine}_chr{chr}.bam",
+    output:
+        "results/{sample}/chr{chr}/{sample}_{machine}_chr{chr}.fastq.gz",
+    conda:
+        "envs/samtools.yaml"
+    threads: 8
+    benchmark:
+        "benchmarks/06_{sample}_{machine}_chr{chr}_fastq.time"
+    shell:
+        """
+        # Extract fastq
+        samtools fastq -@ {threads} -0 {output} {input.bam}
+        """
 
 # rule hifiasmChr:
 #     input:
@@ -329,7 +329,7 @@ rule hifiasmUlChr:
         "envs/hifiasm.yaml"
     log:
         "logs/07_{sample}_pacnano_chr{chr}_hifiasm.log"
-    threads: 20
+    threads: 10
     benchmark:
         "benchmarks/07_{sample}_pacnano_chr{chr}_hifiasm.time"
     shell:
