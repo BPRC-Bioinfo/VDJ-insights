@@ -19,28 +19,29 @@ def write_fasta_file(dictionary, folder):
                         f.write(f">{header}-{x+1}\n{rss}\n")
 
 
-def rss_type(start, end, segment, strand):
-    variant_23 = 39
+def rss_type(start, end, segment, rss_variant, strand):
     variant_12 = 28
-
+    variant_23 = 39
     TR_seg = {
-        "V": {"+": [end, str(int(end) + variant_23)],
-              "-": [str(int(start) - variant_23), start]},
-        "D": {"+": [str(int(start) - variant_12), str(int(end) + variant_12)],
-              "-": [str(int(start) - variant_12), str(int(end) + variant_12)]},
-        "J": {"+": [str(int(start) - variant_12), start],
-              "-": [end, str(int(end) + variant_12)]}
+        "V": {23: {"+": [end, str(int(end) + variant_23)],
+                   "-": [str(int(start) - variant_23), start]}},
+        "D": {12: {"+": [str(int(start) - variant_12), start],
+                   "-": [end, str(int(end) + variant_12)]},
+              23: {"+": [end, str(int(end) + variant_23)],
+                   "-": [str(int(start) - variant_23), start]}},
+        "J": {12: {"+": [str(int(start) - variant_12), start],
+                   "-": [end, str(int(end) + variant_12)]}}
     }
-    return TR_seg[segment][strand]
+    return TR_seg[segment][rss_variant][strand]
 
 
-def fetch_sequence(row):
-    query, fasta, start, end, strand, region, segment = row[[
+def fetch_sequence(row, segment, rss_variant):
+    query, fasta, start, end, strand, region = row[[
         'Old name-like', 'Path', 'Start coord', 'End coord', 'Strand',
-        'Region', 'Segment']]
+        'Region']]
     with open(fasta, 'r') as fasta_file:
         record = SeqIO.read(fasta_file, 'fasta')
-        rss_start, rss_stop = rss_type(start, end, segment, strand)
+        rss_start, rss_stop = rss_type(start, end, segment, rss_variant, strand)
         rss = record.seq[int(rss_start):int(rss_stop)]
         if strand == '-':
             rss = str(Seq(str(rss)).reverse_complement())
@@ -51,30 +52,48 @@ def add_to_dict(query, dictionary, rss):
     dictionary.setdefault(query, []).append(rss)
 
 
-def get_mers(segment, rss):
-    # ADD D SEGMENT
+def get_mers(segment, rss, rss_variant):
     mers = {
-        "V": [rss[0:7], rss[-9:]],
-        "D": [],
-        "J": [rss[0:9], rss[-7:]]
+        "V": {23: [rss[0:7], rss[-9:]]},
+        "D": {12: [rss[0:9], rss[-7:]], 23: [rss[0:9], rss[-9:]]},
+        "J": {12: [rss[0:9], rss[-7:]]}
     }
-    return mers[segment]
+    return mers[segment].get(rss_variant, ["", ""])
+
+
+def add_to_row(row, val1, val2, rss_type):
+    heptamer, nonamer = (''.join(val1), ''.join(val2)) if len(
+        val1) == 7 else (''.join(val2), ''.join(val1))
+    row[f"{rss_type}_heptamer"], row[f"{rss_type}_nonamer"] = heptamer, nonamer
+    return row
+
+
+def add_segment(query, segment, region, separated_segments, rss_sequence, function):
+    if function != "P":
+        add_to_dict(query, separated_segments.setdefault(
+            region, {}).setdefault(segment, {}), str(rss_sequence))
 
 
 def load_header(row, separated_segments):
     region, segment, function = row[["Region", "Segment", "Function"]]
-    query, rss_sequence = fetch_sequence(row)
-    val1, val2 = get_mers(segment, rss_sequence)
-    # ADD D SEGMENT
-    if len(val1) == 7:
-        row["heptamer"], row["nonamer"] = ''.join(
-            val1), ''.join(val2)
+    # Initialize RSS types for D segment
+    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
+
+    if segment == "D":
+        for rss_variant in [12, 23]:
+            query, rss_sequence = fetch_sequence(row, segment, rss_variant)
+            val1, val2 = get_mers(segment, rss_sequence, rss_variant)
+            add_to_row(row, val1, val2, rss_variant)
+            add_segment(query, f"{segment}_{rss_variant}", region,
+                        separated_segments, rss_sequence, function)
     else:
-        row["nonamer"], row["heptamer"] = ''.join(
-            val1), ''.join(val2)
-    if function != "P":
-        add_to_dict(query, separated_segments.setdefault(
-            region, {}).setdefault(segment, {}), f"{str(rss_sequence)}")
+        rss_variant = 23 if segment == "V" else 12
+        query, rss_sequence = fetch_sequence(row, segment, rss_variant)
+        val1, val2 = get_mers(segment, rss_sequence, rss_variant)
+        add_to_row(row, val1, val2, rss_variant)
+        add_segment(query, f"{segment}_{rss_variant}", region,
+                    separated_segments, rss_sequence, function)
+
     return row
 
 
@@ -83,15 +102,30 @@ def run_meme(out, rss_file: Path):
     subprocess.run(command, shell=True)
 
 
-def get_reference_mers(pattern, segment):
-    elements = re.findall(r'\[[^\]]*\]|.', pattern)
+def get_reference_mers(pattern, segment, rss_variant):
+    rss = re.findall(r'\[[^\]]*\]|.', pattern)
     ref_mers = {
-        "V": [elements[:7], elements[-9:]],
-        "D": [elements[:7], elements[-9:]],
-        "J": [elements[:9], elements[-7:]]
+        "V": {23: [rss[0:7], rss[-9:]]},
+        "D": {12: [rss[0:9], rss[-7:]],
+              23: [rss[0:9], rss[-9:]]},
+        "J": {12: [rss[0:9], rss[-7:]]}
     }
-    val1, val2 = ref_mers[segment]
+    val1, val2 = ref_mers[segment][rss_variant]
     return val1, val2
+
+
+def make_ref_dict(segment, ref_rss, val1, val2):
+    if len(val1) == 7:
+        ref_rss.setdefault(segment, {}).setdefault(
+            "heptamer", ''.join(val1))
+        ref_rss.setdefault(segment, {}).setdefault(
+            "nonamer", ''.join(val2))
+    else:
+        ref_rss.setdefault(segment, {}).setdefault(
+            "heptamer", ''.join(val2))
+        ref_rss.setdefault(segment, {}).setdefault(
+            "nonamer", ''.join(val1))
+    return ref_rss
 
 
 def make_referece_rss(cwd):
@@ -110,34 +144,25 @@ def make_referece_rss(cwd):
         hits = result.stdout.replace(
             "-", "").replace("\t", "").strip().split("\n")
         hits = [hit for hit in hits if hit]
-        for i in range(0, len(hits), 2):
-            val1, val2 = get_reference_mers(hits[i+1], stem[-1])
-            if len(val1) == 7:
-                ref_rss.setdefault(stem, {}).setdefault(
-                    "heptamer", ''.join(val1))
-                ref_rss.setdefault(stem, {}).setdefault(
-                    "nonamer", ''.join(val2))
-            else:
-                ref_rss.setdefault(stem, {}).setdefault(
-                    "heptamer", ''.join(val2))
-                ref_rss.setdefault(stem, {}).setdefault(
-                    "nonamer", ''.join(val1))
-
+        split_stem = stem.split("_")
+        segment, rss_variant = split_stem[0][-1], int(split_stem[1])
+        val1, val2 = get_reference_mers(hits[1], segment, rss_variant)
+        make_ref_dict(stem, ref_rss, val1, val2)
     return ref_rss
 
 
-def check_ref_rss(row, ref_rss):
+def check_ref_rss(row, ref_rss, rss_variant):
     region, segment = row[["Region", "Segment"]]
-    ref = ref_rss[region+segment]
+    ref = ref_rss[f"{region}{segment}_{rss_variant}"]
     for i in ["heptamer", "nonamer"]:
         ref_seq = ref[i]
-        query_seq = row[i]
+        query_seq = row[f"{rss_variant}_{i}"]
         matches = re.findall(ref_seq, query_seq)
-        row[f"ref_{i}"] = ref_seq
+        row[f"{rss_variant}_ref_{i}"] = ref_seq
         if matches:
-            row[f"{i}_matched"] = True
+            row[f"{rss_variant}_{i}_matched"] = True
         else:
-            row[f"{i}_matched"] = False
+            row[f"{rss_variant}_{i}_matched"] = False
     return row
 
 
@@ -153,13 +178,26 @@ def add_region_segment(row):
 def combine_df(original_df, new_df):
     columns_to_merge = [
         'Reference', 'Old name-like',
-        'heptamer', 'ref_heptamer', 'heptamer_matched',
-        'nonamer', 'ref_nonamer', 'nonamer_matched'
+        '12_heptamer', '12_heptamer_matched', '12_nonamer',
+        '12_nonamer_matched', '12_ref_heptamer', '12_ref_nonamer',
+        '23_heptamer', '23_heptamer_matched', '23_nonamer',
+        '23_nonamer_matched', '23_ref_heptamer', '23_ref_nonamer'
     ]
     combined_df = pd.merge(new_df, original_df[columns_to_merge],
                            on=['Reference', 'Old name-like'],
                            how='left')
     return combined_df
+
+
+def apply_check_ref_rss(row, ref_rss, rss_variant):
+    segment_last_char = row["Segment"][-1]
+    if segment_last_char == "D":
+        return check_ref_rss(row, ref_rss, rss_variant)
+    if segment_last_char == "V" and rss_variant == 23:
+        return check_ref_rss(row, ref_rss, rss_variant)
+    if segment_last_char == "J" and rss_variant == 12:
+        return check_ref_rss(row, ref_rss, rss_variant)
+    return row
 
 
 def main():
@@ -174,10 +212,13 @@ def main():
     if not rss_path.exists():
         write_fasta_file(separated_segments, rss_path)
     ref_rss = make_referece_rss(cwd)
-    original = original.apply(lambda row: check_ref_rss(row, ref_rss), axis=1)
+    for rss_variant in [12, 23]:
+        original = original.apply(
+            apply_check_ref_rss, args=(ref_rss, rss_variant), axis=1)
     final_df = combine_df(original, pd.read_excel(
         cwd / 'annotation' / 'annotation_report.xlsx'))
-    final_df.to_excel(cwd / 'check.xlsx', index=False)
+    final_df.to_excel(cwd / 'annotation' /
+                      'annotation_report_plus.xlsx', index=False)
 
 
 if __name__ == '__main__':
