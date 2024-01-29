@@ -1,0 +1,42 @@
+
+CHR1, SAMPLE, MACHINES, CHR2, = glob_wildcards("../chr{chr}/{sample}_{machine}_chr{chr2}.fastq.gz")
+
+SAMPLES = set(SAMPLE)
+
+print (SAMPLES)
+print (CHR2)
+print (MACHINES)
+
+rule all:
+    input:
+        expand("assemblies_chrs/hifiasm/{sample}_pacnano_chr{chr}_hifiasm.fa", sample = SAMPLES, chr = ["3","7"]),
+
+rule hifiasmUlChr:
+    input:
+        nano = "../chr{chr}/{sample}_nanopore_chr{chr}.fastq.gz",
+        pac = "../chr{chr}/{sample}_pacbio_chr{chr}.fastq.gz",
+    output:
+        "assemblies_chrs/hifiasm/chr{chr}/{sample}_pacnano_chr{chr}_hifiasmUL.bp.p_ctg.gfa"
+    conda:
+        "hifiasm.yaml"
+    log:
+        "logs/07_{sample}_pacnano_chr{chr}_hifiasmUL.log"
+    params:
+        "assemblies_chrs/hifiasm/chr{chr}/{sample}_pacnano_chr{chr}_hifiasmUL"
+    threads: 20
+    benchmark:
+        "benchmarks/07_{sample}_pacnano_chr{chr}_hifiasmUL.time"
+    shell:
+        """
+        hifiasm -o {params} -t {threads} --ul {input.nano}  {input.pac} 2> {log}
+        """
+
+rule hifiasmULChrGfaToFasta:
+    input:
+        ancient("assemblies_chrs/hifiasm/chr{chr}/{sample}_pacnano_chr{chr}_hifiasmUL.bp.p_ctg.gfa")
+    output:
+        "assemblies_chrs/hifiasm/{sample}_pacnano_chr{chr}_hifiasm.fa"
+    shell:
+        """
+        awk '/^S/{{print ">"$2;print $3}}' {input} | sed "s/ptg/{wildcards.sample}_pacnano_chr{wildcards.chr}_hifiasmUL_/g" > {output}
+        """
