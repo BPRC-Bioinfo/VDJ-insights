@@ -14,8 +14,9 @@ logging.basicConfig(
 
 class MappingFiles:
     """
-    Creating a class for all the needed files for a certain prefix.
-    The prefix is an based on a incrementing number from 1 to 100.
+    Creating a class for all the needed files for a certain mapping type 
+    based on a certain prefix, which is either
+    "bowtie" or "bowtie2" or "minimap2".
 
     Parameters:
         -
@@ -75,13 +76,13 @@ def get_region_and_segment(name):
         return "LOC", "-"
 
 
-def parse_bed(file_path, accuracy, fasta, bowtie_type):
+def parse_bed(file_path, accuracy, fasta, mapping_type):
     """
 
     Reads the content of a bed file and loops over the content line by 
     line to get all the neccessery information such as the sequence, 
     the used score/accuracy from 1 to 100, bed_file path it self, 
-    the bowtie type this can either be bowtie or bowtie2, region, 
+    the mapping type this can either be "bowtie" or "bowtie2" or "minimap2", region, 
     segment and the path of the fasta file.
     It returns a list with all the different found entries of the bedfile
 
@@ -89,8 +90,8 @@ def parse_bed(file_path, accuracy, fasta, bowtie_type):
         file_path (str): The path of the bedfile 
         accuracy (int): Score between 1 and 100
         fasta (str): The path of a fasta file
-        bowtie_type (str): The type of bowtie that is being used, 
-        either bowtie or bowtie2.
+        mapping_type (str): The type of mapping that is being used, 
+        either "bowtie", "bowtie2" or "minimap2".
 
     Returns:
         entries (list[list]): A nested list which contains all the 
@@ -102,7 +103,7 @@ def parse_bed(file_path, accuracy, fasta, bowtie_type):
             line = line.strip().split("\t")
             region, segment = get_region_and_segment(line[3])
             line.extend([get_sequence(line, fasta),
-                        accuracy, str(file_path), bowtie_type, region, segment, fasta])
+                        accuracy, str(file_path), mapping_type, region, segment, fasta])
             entries.append(line)
     return entries
 
@@ -175,36 +176,62 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file):
     return command
 
 
-def all_commands(files: MappingFiles, fasta_file, rfasta, acc, bowtie_type):
+def make_minimap2_command(acc, ffile, rfasta, sam_file):
+    """
+    Constructs the minimap2 command. Based on the accuracy (acc) / 
+    score, fasta file (ffile), reference fasta file (rfasta) and sam file.
+
+    Args:
+        acc (int): Score between 1 and 100
+        ffile (Path): Region fasta file path.
+        rfasta (Path): Reference fasta file path.
+        sam_file (Path): Sam file path
+
+    Returns:
+        command (str): Constructed minimap2 command.
+    """
+    command = f"minimap2 -a -m {acc} -t 10 {ffile} {rfasta} > {sam_file}"
+    return command
+
+
+def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type):
     """
     Creates all the neccesessary commands needed for a certain 
-    accuracy/score paired with the fasta_file 
-    (which is a fasta file of a region of interest).  
+    accuracy/score combined with the fasta_file 
+    (which is a fasta file of a region of interest). It also check what 
+    the mapping type is to construct the right command and to remove 
+    the build command because minimap2 does require it.  
 
     Args:
         files (MappingFiles): class containg all the input and output files.
         fasta_file (str): Fasta file path of a region of interest.
         rfasta (str): Reference fasta file path.
         acc (int): Score between 1 and 100
-        bowtie_type (str): The type of bowtie that is being used, 
-        either bowtie or bowtie2.
+        mapping_type (str): The type of mapping that is being used, 
+        either "bowtie", "bowtie2", or "minimap2".
 
     Returns:
-        command (list): List of all bowtie(2) command that need to be run.
+        command (list): List of all mapping commands suited to run
+        the right mapping variant.
     """
-    if bowtie_type == "bowtie2":
+    if mapping_type == "bowtie2":
         bowtie_command = make_bowtie2_command(
             acc, files.bowtie_db, rfasta, files.sam)
+    elif mapping_type == "minimap2":
+        bowtie_command = make_minimap2_command(
+            acc, fasta_file, rfasta, files.sam)
     else:
         bowtie_command = make_bowtie_command(
             acc, files.bowtie_db, rfasta, files.sam)
     commands = [
-        f"{bowtie_type}-build {fasta_file} {files.bowtie_db}",
+        f"{mapping_type}-build {fasta_file} {files.bowtie_db}",
         bowtie_command,
         f"samtools sort -o {files.bam} {files.sam}",
         f"samtools index {files.bam}",
         f"bedtools bamtobed -i {files.bam} > {files.bed}",
     ]
+    if mapping_type == "minimap2":
+        del commands[0]
     return commands
 
 
@@ -242,7 +269,7 @@ def make_df(all_entries):
     return unique_combinations.reset_index(drop=True)
 
 
-def run(cwd, indir, outdir, rfasta, beddir, acc, bowtie_type):
+def run(cwd, indir, outdir, rfasta, beddir, acc, mapping_type):
     """
     Loop over the "indir" directory which contains all
     the region of interest fasta files. Create the index directories,
@@ -258,7 +285,7 @@ def run(cwd, indir, outdir, rfasta, beddir, acc, bowtie_type):
         rfasta (Path): Reference fasta file path.
         beddir (Path): A path to the bed input directory.
         acc (int): Score between 1 and 100.
-        bowtie_type (str): The type of bowtie that is being used, 
+        mapping_type (str): The type of bowtie that is being used, 
         either bowtie or bowtie2.
 
     Yields:
@@ -269,13 +296,14 @@ def run(cwd, indir, outdir, rfasta, beddir, acc, bowtie_type):
     for fasta in indir.glob("*.fasta"):
         prefix = fasta.stem
         index = outdir / prefix
-        create_directory(index)
+        if mapping_type != "minimap2":
+            create_directory(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
-            for command in all_commands(files, fasta, rfasta, acc, bowtie_type):
+            for command in all_commands(files, fasta, rfasta, acc, mapping_type):
                 run_command(command)
         if files.bed.exists():
-            entries = parse_bed(files.bed, acc, fasta, bowtie_type)
+            entries = parse_bed(files.bed, acc, fasta, mapping_type)
             logging.info(f"Parsed {len(entries)} entries from {files.bed}")
             yield entries
         else:
@@ -293,9 +321,9 @@ def create_directory(location):
     Path(location).mkdir(parents=True, exist_ok=True)
 
 
-def bowtie2_main(bowtie_type):
+def mapping_main(mapping_type):
     """
-    Main function to run the bowtie script. It takes a bowtie type in 
+    Main function to run the mapping script. It takes a mapping type in 
     as an argument to determine which type script to run. It created a 
     cwd path object and based on this it sets some input and output
     directories/files. It runs the run function
@@ -306,28 +334,28 @@ def bowtie2_main(bowtie_type):
     and returned.
 
     Args:
-    bowtie_type (str): The type of bowtie that is being used, 
-    either bowtie or bowtie2.
+    mapping_type (str): The type of mapping that is being used, 
+    either "bowtie", "bowtie2", or "minimap2".
 
 
     Returns:
         df (DataFrame): A df containg all the entries.
     """
     cwd = Path.cwd()
-    outdir = cwd / f"{bowtie_type}_db"
+    outdir = cwd / f"{mapping_type}_db"
     indir = cwd / "contig"
     rfasta = cwd / "library" / "retained.fasta"
     start, stop = 100, 0
     all_entries = []
     for acc in range(start, stop - 1, -1):
-        beddir = cwd / bowtie_type / f"{acc}%acc"
+        beddir = cwd / mapping_type / f"{acc}%acc"
         create_directory(beddir)
-        for current_entry in run(cwd, indir, outdir, rfasta, beddir, acc, bowtie_type):
+        for current_entry in run(cwd, indir, outdir, rfasta, beddir, acc, mapping_type):
             all_entries.extend(current_entry)
     df = make_df(all_entries)
     return df
 
 
 if __name__ == "__main__":
-    bowtie_type = "bowtie"
-    bowtie2_main(bowtie_type)
+    mapping_type = "minimap2"
+    mapping_main(mapping_type)

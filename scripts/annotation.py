@@ -1,8 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 from tempfile import NamedTemporaryFile as NTF
-from bowtie2 import bowtie2_main
-from minimap2 import minimap2_main
+from mapping import mapping_main
 from write_annotation_report import write_annotation_reports
 from pathlib import Path
 import pandas as pd
@@ -10,9 +9,10 @@ import pandas as pd
 
 def combine_df():
     """
-    Calling the diffrent mapping script minimap (minimap2.py),
-    bowtie, bowtie2 (both in bowtie2). These all return a DataFrame (df).
-    Then concatinating all df's to form a new complete one. 
+    Calling the mapping script annotation.py. This script is called 
+    with either "bowtie", "bowtie2" or "minimap2" as input value. 
+    These all return a df.
+    Then all df's are concatinated to form a new complete one. 
     Finally dropping all duplicates in the df based on a
     subset of ["start", "stop"], resetting the index of this df 
     and return this new df.
@@ -21,9 +21,9 @@ def combine_df():
         unique_combinations (DataFrame): A df containg all the unique
         mapping entries from bowtie(2) and minimap2.
     """
-    minimap2_df = minimap2_main()
-    bowtie_df = bowtie2_main("bowtie")
-    bowtie2_df = bowtie2_main("bowtie2")
+    minimap2_df = mapping_main("minimap2")
+    bowtie_df = mapping_main("bowtie")
+    bowtie2_df = mapping_main("bowtie2")
     combined = pd.concat([minimap2_df, bowtie_df, bowtie2_df])
     unique_combinations = combined.drop_duplicates(subset=["start", "stop"])
     return unique_combinations.reset_index(drop=True)
@@ -31,7 +31,7 @@ def combine_df():
 
 def write_report(df, report):
     """
-    Creates a excel (xlsx) based on a "df" and saves it as "report".
+    Creates a excel (xlsx) file of the df and saved as "report.xlsx".
 
     Args:
         df (DataFrame): df to be saved.
