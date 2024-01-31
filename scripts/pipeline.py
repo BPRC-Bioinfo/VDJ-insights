@@ -38,6 +38,17 @@ def get_ids(path):
 
 
 def fetch_chromosome():
+    """
+    Creates a a json file with as key the chromosome and as value the 
+    corresponding chromosome accession number(s) as a list.
+    This json is saved as '{current_cwd}/input/chromosome_conversion.json'
+
+    Parameters:
+        -
+
+    Returns:
+        -
+    """
     chromosomes = {}
     for chromosome in ["chr3", "chr7"]:
         assembly_file = f"{current_cwd}/downloads/reports/mmul10_assembly_report.txt"
@@ -49,6 +60,17 @@ def fetch_chromosome():
 
 
 def cal_chr_length():
+    """
+    Creates a json file with as key the accession (all the chromosomes)
+    and as value the length as integer. This is saved as 
+    '{current_cwd}/input/chromosome_lengths.json'
+
+    Parameters:
+        -
+
+    Returns:
+        -
+    """
     mmul10 = {}
     with open("downloads/mmul10.fna", "r") as f:
         start = None
