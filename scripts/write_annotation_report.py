@@ -235,7 +235,8 @@ def write_annotation_reports(annotation_folder):
     df = df.groupby(['Start coord', 'End coord']).apply(filter_df)
     df.reset_index(drop=True, inplace=True)
     annotation(df, annotation_folder)
-    rss(df, annotation_folder, 'RSS_report.xlsx')
+
+    rss(df, annotation_folder)
 
 
 if __name__ == '__main__':
