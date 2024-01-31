@@ -71,7 +71,7 @@ def add_values(df):
     return df
 
 
-def change_values_df(df):
+def add_like_to_df(df):
     """
     Sorts the BLAST results df by 'reference'. It also creates a new 
     column 'Old name-like' which contains the reference with -like 
@@ -175,7 +175,7 @@ def annotation_long(df, annotation_folder):
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
-def annotation(df, annotation_folder):
+def annotation(df, annotation_folder, file_name):
     """
     Generates a condensed df for the 
     "annotation_report.xlsx" file, 
@@ -185,11 +185,12 @@ def annotation(df, annotation_folder):
     Args:
         df (DataFrame): An df containing BLAST results.
         annotation_folder (Path): Path to the annotation_report.xlsx file.
+        file_name (str): Name of the excel file the df is written to. 
     """
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
-             'End coord', 'Function', 'Similar references', 'Path']]
-    df.to_excel(annotation_folder / 'annotation_report.xlsx', index=False)
+             'End coord', 'Function', 'Similar references', 'Path', 'Strand']]
+    df.to_excel(annotation_folder / file_name, index=False)
 
 
 def rss(df, annotation_folder):
@@ -206,6 +207,18 @@ def rss(df, annotation_folder):
     df = df[['Reference', 'Old name-like', 'Start coord',
              'End coord', 'Strand', 'Path', 'Function']]
     df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
+
+
+def run_like_and_orf(df):
+    df = add_like_to_df(df)
+    df = df.apply(add_orf, axis=1)
+    return df
+
+
+def group_similar(df):
+    df = df.groupby(['Start coord', 'End coord']).apply(filter_df)
+    df.reset_index(drop=True, inplace=True)
+    return df
 
 
 def write_annotation_reports(annotation_folder):
@@ -228,14 +241,12 @@ def write_annotation_reports(annotation_folder):
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = add_values(df)
     df, ref_df = main_df(df)
-    df = change_values_df(df)
-    df = df.apply(add_orf, axis=1)
-    ref_df = change_values_df(ref_df)
+    df, ref_df = run_like_and_orf(df), run_like_and_orf(ref_df)
     annotation_long(df, annotation_folder)
-    df = df.groupby(['Start coord', 'End coord']).apply(filter_df)
-    df.reset_index(drop=True, inplace=True)
-    annotation(df, annotation_folder)
-
+    df, ref_df = group_similar(df), group_similar(ref_df)
+    print(ref_df["Specific Part"])
+    annotation(df, annotation_folder, 'annotation_report.xlsx')
+    annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
     rss(df, annotation_folder)
 
 
