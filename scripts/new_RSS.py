@@ -1,11 +1,19 @@
 import re
-import json
 import subprocess
-import tempfile
 import pandas as pd
 from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
+
+
+def create_directory(location):
+    """
+    Create an directory when not existing.
+
+    Args:
+        location (str): Path of the directory to create.
+    """
+    Path(location).mkdir(parents=True, exist_ok=True)
 
 
 def write_fasta_file(dictionary, folder):
@@ -25,14 +33,15 @@ def write_fasta_file(dictionary, folder):
         folder (Path): Path of the base directory to save the fasta
         files to.
     """
-    Path(folder).mkdir(parents=True, exist_ok=True)
+    create_directory(folder)
     for key, value in dictionary.items():
         for region, segments in value.items():
             ffile = folder / f"{key}{region}.fasta"
-            with open(ffile, 'w') as f:
-                for header, segment in segments.items():
-                    for x, rss in enumerate(segment):
-                        f.write(f">{header}-{x+1}\n{rss}\n")
+            if len(segments) > 1:
+                with open(ffile, 'w') as f:
+                    for header, segment in segments.items():
+                        for x, rss in enumerate(segment):
+                            f.write(f">{header}-{x+1}\n{rss}\n")
 
 
 def rss_type(start, end, segment, rss_variant, strand):
@@ -191,12 +200,12 @@ def add_segment(query, segment, region, separated_segments, rss_sequence, functi
         either "P" or "F/ORF"
     """
 
-    # if function != "P":
-    add_to_dict(query, separated_segments.setdefault(
-        region, {}).setdefault(segment, {}), str(rss_sequence))
+    if function != "P":
+        add_to_dict(query, separated_segments.setdefault(
+            region, {}).setdefault(segment, {}), str(rss_sequence))
 
 
-def add_base_rss_parts(row, separated_segments):
+def add_base_rss_parts(row):
     """
     Gets the "region, segment, function" from the current row of the 
     df and determines the value for the following new columns
@@ -220,25 +229,20 @@ def add_base_rss_parts(row, separated_segments):
         the type of segment certain columns are filled in. If not not 
         filled in, the value is "".
     """
-    region, segment, function = row[["Region", "Segment", "Function"]]
+    segment = row["Segment"]
 
     row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
-
     if segment == "D":
         for rss_variant in [12, 23]:
             query, rss_sequence = fetch_sequence(row, segment, rss_variant)
             val1, val2 = get_mers(segment, rss_sequence, rss_variant)
             add_to_row(row, val1, val2, rss_variant)
-            add_segment(query, f"{segment}_{rss_variant}", region,
-                        separated_segments, rss_sequence, function)
+
     else:
         rss_variant = 23 if segment == "V" else 12
         query, rss_sequence = fetch_sequence(row, segment, rss_variant)
         val1, val2 = get_mers(segment, rss_sequence, rss_variant)
         add_to_row(row, val1, val2, rss_variant)
-        add_segment(query, f"{segment}_{rss_variant}", region,
-                    separated_segments, rss_sequence, function)
-
     return row
 
 
@@ -285,8 +289,7 @@ def get_reference_mers(regex_string, segment, rss_variant):
     rss = re.findall(r'\[[^\]]*\]|.', regex_string)
     ref_mers = {
         "V": {23: [rss[0:7], rss[-9:]]},
-        "D": {12: [rss[0:9], rss[-7:]],
-              23: [rss[0:9], rss[-9:]]},
+        "D": {12: [rss[0:9], rss[-7:]], 23: [rss[0:9], rss[-9:]]},
         "J": {12: [rss[0:9], rss[-7:]]}
     }
     val1, val2 = ref_mers[segment][rss_variant]
@@ -349,7 +352,7 @@ def make_referece_rss(cwd):
         heptamers and nonamers for all the regions and segments.
     """
     ref_rss = {}
-    Path(cwd / "meme").mkdir(parents=True, exist_ok=True)
+    create_directory(cwd / "meme")
     rss = cwd / "RSS"
     for rss_file in rss.iterdir():
         stem = rss_file.stem
@@ -485,6 +488,32 @@ def apply_check_ref_rss(row, ref_rss, rss_variant):
     return row
 
 
+def temp(row, separated_segments):
+    region, segment, function = row[["Region", "Segment", "Function"]]
+    if segment == "D":
+        for rss_variant in [12, 23]:
+            query, rss_sequence = fetch_sequence(row, segment, rss_variant)
+            add_segment(query, f"{segment}_{rss_variant}", region,
+                        separated_segments, rss_sequence, function)
+    else:
+        rss_variant = 23 if segment == "V" else 12
+        query, rss_sequence = fetch_sequence(row, segment, rss_variant)
+        add_segment(query, f"{segment}_{rss_variant}", region,
+                    separated_segments, rss_sequence, function)
+    return row
+
+
+def create_ref_RSS_files(cwd):
+    separated_segments = {}
+    df = pd.read_excel(cwd / 'annotation' / 'annotation_report_100%.xlsx')
+    df = df.apply(add_region_segment, axis=1)
+    df = df.apply(lambda row: temp(
+        row, separated_segments), axis=1)
+    rss_path = cwd / 'RSS'
+    if not rss_path.exists():
+        write_fasta_file(separated_segments, rss_path)
+
+
 def main():
     """
     Main function of the RSS creation script. It first sets 
@@ -505,27 +534,20 @@ def main():
     heptamers and nonamers and the reference ones is done. This new df 
     is merged with the old df from "annotation_report.xlsx" to form and 
     new extended df and is written to "annotation_report_plus.xlsx".
-
-
     """
     cwd = Path.cwd()
-    rss_path = cwd / 'RSS'
     df = pd.read_excel(cwd / 'annotation' / 'RSS_report.xlsx')
     df = df.apply(add_region_segment, axis=1)
-    separated_segments = {}
+
     df = df.apply(lambda row: add_base_rss_parts(
-        row, separated_segments), axis=1)
-    original = df.copy()
-    # df = df.query("Function != 'P'").reset_index(drop=True)
-    if not rss_path.exists():
-        write_fasta_file(separated_segments, rss_path)
+        row), axis=1)
+    create_ref_RSS_files(cwd)
     ref_rss = make_referece_rss(cwd)
     for rss_variant in [12, 23]:
-        original = original.apply(
+        df = df.apply(
             apply_check_ref_rss, args=(ref_rss, rss_variant), axis=1)
-    final_df = combine_df(original, pd.read_excel(
+    final_df = combine_df(df, pd.read_excel(
         cwd / 'annotation' / 'annotation_report.xlsx')).drop_duplicates()
-
     final_df.to_excel(cwd / 'annotation' /
                       'annotation_report_plus.xlsx', index=False)
 
