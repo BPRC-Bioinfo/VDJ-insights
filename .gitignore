@@ -252,6 +252,7 @@ bowtie2/*
 bowtie2_db/*
 bowtie/*
 bowtie_db/*
+minimap2/*
 
 alignments_excel/*
 blast_db/*

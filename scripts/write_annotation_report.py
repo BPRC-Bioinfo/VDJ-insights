@@ -244,7 +244,6 @@ def write_annotation_reports(annotation_folder):
     df, ref_df = run_like_and_orf(df), run_like_and_orf(ref_df)
     annotation_long(df, annotation_folder)
     df, ref_df = group_similar(df), group_similar(ref_df)
-    print(ref_df["Specific Part"])
     annotation(df, annotation_folder, 'annotation_report.xlsx')
     annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
     rss(df, annotation_folder)

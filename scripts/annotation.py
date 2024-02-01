@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 import subprocess
 from tempfile import NamedTemporaryFile as NTF
 from mapping import mapping_main
+from RSS import RSS_main
 from write_annotation_report import write_annotation_reports
 from pathlib import Path
 import pandas as pd
@@ -242,6 +243,7 @@ def main():
     else:
         blast_results = pd.read_excel(blast_file)
     write_annotation_reports(annotation_folder)
+    RSS_main()
 
 
 if __name__ == '__main__':
