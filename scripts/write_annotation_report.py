@@ -2,6 +2,33 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from Bio.Seq import Seq
+import re
+
+
+def add_region_segment(row):
+    """
+    Determines based on the potential name of the segment what the 
+    segment and the region is. It first brakes the name based on the "_" 
+    in to a list and check if it finds a a part that starts with a value 
+    specified in the option variable. When a part if found all the 
+    numeric values are removed with regex.
+    The two values are apointed to the columns "Region" and "Segment" 
+    and the new row is returned.
+
+    Args:
+        row (Series): Current row of the df.
+
+    Returns:
+        row (series): Current row with the two extra colums 
+        "Region" and "Segment".
+    """
+    options = ("TR", "LOC")
+    query = row['Old name-like']
+    prefix = [i for i in query.split("_") if i.startswith(options)][0]
+    prefix = re.sub(r"[0-9-]", "", prefix)
+    region, segment = prefix[0:3], prefix[3]
+    row["Region"], row["Segment"] = region, segment
+    return row
 
 
 def filter_group(group):
@@ -41,6 +68,7 @@ def main_df(df):
         '-') & ~df['subject seq'].str.contains('-')
     df = df[mask]
     df['% identity'] = df['% identity'].astype(float)
+    df["haplotype"] = df["path"].str.extract(r'_([^_]+)\.')[0]
     reference_df = df.query("`% identity` == 100.000")
     df = df.groupby(['start', 'stop']).filter(filter_group)
     return df, reference_df
@@ -88,14 +116,14 @@ def add_like_to_df(df):
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
-        'strand', 'path'
+        'strand', 'path', 'haplotype'
     ]]
     output_df.columns = [
         'Reference', 'Old name-like',
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
-        'Strand', 'Path'
+        'Strand', 'Path', 'Haplotype'
     ]
     output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
@@ -171,7 +199,8 @@ def annotation_long(df, annotation_folder):
     """
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
-             'End coord', 'Function', 'Path']]
+             'End coord', 'Function', 'Path', 'Region', 'Segment',
+             'Haplotype', 'Sample']]
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
@@ -189,7 +218,8 @@ def annotation(df, annotation_folder, file_name):
     """
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
-             'End coord', 'Function', 'Similar references', 'Path', 'Strand']]
+             'End coord', 'Function', 'Similar references', 'Path',
+             'Strand', 'Region', 'Segment', 'Haplotype', 'Sample']]
     df.to_excel(annotation_folder / file_name, index=False)
 
 
@@ -205,13 +235,15 @@ def rss(df, annotation_folder):
         annotation_folder (Path): Path to the annotation_report.xlsx file.
     """
     df = df[['Reference', 'Old name-like', 'Start coord',
-             'End coord', 'Strand', 'Path', 'Function']]
+             'End coord', 'Strand', 'Path', 'Function', 'Region', 'Segment', 'Sample']]
     df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
 
 
 def run_like_and_orf(df):
     df = add_like_to_df(df)
     df = df.apply(add_orf, axis=1)
+    df = df.apply(add_region_segment, axis=1)
+    df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
     return df
 
 

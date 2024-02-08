@@ -409,32 +409,6 @@ def check_ref_rss(row, ref_rss, rss_variant):
     return row
 
 
-def add_region_segment(row):
-    """
-    Determines based on the potential name of the segment what the 
-    segment and the region is. It first brakes the name based on the "_" 
-    in to a list and check if it finds a a part that starts with a value 
-    specified in the option variable. When a part if found all the 
-    numeric values are removed with regex.
-    The two values are apointed to the columns "Region" and "Segment" 
-    and the new row is returned.
-
-    Args:
-        row (Series): Current row of the df.
-
-    Returns:
-        row (series): Current row with the two extra colums 
-        "Region" and "Segment".
-    """
-    options = ("TR", "LOC")
-    query = row['Old name-like']
-    prefix = [i for i in query.split("_") if i.startswith(options)][0]
-    prefix = re.sub(r"[0-9-]", "", prefix)
-    region, segment = prefix[0:3], prefix[3]
-    row["Region"], row["Segment"] = region, segment
-    return row
-
-
 def combine_df(original_df, new_df):
     """
     Takes the original df created from the "annotation_report.xlsx"
@@ -458,7 +432,7 @@ def combine_df(original_df, new_df):
         '12_heptamer', '12_ref_heptamer', '12_heptamer_matched',
         '12_nonamer', '12_ref_nonamer', '12_nonamer_matched',
         '23_heptamer', '23_ref_heptamer', '23_heptamer_matched',
-        '23_nonamer', '23_ref_nonamer', '23_nonamer_matched'
+        '23_nonamer', '23_ref_nonamer', '23_nonamer_matched',
     ]
     combined_df = pd.merge(new_df, original_df[columns_to_merge],
                            on=['Reference', 'Old name-like'],
@@ -502,7 +476,6 @@ def create_dict(row, separated_segments):
 def create_ref_RSS_files(cwd):
     separated_segments = {}
     df = pd.read_excel(cwd / 'annotation' / 'annotation_report_100%.xlsx')
-    df = df.apply(add_region_segment, axis=1)
     df = df.apply(lambda row: create_dict(
         row, separated_segments), axis=1)
     rss_path = cwd / 'RSS'
@@ -534,8 +507,6 @@ def RSS_main():
     cwd = Path.cwd()
     load_config(cwd)
     df = pd.read_excel(cwd / 'annotation' / 'RSS_report.xlsx')
-    df = df.apply(add_region_segment, axis=1)
-
     df = df.apply(lambda row: add_base_rss_parts(
         row), axis=1)
     create_ref_RSS_files(cwd)
@@ -543,10 +514,11 @@ def RSS_main():
     df = df.apply(
         lambda row: apply_check_ref_rss(
             row, ref_rss), axis=1)
+    filename = "annotation_report"
     final_df = combine_df(df, pd.read_excel(
-        cwd / 'annotation' / 'annotation_report.xlsx')).drop_duplicates()
+        cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
     final_df.to_excel(cwd / 'annotation' /
-                      'annotation_report_plus.xlsx', index=False)
+                      f'{filename}_plus.xlsx', index=False)
 
 
 if __name__ == '__main__':
