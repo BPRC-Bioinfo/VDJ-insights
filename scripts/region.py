@@ -75,9 +75,10 @@ def process(cwd, chrom, hap, fasta, config):
             coords.extend([int(i) for i in splitted[1:]]
                           ), name.append(splitted[0])
         if len(set(name)) == 1:
-            ffile = cwd / "demo" / "fasta" / \
+            ffile = cwd / "converted" / "gfatofasta" / \
                 f"{chrom}_{hap}.p.fasta"
-            outfile = cwd / "demo" / "contig" / f"EAW_{region}_{hap}.fasta"
+            directory = cwd / "contig2"
+            outfile = directory / f"EAW_{region}_{hap}.fasta"
             write_seq(name[0], ffile, min(coords), max(coords), outfile)
         else:
             print("Broken contig, can't create region!")
@@ -91,8 +92,9 @@ def main():
     chromosome abbreviation and haplotype based from the name of the file.
     Finally the sam file is processed and the region files are made.
     """
+    print(snakemake.wildcards)
     cwd = Path.cwd()
-    fasta = cwd / "demo" / "locations" / "chr7_EAW_hap1.p.sam"
+    fasta = Path(snakemake.input[0])
     inter = fasta.stem.split("_")
     chrom, hap = inter[0], inter[2].split(".")[0]
     config = load_config(cwd)

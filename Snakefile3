@@ -18,8 +18,8 @@ print(FLANKING_GENES)
 rule all:
     input:
         # expand("hifiasm/{chrs}_{accession}/", chrs=["chr3", "chr7"], accession=ACCESSION, machine=MACHINE),
-        expand("final/final_{accession}_{machine}.txt", accession=ACCESSION, machine=MACHINE),
-        "flanking/all_flanking_genes.fna"
+        # expand("final/final_{accession}_{machine}.txt", accession=ACCESSION, machine=MACHINE),
+        expand("flanking/{chrs}_{accession}_flanking_genes.fna", chrs=["chr3", "chr7"], accession=["EAW"])
 
 rule downloadMmul10:
     output:
@@ -165,7 +165,7 @@ rule processedStats:
         """
 
 
-# Function to generate chromosome-specific BAM file paths
+
 def all_fastq_files(wildcards):
     checkpoint_output = checkpoints.split_fastq.get(accession=wildcards.accession, machine=wildcards.machine).output[0]
     expanded_paths = expand("filtered/filtered_{accession}_{machine}.part_{i}.fastq.gz",
@@ -263,17 +263,14 @@ rule sortIndexBam:
 rule extractChr:
     input:
         sorted_bam = ancient("alignments/sorted_{accession}_{machine}.bam"),
-        index_bam = ancient("alignments/sorted_{accession}_{machine}.bam.bai"),
-        ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
-        chromosome_conversion = ancient("input/chromosome_conversion.json")
+        ref_report = ancient("downloads/mmul10/chromosomes/mmul10_chr{chrs}.txt"),
     output:
-        fastq_file = "alignments/extracted_{chrs}_{accession}_{machine}.fastq",
-        bam_file = "alignments/extracted_{chrs}_{accession}_{machine}.bam"
+        fastq_file = "alignments/extracted_chr{chrs}_{accession}_{machine}.fastq",
+        bam_file = "alignments/extracted_chr{chrs}_{accession}_{machine}.bam"
     params:
-        chromosome_list=lambda wildcards, input: " ".join(load_json_file("input/chromosome_conversion.json")[wildcards.chrs]),
         folder = temp(directory("chrom_folder"))
     log:
-        "logs/samtools/extract_log_{chrs}_{accession}_{machine}.log"
+        "logs/samtools/extract_log_chr{chrs}_{accession}_{machine}.log"
     conda:
         "envs/samtools.yaml"
     threads:

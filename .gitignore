@@ -225,6 +225,7 @@ converted/*
 # Assemlby folders
 flye/*
 hifiasm/*
+assembly/*
 
 # Mapping information folder
 quast/*
@@ -269,3 +270,4 @@ meme/*
 final/*
 
 
+temp/*
