@@ -165,7 +165,109 @@ cython_debug/
 # Result folder
 results/*
 
-# .snakemake folder
+# Download folder
+downloads/*
+
+# # Input folder
+# input/*
+
+# seqkit folders
+seqkit*/*
+
+# .snakemake related folders
 .snakemake/*
+.tests/*
+
 # Data folder
 data/*
+
+# Benchmark folder
+benchmarks/*
+
+# Logs folder
+logs/*
+
+# Demo script folder
+demo/*
+
+# Test folder
+test/*
+
+# QC folder
+QC/*
+
+# Some input files in the input folder
+input/input*
+input/chromosome*
+
+# Splitted files folder
+split_files/*
+
+# Filtered files folder
+filtered/*
+raw_sequences/*
+
+# Alignment folder
+alignments/*
+
+#Chromosome folder
+chrom_folder/*
+
+# Combined folder
+combined/*
+
+# Coverage folder
+coverage/*
+
+# Converted folder
+converted/*
+
+# Assemlby folders
+flye/*
+hifiasm/*
+assembly/*
+
+# Mapping information folder
+quast/*
+
+# Scaffold files
+scaffold/*
+
+# BUSCO files
+BUSCO/*
+busco_downloads/*
+
+# Flanking genes files
+flanking/*
+flank_alignment/*
+
+# Contig files
+contig/*
+
+# Libraries files
+library/*
+
+# Segment mapping files
+segments_mapping/*
+bowtie2/*
+bowtie2_db/*
+bowtie/*
+bowtie_db/*
+minimap2/*
+
+alignments_excel/*
+blast_db/*
+# RSS files
+RSS/*
+
+# Annotation files
+annotation/*
+meme/*
+
+
+
+# Final files
+final/*
+
+
+temp/*

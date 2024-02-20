@@ -1,0 +1,6 @@
+name: ragtag
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+ - ragtag

@@ -1,0 +1,8 @@
+name: flanking
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+ - ncbi-datasets-cli
+ - unzip
+

@@ -1,0 +1,347 @@
+import os
+import pandas as pd
+from scripts.pipeline import *
+import json
+current = os.getcwd()
+# CHROMOSOMES_LENGTH = cal_chr_length()
+# CHROMOSOMES = fetch_chromosome()
+
+
+input_file = fetchall_args_input_file()
+ids = get_ids(f"input/{input_file}")
+
+
+if not os.path.exists(f"{current}/downloads"):
+    os.makedirs(f"{current}/downloads")
+
+files = [f for f in os.listdir(f"{current}/downloads") if f.startswith("sra_")]
+if len(ids.keys()) > len(files):
+    sra_download = fetchall_args_sra_download()
+else:
+    sra_download = "wget"
+
+
+# Define the top-level rule that depends on the output from other rules
+rule all:
+    input:
+        expand("downloads/{accession}/assembly/flye/{chrs}", accession=ids.keys(), chrs=CHROMOSOMES.keys()),
+        # expand("supset/subset_sra_{accession}.fastq.gz", accession=ids.keys())
+        # expand("downloads/{accession}/coverage/bedtools/coverage_{accession}.txt", accession=ids.keys()),
+
+# Rule to download data from the SRA database
+rule SRA_download:
+    output:
+        sra="downloads/sra_{accession}.fastq.gz"
+    log:
+        "logs/SRA/log_{accession}_sra.log"
+    benchmark:
+        "benchmarks/SRA/benchmark_{accession}_sra.txt"
+    params:
+        fastq_file = lambda wildcards: ids[wildcards.accession],
+        download_type = sra_download
+    conda:
+        "envs/sra_download.yaml"
+    shell:
+        """
+        python scripts/fetchall.py -t {params.download_type} -r pipeline -i {params.fastq_file} -o {output.sra} 2> {log}
+        """
+
+
+rule downloadMmul10:
+    output:
+        ref_report = "downloads/reports/mmul10_assembly_report.txt",
+        ref = "downloads/mmul10.fna",
+        chr_length = "input/chromosome_lengths.json",
+        chr_conversion = "input/chromosome_conversion.json"
+    params:
+        zipped_ref = "downloads/mmul10.fna.gz"
+    shell:
+        """
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
+        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        gunzip {params.zipped_ref}
+        python -c "from scripts.pipeline import fetch_chromosome; fetch_chromosome()"
+        python -c "from scripts.pipeline import cal_chr_length; cal_chr_length()"
+        """
+
+
+# Rule for initial QC
+rule seqkit:
+    input:
+        "downloads/sra_{accession}.fastq.gz"
+    output:
+        "seqkit/raw_read_{accession}_stat.tsv"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output}
+        """
+
+# Filter rule for removing adaptor for pacbio reads with seqkit rmdup.
+rule pbAdaptFilt:
+    input: 
+        "downloads/sra_{accession}.fastq.gz"
+    output: 
+        pbfilt = temp("downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz")
+    log:
+        "logs/adaptor/log_{accession}_pb.log"
+    benchmark:
+        "benchmarks/adaptfilt/benchmark_{accession}_pb.txt"
+    params:
+        filt = "downloads/{accession}/sra_{accession}.filt.fastq.gz" ,
+        input_dir = "downloads",
+    singularity:
+        "docker://australianbiocommons/hifiadapterfilt"
+    shell:
+        """
+        cd {params.input_dir}
+        bash pbadapterfilt.sh -o {wildcards.accession} -p sra_{wildcards.accession}
+        cd ../
+        mv {params.filt} {output.pbfilt}
+        """
+
+# Filter rule for removing adaptor for pacbio hifi reads with seqkit.
+rule hifiAdaptFilt:
+    input: 
+        "downloads/{accession}/pb_filtered_{accession}.filt.fastq.gz"
+    output: 
+        filt = temp("downloads/{accession}/hifi/hifi_filtered_{accession}.fastq.gz")
+    log:
+        "logs/adaptor/log_{accession}_hifi.log"
+    benchmark:
+        "benchmarks/adaptfilt/benchmark_{accession}_hifi.txt"
+    params:
+        input_dir = "downloads/{accession}",
+        output_dir = "hifi",
+        hififilt = "downloads/{accession}/hifi/pb_filtered_{accession}.filt.filt.fastq.gz",
+    singularity:
+        "docker://australianbiocommons/hifiadapterfilt"
+    shell:
+        """
+        cd {params.input_dir}
+        bash hifiadapterfilt.sh -o {params.output_dir} -p pb_filtered_{wildcards.accession}
+        cd ../../
+        mv {params.hififilt} {output.filt} 
+        """
+
+# Filter rule to remove duplicates with seqkit rmdup.
+rule removeDuplicateReads:
+    input:
+        "downloads/{accession}/hifi/hifi_filtered_{accession}.fastq.gz"
+    output:
+        "downloads/{accession}/duplicate_free/no_duplicate_{accession}.fastq.gz"
+    log:
+        "logs/seqkit/duplicates/log_{accession}_duplicates.log"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit rmdup {input} -s -i -o {output} 
+        """
+
+# Filter rule to remove sequences over 5000 bps with seqkit seq.
+rule filteredReads:
+    input:
+        "downloads/{accession}/duplicate_free/no_duplicate_{accession}.fastq.gz"
+    output:
+        "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+    log:
+        "logs/seqkit/filterd/log_{accession}_filterd.log"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit seq {input} -m 5000 -o {output} 
+        """
+
+# QC rule for getting statistics for filterd reads with seqkit stats.
+rule seqkitFiltered:
+    input:
+        ancient("downloads/{accession}/cleaned/filtered_{accession}.fastq.gz")
+    output:
+        "seqkit_filtered/filtered_{accession}_stat.tsv"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output} 2> {log}
+        """
+
+
+
+rule minimap2:
+    input:
+        read = "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz",
+        mmul10 = ancient("downloads/mmul10.fna"),
+    output:
+        "downloads/{accession}/alignments/{accession}.sam"
+    log:
+        "logs/minimap2/log_{accession}_alignment.log"
+    benchmark:
+        "benchmarks/minimap2/benchmark_{accession}_alignment.txt"
+    threads:
+        24
+    params:
+        read_type = "map-hifi"
+    conda:
+        "envs/minimap2.yaml"
+    shell:
+        """
+        minimap2 -ax {params.read_type} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+        """
+
+rule extractMappedReads:
+    input:
+        "downloads/{accession}/alignments/{accession}.sam"
+    output:
+        "downloads/{accession}/alignments/extracted_{accession}.bam",
+    log:
+        "logs/samtools/log_{accession}_alignment.log",
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -b -F4 {input} > {output} 2> {log}
+        """
+
+rule sortIndexBam:
+    input:
+        "downloads/{accession}/alignments/extracted_{accession}.bam"
+    output:
+        sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+        index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
+    log:
+        "logs/samtools/sort_index_log_{accession}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools sort -o {output.sorted_bam} {input}
+        samtools index {output.sorted_bam} {output.index_bam} 2> {log}
+        """
+
+rule extractChr:
+    input:
+        sorted_bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+        index_bam = "downloads/{accession}/alignments/sorted_{accession}.bam.bai",
+        ref_report = ancient("downloads/reports/mmul10_assembly_report.txt"),
+        chromosome_conversion = ancient("input/chromosome_conversion.json")
+    output:
+        "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
+    log:
+        "logs/samtools/extract_log_{chrs}_{accession}.log"
+    conda:
+        "envs/samtools.yaml"
+    threads:
+        10
+    shell:
+        """
+        samtools view -@ {threads} -h {input.sorted_bam} {params.chromosome} > {output} 2> {log}
+        """
+
+rule getCoverageSamtools:
+    input:
+        "downloads/{accession}/alignments/sorted_{accession}.bam"
+    output:
+        "downloads/{accession}/coverage/samtools/coverage_{accession}.txt"
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools coverage {input} -o {output}
+        """
+
+rule getCoverageBedtools:
+    input:
+        bam = "downloads/{accession}/alignments/sorted_{accession}.bam",
+        assembly = ancient("downloads/reports/mmul10_assembly_report.txt")
+    output:
+        "downloads/{accession}/coverage/bedtools/coverage_{accession}.txt"
+    log:
+        "logs/bedtools/log_bedtools_{accession}.log"
+    conda:
+        "envs/bedtools.yaml" 
+    shell:
+        """
+        bedtools genomecov -ibam {input.bam} -g {input.assembly} -bg> {output} 2> {log}
+        """
+
+rule convertBamToFastQ:
+    input:
+        "downloads/{accession}/alignments/extracted_{chrs}_{accession}.bam"
+    output:
+        "downloads/{accession}/converted/{chrs}_{accession}.fastq.gz"
+    log:
+        "logs/converted/log_converted_{chrs}_{accession}.log"
+    threads:
+        10
+    conda:
+        "envs/samtools.yaml"
+    shell:
+        """
+        samtools fastq -@ {threads} {input} | gzip > {output} 2> {log}
+        """
+
+
+rule seqkitChromosomes:
+    input:
+        "downloads/{accession}/converted/{chrs}_{accession}.fastq.gz"
+    output:
+        "seqkit_chromosomes/QC_{chrs}_{accession}_stat.tsv"
+    conda:
+        "envs/seqkit.yaml"
+    shell:
+        """
+        seqkit stats {input} -a -o {output}
+        """
+
+
+rule flyeAssembly:
+    input:
+        "downloads/{accession}/converted/{chrs}_{accession}.fastq.gz"
+    output:
+        "downloads/{accession}/assembly/flye/{chrs}"
+    log:
+        "logs/assembly/flye/log_flye_{chrs}_{accession}.log"
+    benchmark:
+        "benchmarks/assembly/flye/benchmark_{chrs}_{accession}_flye.txt"
+    params:
+        read_type = "pacbio-hifi",
+        chromosome_length = lambda wildcards: CHROMOSOMES_LENGTH[CHROMOSOMES[wildcards.chrs]]/1000000000
+    threads:
+        24
+    conda:
+        "envs/flye.yaml"
+    shell:
+        """
+        flye --{params.read_type} {input} --out-dir {output} --threads {threads}
+        """
+
+# rule longqc:
+#     input:
+#         "downloads/{accession}/cleaned/filtered_{accession}.fastq.gz"
+#     output:
+#         "downloads/{accession}/longQC_results"
+#     singularity:
+#         "docker://quay.io/biocontainers/longqc"
+#     shell:
+#         """
+#         LongQC sampleqc -x pb-sequel -o {output} -p 4 {input}
+#         """
+# rule supset:
+#     input:
+#         "downloads/sra_{accession}.fastq.gz"
+#     output:
+#         "supset/subset_sra_{accession}.fastq.gz"
+#         ""
+#     conda:
+#         "envs/seqkit.yaml"
+#     shell:
+#         """
+#         seqkit sample -p 0.1 {input} -o {output}
+#         """

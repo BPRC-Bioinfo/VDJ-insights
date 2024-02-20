@@ -1,0 +1,10 @@
+name: polishing
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+ - pilon
+ - medaka
+ - minimap2
+ - samtools
+

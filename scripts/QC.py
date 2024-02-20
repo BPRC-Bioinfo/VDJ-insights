@@ -1,9 +1,11 @@
 from Bio import SeqIO
 import numpy as np
 import json
+import gzip
 
 
-def process_reads(fastq_file="data/SRR8137616.fastq"):
+
+def process_reads(fastq_file="data/reads/SRR8137614.fastq.gz"):
     """
     Process raw reads to get various statistics such as smallest and
     largest reads, mean read length,
@@ -62,13 +64,13 @@ def write_json(json_info, filename="QC_result.json"):
         json.dump(json_info, f, ensure_ascii=False, indent=4)
 
 
-def run_analysis():
+def run_analysis(fastq_file):
     """
     Collects all the statistics from the process_reads() and N50()
     and parses them to write_json().
     """
     (smallest_read, largest_read, read_lens, avg_q_score_read,
-     gc_total, avg_q_score_pos, avg_gc_score_pos) = process_reads()
+    gc_total, avg_q_score_pos, avg_gc_score_pos) = process_reads(fastq_file)
     total_bases = sum(read_lens)
     json_info = {
         "Smallest read": smallest_read,
@@ -85,4 +87,5 @@ def run_analysis():
 
 
 if __name__ == "__main__":
-    run_analysis()
+    with gzip.open("data/reads/SRR8137614.fastq.gz", "rt") as fastq_file:
+        run_analysis(fastq_file)

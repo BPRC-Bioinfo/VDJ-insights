@@ -1,0 +1,13 @@
+Flanking genes
+
+Alpha & Delta
+Chromosome 7: start gene: SALL2
+Chromosome 7: end gene: DAD1
+
+Beta
+Chromosome 3: start gene:  MGAM2
+Chromosome 3: end gene: TRPV6
+
+Gamma
+Chromosome 3: start gene: VPS41
+Chromosome 3: end gene: EPDR1
