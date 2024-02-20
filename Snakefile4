@@ -463,7 +463,7 @@ rule flankingByChromosomes:
     params:
         chrs_id = "flanking/chr{chrs}_{accession}_flanking_genes_id.txt" 
     output:
-        "flanking/{chrs}_{accession}_flanking_genes.fna"
+        "flanking/chr{chrs}_{accession}_flanking_genes.fna"
     conda:
         "envs/seqtk.yaml"
     shell:
@@ -510,10 +510,22 @@ rule combineRegion:
         echo {input} > {output}
         """
 
-
+rule getLibrary:
+    output:
+        "library/library.fasta"
+    params:
+        species = "macaca mulatta",
+        cell_type = "TCR",
+    conda:
+        "envs/IMGT.yaml"
+    shell:
+        """
+        python scripts/IMGT_scrape.py -S {params.species} -T {params.cell_type} --create-library --cleanup
+        """
 rule annotation:
     input:
-        "annotation/all_regions.txt"
+        "annotation/all_regions.txt",
+        "library/library.fasta"
     output:
         "annotation/annotation_report_plus.xlsx"
     script:
