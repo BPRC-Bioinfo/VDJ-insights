@@ -12,14 +12,14 @@ def add_region_segment(row):
     in to a list and check if it finds a a part that starts with a value 
     specified in the option variable. When a part if found all the 
     numeric values are removed with regex.
-    The two values are apointed to the columns "Region" and "Segment" 
+    The two values are appointed to the columns "Region" and "Segment" 
     and the new row is returned.
 
     Args:
         row (Series): Current row of the df.
 
     Returns:
-        row (series): Current row with the two extra colums 
+        row (series): Current row with the two extra columns 
         "Region" and "Segment".
     """
     options = ("TR", "LOC")
@@ -54,7 +54,7 @@ def main_df(df):
     Also converts the '% identity' column to float for easier numerical 
     operations. Additionally, filter out entries with 100% identity, 
     as these do not contain new segments. 
-    These entries are filterd and saved in the reference_df.
+    These entries are filtered and saved in the reference_df.
 
     Args:
         df (pd.DataFrame): A df containing BLAST results.
@@ -77,8 +77,8 @@ def main_df(df):
 def add_values(df):
     """
     Add different columns to the df such as "% Mismatches of total alignment". 
-    This is an indicater of the procentage of the amount mismatches in a sequence.
-    Also add the lenght of the query (query_seq_length) and
+    This is an indicator of the percentage of the amount mismatches in a sequence.
+    Also add the length of the query (query_seq_length) and
     subject (subject_seq_length) to the df. Finally split (":") the 
     query in to 5 columns ['query', 'start', 'stop', 'strand', 'path'] and
     add them to to df.
@@ -88,7 +88,7 @@ def add_values(df):
         df (DataFrame): An df containing BLAST results.
 
     Returns:
-        _type_: BLAST result df with the extra columns added.
+        df (DataFrame): BLAST result df with the extra columns added.
     """
     df['% Mismatches of total alignment'] = (
         df['mismatches'] / df['alignment length']) * 100
@@ -133,9 +133,9 @@ def add_like_to_df(df):
 
 def add_orf(row):
     """
-    Check if the sequence contains a * when trasladed to aminoacids. 
-    When the strand is "-" the reverse_complete() is taked from the 
-    sequence and also checked. A column named "Function" is creaded. 
+    Check if the sequence contains a * when translated to amino acids. 
+    When the strand is "-" the reverse_complete() is taken from the 
+    sequence and also checked. A column named "Function" is created. 
     When the sequence contains a "*" a "P" is stored in the 
     "Function" otherwise a "F/ORF".
 
@@ -158,7 +158,7 @@ def filter_df(df):
     """
     Filters the BLAST df to identify the best reference and creates 
     a list of leftover similar references. First the 'Specific Part',
-    which begins with "TR", from the 'Old name-like' column is filterd out. 
+    which begins with "TR", from the 'Old name-like' column is filtered out. 
     Then selects the best reference based on the presence of 
     this 'Specific Part' in the 'Reference' column, sorting by 
     'Mismatches' and 'Reference' and taking the first hit. 
@@ -171,7 +171,7 @@ def filter_df(df):
 
     Returns:
         best_row: the BLAST df with now the best reference chosen and 
-        a extra column "Similar references" containing the list with similair 
+        a extra column "Similar references" containing the list with similar 
         references.
     """
     df['Specific Part'] = df['Old name-like'].apply(
@@ -268,7 +268,7 @@ def write_annotation_reports(annotation_folder):
 
 
     Args:
-        annotation_folder (Path): Path of the intitial annotation folder.
+        annotation_folder (Path): Path of the initial annotation folder.
     """
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = add_values(df)

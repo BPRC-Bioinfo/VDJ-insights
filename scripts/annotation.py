@@ -186,7 +186,7 @@ def aggregate_blast_results(dataframe, database_path):
         database_path (Path): Path to the BLAST database.
 
     Returns:
-        pd.DataFrame: df with all the datafrom the different BLAST searches.
+        pd.DataFrame: df with all the data from the different BLAST searches.
     """
 
     aggregated_results = pd.DataFrame()
@@ -218,13 +218,13 @@ def main():
     based current location. Based on this cwd some 
     input and output directories and files are set. It fetches the 
     needed blast db and the DataFrame (df). The "LOC" are filtered out because
-    they gave a distored picture because the lengths are way larger.
+    they gave a distorted picture because the lengths are way larger.
     Then it checks if the "blast_results.xlsx" is created. If this is not
     the case the needed df is made. Then the query cov is converted to numeric
     and checked if it is equal to 100%. The start and stop coordinates 
     are filtered out of the query column and also stored in the df.
     This df is saved to "blast_results.xlsx".
-    The write_annottion_report() function is called.  
+    The write_annotation_report() function is called.  
     """
     cwd = Path.cwd()
     annotation_folder = cwd / "annotation"

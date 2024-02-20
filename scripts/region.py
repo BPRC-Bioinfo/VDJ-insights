@@ -43,7 +43,7 @@ def write_seq(record_dict, name, start, stop, out):
     Get the record_dict from the used fasta file (record_dict). The name of contig, start and 
     stop coordinates (name, start and stop) and output ("out") file. 
     It parses the name of the contig to record_dict and fetches the needed contig sequence out of the record_dict.
-    The sequence and header are parsed and writen to the fasta file 
+    The sequence and header are parsed and written to the fasta file 
     "contig/{accession}_{region}_hap{hap}.fasta".
 
     Args:
@@ -63,7 +63,7 @@ def get_positions_and_name(genes, sam, record_dict):
     """
     Initiate a list (coords) for the coordinates and list for the 
     contig name (contig_list). As well a global contig_name is set to 
-    store the contig name. Then loop over genes dict to get the postition 
+    store the contig name. Then loop over genes dict to get the position 
     (start or end) and the flanking gene name. First there is checked if there 
     is no flaking gene name. If this is the case for a start position 
     a 0 appended to the coord list, if this is for the end position 
@@ -75,7 +75,7 @@ def get_positions_and_name(genes, sam, record_dict):
 
 
     Args:
-        genes (dict): Dictionary contaning the start and end 
+        genes (dict): Dictionary containing the start and end 
         flanking genes for a certain region.
         sam (Path): Path to the sam file.
         record_dict (dict): Dictionary containing the SeqIO information
@@ -110,9 +110,9 @@ def process(cwd, chrom, hap, sam, config):
     """
     Loops over the config dictionary with the parsed chromosome. 
     It first parses the given sam file to make_record_dict to construct a list 
-    contaning the name of the contig ("name"), the start and stop coordinates 
+    containing the name of the contig ("name"), the start and stop coordinates 
     based on the start and stop coordinates. 
-    Then is checked if the contig names are on the same conting and the 
+    Then is checked if the contig names are on the same contig and the 
     region of interest in on the same contig. If this is not the case a 
     message is given, that is was not able to construct a region. 
     Otherwise it parses the name of the contig 
@@ -124,7 +124,7 @@ def process(cwd, chrom, hap, sam, config):
         chrom (str): The chromosome abbreviation, that is used for this file.
         hap (str): The haplo type number of this same file.
         sam (Path): Path of the input sam file.
-        config (Dict): Dictionary contaning the chromosomes with their 
+        config (Dict): Dictionary containing the chromosomes with their 
         region of interest and their start and stop flanking genes.
     """
     ffile = cwd / "converted" / "gfatofasta" / \

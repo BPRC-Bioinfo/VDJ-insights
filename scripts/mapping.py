@@ -58,7 +58,7 @@ def get_region_and_segment(name):
     """
     Takes in a name of a potential segment and find the region and
     segment name in that. The name must contain a part which start 
-    with eiter a "TR" or "LOC". If a part starts with TR the region 
+    with either a "TR" or "LOC". If a part starts with TR the region 
     and segment is returned otherwise return "LOC" and "-"
 
     Args:
@@ -80,7 +80,7 @@ def parse_bed(file_path, accuracy, fasta, mapping_type):
     """
 
     Reads the content of a bed file and loops over the content line by 
-    line to get all the neccessery information such as the sequence, 
+    line to get all the necessary information such as the sequence, 
     the used score/accuracy from 1 to 100, bed_file path it self, 
     the mapping type this can either be "bowtie" or "bowtie2" or "minimap2", region, 
     segment and the path of the fasta file.
@@ -114,7 +114,7 @@ def run_command(command):
     throws a logging error saying failed with exit code.
 
     Args:
-        command (str): A string containg the command.
+        command (str): A string containing the command.
     """
     try:
         subprocess.run(command, shell=True)
@@ -198,14 +198,14 @@ def make_minimap2_command(acc, ffile, rfasta, sam_file):
 
 def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type):
     """
-    Creates all the neccesessary commands needed for a certain 
+    Creates all the necessary commands needed for a certain 
     accuracy/score combined with the fasta_file 
     (which is a fasta file of a region of interest). It also check what 
     the mapping type is to construct the right command and to remove 
     the build command because minimap2 does require it.  
 
     Args:
-        files (MappingFiles): class containg all the input and output files.
+        files (MappingFiles): class containing all the input and output files.
         fasta_file (str): Fasta file path of a region of interest.
         rfasta (str): Reference fasta file path.
         acc (int): Score between 1 and 100
@@ -341,7 +341,7 @@ def mapping_main(mapping_type):
 
 
     Returns:
-        df (DataFrame): A df containg all the entries.
+        df (DataFrame): A df containing all the entries.
     """
     cwd = Path.cwd()
     outdir = cwd / f"{mapping_type}_db"

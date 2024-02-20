@@ -38,7 +38,7 @@ def write_fasta_file(dictionary, folder):
 
     Args:
         dictionary (dict): dictionary with all the different 
-        regions and segments as nested keys and as vallue a 
+        regions and segments as nested keys and as value a 
         list with their RSS and spacer. 
         folder (Path): Path of the base directory to save the fasta
         files to.
@@ -56,10 +56,10 @@ def write_fasta_file(dictionary, folder):
 
 def rss_type(start, end, segment, rss_variant, strand):
     """
-    Calculates a dictionary for every possible segment variantion based 
+    Calculates a dictionary for every possible segment variation based 
     on the start and end coordinates, the type of segment and RSS type. 
     Based on the given segment and RSS the right coordinates are chosen
-    from the dictionairy and is returned as list. 
+    from the dictionary and is returned as list. 
 
 
     Args:
@@ -122,7 +122,7 @@ def fetch_sequence(row, segment, rss_variant):
 
 def add_to_dict(query, dictionary, rss):
     """
-    Method for adding the RSS to the dictionary (seperated_segments).
+    Method for adding the RSS to the dictionary (separated_segments).
     It checks if a certain entry exists if this is not the case a 
     new list is created and the RSS is added to list. If the
     entry exists the RSS is directly added to the list.
@@ -140,9 +140,9 @@ def add_to_dict(query, dictionary, rss):
 def get_mers(segment, rss, rss_variant):
     """
     Calculates a dictionary with the different 
-    heptamer and the nonameer possibilities as list with two values.
+    heptamer and the nonamer possibilities as list with two values.
     Based on the "segment"and "rss_variant" the right heptamer
-    and nonomer list is chosen and returned. If no valid entry
+    and nonamer list is chosen and returned. If no valid entry
     is found, ["", ""] is returned.
 
 
@@ -152,7 +152,7 @@ def get_mers(segment, rss, rss_variant):
         rss_variant (int): Type of RSS variant either 12 or 23.
 
     Returns:
-        list: List containing the heptamer and nonomer
+        list: List containing the heptamer and nonamer
         of a given segment and RSS variant.
     """
     mers = {
@@ -167,7 +167,7 @@ def add_to_row(row, val1, val2, rss_variant):
     """
     Add two columns "{rss_variant}_heptamer", "{rss_variant}_nonamer"
     to the current row from the df. The values from "val1" and "val2"
-    are indiviually joined and checked which of them are seven bases long,
+    are individually joined and checked which of them are seven bases long,
     this would be the heptamer and retained value is the nonamer.
 
     Args:
@@ -182,12 +182,13 @@ def add_to_row(row, val1, val2, rss_variant):
     Returns:
         row (Series): Current row from the df with the extra 
         "{rss_variant}_heptamer", "{rss_variant}_nonamer" columns. 
-        Which containg the heptamer and nonamer for this row.
+        Which contains the reference heptamer and nonamer for this row.
 
     """
     heptamer, nonamer = (''.join(val1), ''.join(val2)) if len(
         val1) == 7 else (''.join(val2), ''.join(val1))
-    row[f"{rss_variant}_heptamer"], row[f"{rss_variant}_nonamer"] = heptamer, nonamer
+    row[f"{rss_variant}_heptamer"], row[f"{
+        rss_variant}_nonamer"] = heptamer, nonamer
     return row
 
 
@@ -206,7 +207,7 @@ def add_segment(query, segment, region, separated_segments, rss_sequence, functi
         separated_segments (dict): Dictionary containing the different
         regions, segments and queries (if they already).
         rss_sequence (str): The sequence of the RSS.
-        function (str): The functianal status of the segment,
+        function (str): The functional status of the segment,
         either "P" or "F/ORF"
     """
 
@@ -259,7 +260,8 @@ def run_meme(out, rss_file: Path):
         out (Path): Path of the output file for the meme command result.
         rss_file (Path): Path of the RSS input file.
     """
-    command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw 6 -maxw 50"
+    command = f"meme {
+        rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw 6 -maxw 50"
     subprocess.run(command, shell=True)
 
 
@@ -284,9 +286,9 @@ def get_reference_mers(regex_string, segment, rss_variant):
 
 
     Returns:
-        val1(list): List containg the first of the extracted elements out of the 
+        val1(list): List containing the first of the extracted elements out of the 
         dictionary, this can either be a value which is 7 long or 9 long.
-        val1(list): List containg the second of the extracted elements out of the 
+        val1(list): List containing the second of the extracted elements out of the 
         dictionary, this can either be a value which is 7 long or 9 long.
     """
     rss = re.findall(r'\[[^\]]*\]|.', regex_string)
@@ -305,16 +307,16 @@ def make_ref_dict(segment, ref_rss, val1, val2):
     is not the case its creates a empty dictionary, it also checks 
     this for the "heptamer" and "nonamer". Then checks if the length of 
     "val1" is equal to seven or nine. Depending of this result either 
-    "val1" or "val2" is apointed to "heptamer" or "nonamer".
+    "val1" or "val2" is appointed to "heptamer" or "nonamer".
 
     Args:
         segment (str): Type of segment either a V,D or J.
         ref_rss (dict): Dictionary which contains the segment, heptamer,
         nonamer. 
-        val1(list): List containg the first of the extracted 
+        val1(list): List containing the first of the extracted 
         elements out of the dictionary, this can either be a value 
         which is 7 long or 9 long.
-        val1(list): List containg the second of the extracted 
+        val1(list): List containing the second of the extracted 
         elements out of the dictionary, this can either be a value 
         which is 7 long or 9 long.
 
@@ -337,7 +339,7 @@ def make_ref_dict(segment, ref_rss, val1, val2):
 def make_referece_rss(cwd):
     """
     Loops over the folder "cwd (current directory the user is in) / RSS".
-    It determines the segments name based on the name (stem) of the fata file.
+    It determines the segments name based on the name (stem) of the fasta file.
     After this it is checked if the different meme.txt files exists. If they does
     not exists the the run_meme() command is executed. When the meme.txt is 
     found/or created the whole RSS regular expression is fetched, the 
@@ -379,7 +381,7 @@ def make_referece_rss(cwd):
 def check_ref_rss(row, ref_rss, rss_variant):
     """
     Compares the heptamer and nonamers from the current row with the 
-    genenrated reference heptamers and nonamers. When the reference and 
+    generated reference heptamers and nonamers. When the reference and 
     current one match, a True is filled in otherwise a False. 
     These values are stored in the column "{rss_variant}_{i}_matched", 
     based on the rss variant and if the i is equal to a heptamer or
@@ -419,7 +421,7 @@ def combine_df(original_df, new_df):
         original_df (DataFrame): The original df containing the original
         new found segments without the heptamers and nonamers of
         the new segments.
-        new_df (DataFrame): New df frame containg the newly found 
+        new_df (DataFrame): New df frame containing the newly found 
         heptamers and nonamers of the newly found segments.
 
     Returns:
@@ -442,7 +444,7 @@ def combine_df(original_df, new_df):
 
 def apply_check_ref_rss(row, ref_rss):
     """
-    Gets the segment from the row and subtracks the last 
+    Gets the segment from the row and subtracts the last 
     character, which is the segment itself. Then verifies
     the "segment" and "rss_variant" runs the "check_ref_rss()"
 
@@ -490,7 +492,7 @@ def RSS_main():
     based current location. Based on this cwd some 
     input and output directories and files are set.
     Then loads the a DataFrame (df) based on RSS_report.xlsx and 
-    initiates the first dictionary (seperated_segment) which contains 
+    initiates the first dictionary (separated_segment) which contains 
     the different region, segments, query (name of the potential new
     segment) and the respective RSS sequence. After this, new columns 
     are added to the df, such as "Segment", "Region" and the

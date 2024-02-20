@@ -7,6 +7,8 @@ from pathlib import Path
 from urllib.parse import urlencode
 from Bio import SeqIO
 
+# Custom formatter for the logging module
+
 COLORS = {
     'WARNING': '\033[93m',
     'INFO': '\033[92m',
@@ -46,28 +48,72 @@ logger.handlers = []
 logger.addHandler(handler)
 
 
-def make_dir(location):
-    Path(location).mkdir(parents=True, exist_ok=True)
+def make_dir(dir):
+    """
+    Create an directory when not existing.
+
+    Args:
+        location (str): Path of the directory to create.
+    """
+
+    Path(dir).mkdir(parents=True, exist_ok=True)
 
 
-def cleanup(folder):
-    for file in folder.glob("*.fasta"):
+def cleanup(directory):
+    """
+    Gets a path of a directory as input and loops over the fasta files 
+    inside. It removes every found fasta file. After the removal of the 
+    fasta files it will remove the directory itself.
+
+    Args:
+        directory (Path): Path to the directory.
+    """
+    for file in directory.glob("*.fasta"):
         Path(file).unlink()
-    Path(folder).rmdir()
+    Path(directory).rmdir()
     logging.info(
-        f"Deleting folder: {folder.name}, because --cleanup was selected")
+        f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
-def create_library(folder: Path):
-    library = folder.parent / "library"
+def create_library(directory: Path):
+    """
+    Gets a path of a directory that contain the fasta files needed to 
+    create the library.fasta file. It first creates the library directory.
+    Then loops over the fasta files and opens it with biopython SeqIO and 
+    append the contents of the current fasta file to the library.fasta file.
+    In the end there is logged that the library is created.
+
+
+    Args:
+        directory (Path): Path to the directory.
+    """
+    library = directory.parent / "library"
     make_dir(library)
     with open(library / "library.fasta", 'w') as w:
-        for file in folder.glob("*.fasta"):
+        for file in directory.glob("*.fasta"):
             for record in SeqIO.parse(file, "fasta"):
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
+    logging.info("Creating a library from generated files.")
 
 
 def construct_url(segment, species, frame):
+    """
+    Constructs the url that is needed to fetch the segments from the
+    IMGT web server based on the segment type, species and frame. 
+    It takes the base url and adds the right values for segment, 
+    species and frame, which are stored in the params dict. 
+    With urlencode the dict is converted to a url.
+
+    Args:
+        segment (str): The segment type itself.
+        species (str): The chosen species, which is choses from the
+        argparse list for species.
+        frame (str): the chosen frame, which is choses from the argparse
+        list for regarding frame.
+
+    Returns:
+        str: constructed url for data retrieval from the IMGT web server.
+    """
     base_url = "https://www.imgt.org/genedb/GENElect"
     params = {
         'query': f"{frame} {segment}",
@@ -77,6 +123,20 @@ def construct_url(segment, species, frame):
 
 
 def scrape(response):
+    """
+    Uses the response and parses it with BeautifulSoup. 
+    It first create a BeautifulSoup object from the response and searches
+    for all the "pre" paragraphs in the "soup" object. Then it checks if ">" 
+    is present in the paragraph, if this is the case the paragraph gets
+    returned and gets logged that VDJ sequences are found.
+
+    Args:
+        response (requests.models.Response): Response containing
+        information of the IMGT html page.
+
+    Returns:
+        str: All the found VDJ sequences in this response/paragraph. 
+    """
     soup = BeautifulSoup(response.text, 'html.parser')
     paragraphs = soup.find_all('pre')
     for p in paragraphs:
@@ -86,20 +146,48 @@ def scrape(response):
             return seq
 
 
-def write_sequence(name, folder, sequence):
-    file = folder / f"{name}.fasta"
+def write_sequence(name, directory, sequence):
+    """
+    Write the found VDJ segment sequenecs. It first establish a base fasta file. 
+    Then it writes the VDJ sequences to the fasta file and logs that 
+    sequence are written to the file.
+
+    Args:
+        name (str): Name of current VDJ segment.
+        directory (Path): Path to the directory.
+        sequence (str): Large string containing all the different sequences
+        for a current VDJ segment.
+    """
+    file = directory / f"{name}.fasta"
     logging.info(f"Writing sequences from {name} to {file.name}")
     with open(file, 'w') as f:
         f.write(str(sequence) + "\n")
 
 
-def fetch_sequence(segment, folder, species, frame):
+def fetch_sequence(segment, directory, species, frame):
+    """
+    Uses the constrcted url and fetches the response based on the url. 
+    It checks the response code. If it is equal 200 the response is
+    scraped otherwise it is logged that it failed to retrieve data from IMGT server.
+    it also checks if something is found after scraping. 
+    Otherwise it logs that it could not scrape any data from the response.
+    In the end a 2 second sleep it called to avoid overloading the IMGT server.
+
+
+    Args:
+        segment (str): The segment type itself.
+        directory (Path): Path to the directory.
+        species (str): The chosen species, which is choses from the
+        argparse list for species.
+        frame (str): the chosen frame, which is choses from the argparse
+        list for regarding frame.
+    """
     url = construct_url(segment, species, frame)
     response = requests.get(url)
     if response.status_code == 200:
         sequence = scrape(response)
         if sequence:
-            write_sequence(segment, folder, sequence)
+            write_sequence(segment, directory, sequence)
         else:
             logging.warning(f"No sequences found for {segment} of {species}.")
     else:
@@ -109,32 +197,94 @@ def fetch_sequence(segment, folder, species, frame):
     time.sleep(2)
 
 
-def scrape_IMGT(species, imune_type, folder, frame):
-    segments = {"TCR": ["TRBV", "TRBJ", "TRBD", "TRAV", "TRAJ", "TRDD", "TRDJ", "TRDV", "TRGV", "TRGJ"],
-                "IG": ['IGHV', 'IGHD', 'IGHJ', 'IGKV', 'IGKJ', 'IGLV', 'IGLJ']}
-    if not folder.exists():
-        logging.info(f"Folder {folder.name} does not exist, creating it!")
-        make_dir(folder)
-    for segment in segments[imune_type]:
+def scrape_IMGT(species, immune_type, directory, frame):
+    """
+    Uses the argparse values to scrape from the IMGT server. First a dictionary 
+    is created with the different VDJ segments that are known.
+    First it checks if the output folder exists, if not it creates 
+    it otherwise it uses it. Then loop over the right VDJ segments list,
+    chosen from the dict based on the immune_type. If fasta file exists based 
+    on the current segment it is not fetched, logged that it already exists 
+    and a 2 second sleep is called. 
+    Otherwise the segment sequences are fetched and logged.
+
+    Args:
+
+        species (str): The chosen species, which is choses from the
+        argparse list for species.
+        immune_type (str): The type of receptor that is being used. 
+        Either TCR or IG.
+        directory (Path): Path to the directory.
+        frame (str): the chosen frame, which is choses from the argparse
+        list for regarding frame.
+    """
+    segments = {
+        "TCR": [
+            "TRBV", "TRBJ", "TRBD", "TRAV", "TRAJ",
+            "TRDD", "TRDJ", "TRDV", "TRGV", "TRGJ"
+        ],
+        "IG": [
+            'IGHV', 'IGHD', 'IGHJ', 'IGKV',
+            'IGKJ', 'IGLV', 'IGLJ'
+        ]
+    }
+    if not directory.exists():
+        logging.info(f"Folder {directory.name} does not exist, creating it!")
+        make_dir(directory)
+    for segment in segments[immune_type]:
         logging.info(
             f"Retrieving sequences from IMGT for the {segment} of {species}")
-        if not Path(folder / f"{segment}.fasta").exists():
-            fetch_sequence(segment, folder, species, frame)
+        if not Path(directory / f"{segment}.fasta").exists():
+            fetch_sequence(segment, directory, species, frame)
         else:
             logging.info(f"File {segment}.fasta already exists skipping!")
             time.sleep(2)
 
 
-def to_capital(string: str):
-    return string.capitalize()
+def to_capital(species):
+    """
+    Capitalize the input given for the species argument with argparse.
+
+    Args:
+        species (str): The chosen species, which is choses from the
+        argparse list for species.
+
+    Returns:
+        str: Capitalized species string.
+    """
+    return species.capitalize()
 
 
 def convert_frame(frame):
-    options = {"all": "7.2", "in-frame": "7.5", "in-frame-gaps": "7.1"}
+    """
+    Transform the given frame to its secondary value. It creates a dict 
+    for this and converts the value based on this dict. 
+    If the frame has the None type, it is set to all.
+
+    Args:
+        frame (str/None): The chosen frame. If not set its value is None.
+
+    Returns:
+        str: decimal number indicating the which type of frame is needed.
+    """
+    options = {
+        "all": "7.2", "in-frame": "7.5", "in-frame-gaps": "7.1"
+    }
     return options[frame or "all"]
 
 
 def validate_directory(path):
+    """
+    Validate the given path. First the path is converted to a Path object
+    and than there is checked if the path to a directory exists. If it does the
+    path is returned, otherwise the directory is created and returned.
+
+    Args:
+        path (str): Path to a directory.
+
+    Returns:
+        Path: Path to a directory, converted to a Path object.
+    """
     path = Path(path)
     if not path.exists():
         make_dir(path)
@@ -142,6 +292,17 @@ def validate_directory(path):
 
 
 def argparser_setup():
+    """
+    Establish a list with all the different species the user can choose 
+    from to fetch. Then argparse itself it initiated. A base description is set,
+    as well as the two groups for required parameters and optional parameters.
+    Then all the parameters are set and their extra function if validation 
+    or transformation is needed. In the end a parser (args) is returned 
+    with all the given parameters.
+
+    Returns:
+        args (argparse.Namespace): Object with all the given parameters.
+    """
     latin_names = [
         'Homo sapiens', 'Mus', 'Bos taurus',
         'Ovis aries', 'Danio rerio', 'Canis lupus familiaris',
@@ -178,6 +339,17 @@ def argparser_setup():
 
 
 def main():
+    """
+    Main function of the IMGT_scrape script. 
+    It first retrieves all the given parameters from argparse. Then logs that 
+    is starting the scrape for a given species and immune type. It determines 
+    the output. If not given a Path object is created based on the species name.
+    Otherwise a Path object is created based on the output parameter. 
+    If the output directory is not created yet it is created. Next the scraping
+    itself is done. After scraping there is checked if the library needs to be 
+    created and/or that the individual fasta files of the segments
+    need to be removed. Lastly there is logged that the scrape is finished.
+    """
     args = argparser_setup()
     logging.info(
         f"Starting scrape for species: {args.species}, type: {args.type}")
@@ -188,7 +360,6 @@ def main():
     make_dir(output_dir)
     scrape_IMGT(args.species, args.type, output_dir, frame_selection)
     if args.create_library:
-        logging.info("Creating a library from generated files.")
         create_library(output_dir)
 
     if args.cleanup:
