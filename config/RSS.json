@@ -1,14 +1,86 @@
 {
-    "RSS_VARIANTS": {
-        "D": [
-            12,
-            23
+    "RSS_LAYOUT": {
+        "TRAV": {
+            "23": {
+                "+": "end_plus",
+                "-": "start_minus"
+            }
+        },
+        "TRAJ": {
+            "12": {
+                "+": "start_minus",
+                "-": "end_plus"
+            }
+        },
+        "TRBV": {
+            "23": {
+                "+": "end_plus",
+                "-": "start_minus"
+            }
+        },
+        "TRBD": {
+            "12": {
+                "+": "start_minus",
+                "-": "end_plus"
+            },
+            "23": {
+                "+": "end_plus",
+                "-": "start_minus"
+            }
+        },
+        "TRBJ": {
+            "12": {
+                "+": "start_minus",
+                "-": "end_plus"
+            }
+        },
+        "TRGV": {
+            "23": {
+                "+": "end_plus",
+                "-": "start_minus"
+            }
+        },
+        "TRGJ": {
+            "12": {
+                "+": "start_minus",
+                "-": "end_plus"
+            }
+        },
+        "TRDV": {
+            "23": {
+                "+": "end_plus",
+                "-": "start_minus"
+            }
+        },
+        "TRDD": {
+            "12": {
+                "+": "start_minus",
+                "-": "end_plus"
+            },
+            "23": {
+                "+": "end_plus",
+                "-": "start_minus"
+            }
+        },
+        "TRDJ": {
+            "12": {
+                "+": "start_minus",
+                "-": "end_plus"
+            }
+        }
+    },
+    "RSS_LENGTH": {
+        "12": 28,
+        "23": 39
+    },
+    "RSS_MERS": {
+        "12": [
+            9,
+            7
         ],
-        "V": [
-            23
-        ],
-        "J": [
-            12
+        "23": [
+            7,
+            9
         ]
     }
 }
