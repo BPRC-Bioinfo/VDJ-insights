@@ -2,6 +2,9 @@ CHROMOSOMES:
   [3, 7]
 HAPLOTYPES: 
   [1, 2]
+BUSCO_DATASET:
+  primates_odb10
+
 FLANKING:
   chr7:
     alpha-delta:
@@ -14,10 +17,63 @@ FLANKING:
     gamma:
       start: VPS41
       end: EPDR1
+
 LIBRARY:
   species: 
     macaca mulatta
   cell_type: 
     TCR
-BUSCO_DATASET:
-  primates_odb10
+
+RSS_LAYOUT:
+  TRAV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRAJ:
+    "12":
+      "+": start_minus
+      "-": end_plus
+  TRBV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRBD:
+    "12":
+      "+": start_minus
+      "-": end_plus
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRBJ:
+    "12":
+      "+": start_minus
+      "-": end_plus
+  TRGV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRGJ:
+    "12":
+      "+": start_minus
+      "-": end_plus
+  TRDV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRDD:
+    "12":
+      "+": start_minus
+      "-": end_plus
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRDJ:
+    "12":
+      "+": start_minus
+      "-": end_plus
+RSS_LENGTH:
+  "12": 28
+  "23": 39
+RSS_MERS:
+  "12": [9, 7]
+  "23": [7, 9]
