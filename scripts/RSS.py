@@ -7,13 +7,16 @@ from pathlib import Path
 from Bio.Seq import Seq
 
 CONFIG = None
+OPTIONS = None
 
 
 def load_config(cwd):
     global CONFIG
+    global OPTIONS
     with open(cwd / 'config' / 'RSS.json', 'r') as file:
         config = json.load(file)
         CONFIG = config
+        OPTIONS = set(CONFIG.get("RSS_LAYOUT", {}).keys())
 
 
 def create_directory(location):
@@ -54,7 +57,15 @@ def write_fasta_file(dictionary, folder):
                             f.write(f">{header}-{x+1}\n{rss}\n")
 
 
-def rss_type(start, end, segment, rss_variant, strand):
+def calculate_position(position, length, operation):
+    if operation.endswith("plus"):
+        return str(position + length)
+    elif operation.endswith("minus"):
+        return str(position - length)
+    return str(position)
+
+
+def rss_type(start, end, combi, rss_variant, strand):
     """
     Calculates a dictionary for every possible segment variation based 
     on the start and end coordinates, the type of segment and RSS type. 
@@ -74,19 +85,16 @@ def rss_type(start, end, segment, rss_variant, strand):
         list: A list containing two integers representing the 
         start and end coordinates of the chosen RSS variant.
     """
-    variant_12 = 28
-    variant_23 = 39
-    TR_seg = {
-        "V": {23: {"+": [end, str(int(end) + variant_23)],
-                   "-": [str(int(start) - variant_23), start]}},
-        "D": {12: {"+": [str(int(start) - variant_12), start],
-                   "-": [end, str(int(end) + variant_12)]},
-              23: {"+": [end, str(int(end) + variant_23)],
-                   "-": [str(int(start) - variant_23), start]}},
-        "J": {12: {"+": [str(int(start) - variant_12), start],
-                   "-": [end, str(int(end) + variant_12)]}}
-    }
-    return TR_seg[segment][rss_variant][strand]
+    lengths = CONFIG['RSS_LENGTH']
+    variants = CONFIG['RSS_LAYOUT'].get(combi, {})
+    variant_length = lengths.get(str(rss_variant), 0)
+    layout = variants.get(str(rss_variant), {}).get(strand, "")
+    if layout == "end_plus":
+        return [str(end), calculate_position(
+            end, variant_length, layout)]
+    elif layout == "start_minus":
+        return [calculate_position(
+            start, variant_length, layout), str(start)]
 
 
 def fetch_sequence(row, segment, rss_variant):
@@ -113,7 +121,8 @@ def fetch_sequence(row, segment, rss_variant):
         'Region']]
     with open(fasta, 'r') as fasta_file:
         record = SeqIO.read(fasta_file, 'fasta')
-        rss_start, rss_stop = rss_type(start, end, segment, rss_variant, strand)
+        rss_start, rss_stop = rss_type(
+            start, end, f"{region}{segment}", rss_variant, strand)
         rss = record.seq[int(rss_start):int(rss_stop)]
         if strand == '-':
             rss = str(Seq(str(rss)).reverse_complement())
@@ -155,12 +164,9 @@ def get_mers(segment, rss, rss_variant):
         list: List containing the heptamer and nonamer
         of a given segment and RSS variant.
     """
-    mers = {
-        "V": {23: [rss[0:7], rss[-9:]]},
-        "D": {12: [rss[0:9], rss[-7:]], 23: [rss[0:9], rss[-9:]]},
-        "J": {12: [rss[0:9], rss[-7:]]}
-    }
-    return mers[segment].get(rss_variant, ["", ""])
+    mers = CONFIG["RSS_MERS"].get(str(rss_variant), [])
+    mer1, mer2 = mers
+    return [rss[0:mer1], rss[-mer2:]]
 
 
 def add_to_row(row, val1, val2, rss_variant):
@@ -240,9 +246,10 @@ def add_base_rss_parts(row):
         the type of segment certain columns are filled in. If not not 
         filled in, the value is "".
     """
-    segment = row["Segment"]
+    region, segment = row["Region"], row["Segment"]
+    full = region + segment
     row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
-    rss_variants = CONFIG['RSS_VARIANTS'].get(segment)
+    rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
         query, rss_sequence = fetch_sequence(row, segment, rss_variant)
         val1, val2 = get_mers(segment, rss_sequence, rss_variant)
@@ -292,13 +299,9 @@ def get_reference_mers(regex_string, segment, rss_variant):
         dictionary, this can either be a value which is 7 long or 9 long.
     """
     rss = re.findall(r'\[[^\]]*\]|.', regex_string)
-    ref_mers = {
-        "V": {23: [rss[0:7], rss[-9:]]},
-        "D": {12: [rss[0:9], rss[-7:]], 23: [rss[0:9], rss[-9:]]},
-        "J": {12: [rss[0:9], rss[-7:]]}
-    }
-    val1, val2 = ref_mers[segment][rss_variant]
-    return val1, val2
+    mers = CONFIG["RSS_MERS"].get(str(rss_variant), [])
+    mer1, mer2 = mers
+    return rss[0:mer1], rss[-mer2:]
 
 
 def make_ref_dict(segment, ref_rss, val1, val2):
@@ -457,17 +460,19 @@ def apply_check_ref_rss(row, ref_rss):
     Returns:
         row (Series): Row with extra added columns.
     """
-    segment = row["Segment"]
-    rss_variants = CONFIG['RSS_VARIANTS'].get(segment)
+    region, segment = row["Region"], row["Segment"]
+    full = region + segment
+    rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
-        if segment in {'D', 'V', 'J'}:
+        if full in OPTIONS:
             return check_ref_rss(row, ref_rss, rss_variant)
     return row
 
 
 def create_dict(row, separated_segments):
     region, segment, function = row[["Region", "Segment", "Function"]]
-    rss_variants = CONFIG['RSS_VARIANTS'].get(segment)
+    full = region + segment
+    rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
         query, rss_sequence = fetch_sequence(row, segment, rss_variant)
         add_segment(query, f"{segment}_{rss_variant}", region,
