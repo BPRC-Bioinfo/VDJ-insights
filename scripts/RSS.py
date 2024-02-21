@@ -1,5 +1,5 @@
 import re
-import json
+import yaml
 import subprocess
 import pandas as pd
 from Bio import SeqIO
@@ -13,9 +13,8 @@ OPTIONS = None
 def load_config(cwd):
     global CONFIG
     global OPTIONS
-    with open(cwd / 'config' / 'RSS.json', 'r') as file:
-        config = json.load(file)
-        CONFIG = config
+    with open(cwd / 'config' / 'config.yaml', 'r') as file:
+        CONFIG = yaml.safe_load(file)
         OPTIONS = set(CONFIG.get("RSS_LAYOUT", {}).keys())
 
 

@@ -1,5 +1,5 @@
 from pathlib import Path
-import json
+import yaml
 import subprocess
 from Bio import SeqIO
 
@@ -23,7 +23,7 @@ def make_record_dict(fasta):
 
 def load_config(cwd):
     """
-    Load the config json file "flanking.json" and return the dictionary
+    Load the config yaml file "config.yaml" and return the dictionary
     from that file.
 
     Args:
@@ -34,8 +34,8 @@ def load_config(cwd):
         dict: Dictionary containing the chromosomes of interest and 
         their respective start and end flanking genes. 
     """
-    with open(cwd / "config" / "flanking.json") as f:
-        return json.load(f)
+    with open(cwd / "config" / "config.yaml") as f:
+        return yaml.safe_load(f)
 
 
 def write_seq(record_dict, name, start, stop, out):
@@ -145,7 +145,7 @@ def main():
     """
     Main function of this script. I takes a sam file of the region and 
     creates the different region fasta files based on the flanking genes, 
-    located in "config/flanking.json". Then parses the
+    located in "config/config.yaml". Then parses the
     chromosome abbreviation and haplotype based from the name of the file.
     Finally the sam file is processed and the region files are made.
     """
