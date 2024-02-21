@@ -1,0 +1,23 @@
+CHROMOSOMES: 
+  [3, 7]
+HAPLOTYPES: 
+  [1, 2]
+FLANKING:
+  chr7:
+    alpha-delta:
+      start: SALL2
+      end: DAD1
+  chr3:
+    beta:
+      start: MGAM2
+      end: TRPV6
+    gamma:
+      start: VPS41
+      end: EPDR1
+LIBRARY:
+  species: 
+    macaca mulatta
+  cell_type: 
+    TCR
+BUSCO_DATASET:
+  primates_odb10

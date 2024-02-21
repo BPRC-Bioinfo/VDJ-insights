@@ -3,17 +3,16 @@ from pathlib import Path
 import pandas as pd
 from scripts.pipeline import *
 import json
+
+configfile: 'config/config.yaml'
+
 cwd = Path.cwd()
 
+print(config)
 # Setup. Loading Accession, machine, chromosomes and haplotypes.
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
-CHROMOSOMES = [3, 7]
-HAPLOTYPES = [1 ,2]
-
-with open(cwd / 'config' / 'flanking.json') as flanking:
-    flanking = json.load(flanking)
-    FLANKING = [gene for chromosomes in flanking.values() for region in chromosomes.values() for gene in region.values()]
+FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values()]
 
 
 
@@ -24,7 +23,7 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("final/all_outputs_{accession}_{machine}_chr{chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, chrs=CHROMOSOMES, haplo=HAPLOTYPES),
+        expand("final/all_outputs_{accession}_{machine}_chr{chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, chrs=config["CHROMOSOMES"], haplo=config["HAPLOTYPES"]),
         # expand("downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta", chrs=CHROMOSOMES),
         # expand("assembly/hifiasm/chr{chrs}/{accession}_chr{chrs}_hifiasmUL.bp.txt", chrs=CHROMOSOMES, accession=ACCESSION)
         # expand("flye/{chrs}_{accession}/assembly.fasta", chrs=["chr3", "chr7"], accession=ACCESSION),
@@ -285,7 +284,6 @@ checkpoint separateChrs:
 def combineChrFragments(wildcards):
     outdir = checkpoints.separateChrs.get(**wildcards).output[0]
     bams = glob_wildcards(os.path.join(outdir, "{bam}.bam")).bam
-    #print (bams)
     return expand(os.path.join(outdir, "{bam}.bam"),
         bam = bams)
 
@@ -296,7 +294,8 @@ rule rejoinChrs:
         temp("{accession}_{machine}_chr{chrs}.bam"),
     conda:
         "envs/samtools.yaml"
-    threads: 8
+    threads: 
+        8
     shell:
         """
         ulimit -Sn 4096
@@ -310,7 +309,8 @@ rule chrFastq:
         "converted/chr{chrs}_{accession}_{machine}.fastq.gz",
     conda:
         "envs/samtools.yaml"
-    threads: 8
+    threads: 
+        8
     benchmark:
         "benchmarks/06_{accession}_{machine}_chr{chrs}_fastq.time"
     shell:
@@ -380,7 +380,7 @@ rule BUSCO:
     output:
         directory("BUSCO/{accession}/chr{chrs}_{accession}_hap{haplo}")
     params:
-        dataset = "primates_odb10"
+        dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
     log:
@@ -397,7 +397,7 @@ rule BUSCOReference:
     output:
         directory("BUSCO/mmul10/chr{chrs}")
     params:
-        dataset = "primates_odb10"
+        dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
     log:
@@ -514,8 +514,8 @@ rule getLibrary:
     output:
         "library/library.fasta"
     params:
-        species = "macaca mulatta",
-        cell_type = "TCR",
+        species = config["LIBRARY"]["species"],
+        cell_type = config["LIBRARY"]["cell_type"],
     conda:
         "envs/IMGT.yaml"
     shell:
