@@ -60,7 +60,7 @@ rule splitChromosomes:
 # Making new reference file.
 rule newReferenceFile:
     input:
-        expand("downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta", chrs = CHROMOSOMES)
+        expand("downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta", chrs = config["CHROMOSOMES"])
     output:
         "downloads/mmul10/genome/mmul10_new_ref.fasta"
     shell:
@@ -501,7 +501,7 @@ rule contigFiles:
 
 rule combineRegion:
     input:
-        expand("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.txt", chrs=CHROMOSOMES, accession=ACCESSION, haplo=HAPLOTYPES)
+        expand("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.txt", chrs=config["CHROMOSOMES"], accession=ACCESSION, haplo=config["HAPLOTYPES"])
     output:
         temp("annotation/all_regions.txt")
     shell:
@@ -519,7 +519,7 @@ rule getLibrary:
         "envs/IMGT.yaml"
     shell:
         """
-        python scripts/IMGT_scrape.py -S {params.species} -T {params.cell_type} --create-library --cleanup
+        python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup
         """
 rule annotation:
     input:
