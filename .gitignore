@@ -264,7 +264,8 @@ RSS/*
 annotation/*
 meme/*
 
-
+# Inspector files
+inspector/*
 
 # Final files
 final/*
