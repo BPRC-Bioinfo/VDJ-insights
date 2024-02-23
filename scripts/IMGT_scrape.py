@@ -75,7 +75,22 @@ def cleanup(directory):
         f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
-def create_library(directory: Path):
+def edit_header(header):
+    """
+    Simplifies the header of the current record of that is being parsed.
+    It keeps only the ID, region, segment and species.
+
+    Args:
+        header (str): Old header of the record.
+
+    Returns:
+        str: Parsed header of the record.
+    """
+    new_header = "_".join(header.split("|")[0:3])
+    return new_header.replace(" ", "_")
+
+
+def create_library(directory: Path, simple_headers):
     """
     Gets a path of a directory that contain the fasta files needed to 
     create the library.fasta file. It first creates the library directory.
@@ -92,6 +107,8 @@ def create_library(directory: Path):
     with open(library / "library.fasta", 'w') as w:
         for file in directory.glob("*.fasta"):
             for record in SeqIO.parse(file, "fasta"):
+                if simple_headers:
+                    record.description = edit_header(record.description)
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
     logging.info("Creating a library from generated files.")
 
@@ -333,6 +350,8 @@ def argparser_setup():
                                 help='Create a library from the IMGT files if specified.')
     optional_group.add_argument('--cleanup', action='store_true',
                                 help='Clean up leftover IMGT files after processing.')
+    optional_group.add_argument('--simple-headers', action='store_true',
+                                help='Create simplified headers to improve readability.')
 
     args = parser.parse_args()
     return args
@@ -360,7 +379,7 @@ def main():
     make_dir(output_dir)
     scrape_IMGT(args.species, args.type, output_dir, frame_selection)
     if args.create_library:
-        create_library(output_dir)
+        create_library(output_dir, args.simple_headers)
 
     if args.cleanup:
         cleanup(output_dir)
