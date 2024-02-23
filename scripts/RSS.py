@@ -192,8 +192,7 @@ def add_to_row(row, val1, val2, rss_variant):
     """
     heptamer, nonamer = (''.join(val1), ''.join(val2)) if len(
         val1) == 7 else (''.join(val2), ''.join(val1))
-    row[f"{rss_variant}_heptamer"], row[f"{
-        rss_variant}_nonamer"] = heptamer, nonamer
+    row[f"{rss_variant}_heptamer"], row[f"{rss_variant}_nonamer"] = heptamer, nonamer
     return row
 
 
@@ -266,8 +265,7 @@ def run_meme(out, rss_file: Path):
         out (Path): Path of the output file for the meme command result.
         rss_file (Path): Path of the RSS input file.
     """
-    command = f"meme {
-        rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw 6 -maxw 50"
+    command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw 6 -maxw 50"
     subprocess.run(command, shell=True)
 
 

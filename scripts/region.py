@@ -35,7 +35,7 @@ def load_config(cwd):
         their respective start and end flanking genes. 
     """
     with open(cwd / "config" / "config.yaml") as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f)["FLANKING"]
 
 
 def write_seq(record_dict, name, start, stop, out):
@@ -150,7 +150,7 @@ def main():
     Finally the sam file is processed and the region files are made.
     """
     cwd = Path.cwd()
-    sam = Path(cwd / "demo" / "temp_map" / "chr3_EAW_hap1_aligned.sam")
+    sam = Path(cwd / snakemake.input[0])
     inter = sam.stem.split("_")
     chrom, hap = inter[0], inter[2][-1]
     config = load_config(cwd)

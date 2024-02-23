@@ -129,8 +129,7 @@ def construct_blast_command(fasta_file_path, database_path, identity_cutoff, out
         command (str): Constructed blast command. 
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"
-    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{
-        blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
+    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
     return command
 
 

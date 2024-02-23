@@ -148,8 +148,7 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file):
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -N {N} -L {L} --score-min {
-        score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -173,8 +172,7 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file):
         str: A constructed bowtie command.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -v {mismatches} -m 1 -f -x {
-        bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
