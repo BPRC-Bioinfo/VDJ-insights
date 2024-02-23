@@ -8,6 +8,7 @@ dependencies:
  - bowtie2
  - blast
  - meme
+ - imagemagick
  - pandas
  - openpyxl
  - biopython
