@@ -361,8 +361,8 @@ rule gfaToFasta:
 # Quast
 rule quastAssemblyStatistics:
     input:
-        hap1 = "converted/gfatofasta/chr{chrs}_{accession}_hap1.fasta",
-        hap2 = "converted/gfatofasta/chr{chrs}_{accession}_hap2.fasta"
+        hap1 = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap1.fasta"),
+        hap2 = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap2.fasta")
     output:
         directory("quast/hifiasm/chr{chrs}_{accession}")
     conda:
@@ -475,8 +475,8 @@ rule flankingByChromosomes:
 
 rule mapFlankingGenes:
     input:
-        reads = "converted/gfatofasta/chr{chrs}_{accession}_hap{haplo}.fasta",
-        flanking_genes = "flanking/chr{chrs}_{accession}_flanking_genes.fna"
+        reads = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap{haplo}.fasta"),
+        flanking_genes = ancient("flanking/chr{chrs}_{accession}_flanking_genes.fna")
     output:
         sam_file = "flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.sam",
     conda:
@@ -492,9 +492,11 @@ rule mapFlankingGenes:
 ## Generate regions
 rule contigFiles:
     input:
-        "flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.sam"
+        ancient("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.sam")
     output:
         touch("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.txt")
+    conda:
+        "envs/scripts.yaml"
     script:
         "scripts/region.py" 
 
@@ -506,7 +508,7 @@ rule combineRegion:
         temp("annotation/all_regions.txt")
     shell:
         """
-        echo {input} > {output}
+        echo {input} | tr " " "\n" > {output}
         """
 
 rule getLibrary:
@@ -519,7 +521,7 @@ rule getLibrary:
         "envs/IMGT.yaml"
     shell:
         """
-        python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup
+        python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup --simple-headers
         """
 rule annotation:
     input:
@@ -527,6 +529,8 @@ rule annotation:
         "library/library.fasta"
     output:
         "annotation/annotation_report_plus.xlsx"
+    conda:
+        "envs/scripts.yaml"
     script:
         "scripts/annotation.py"
 

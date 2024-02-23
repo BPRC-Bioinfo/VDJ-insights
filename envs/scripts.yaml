@@ -1,0 +1,17 @@
+name: scripts
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+ - minimap2
+ - bowtie
+ - bowtie2
+ - blast
+ - meme
+ - pandas
+ - openpyxl
+ - biopython
+ - samtools
+ - bedtools
+
+
