@@ -277,7 +277,8 @@ def write_annotation_reports(annotation_folder):
     Args:
         annotation_folder (Path): Path of the initial annotation folder.
     """
-    load_config()
+    cwd = Path.cwd()
+    load_config(cwd)
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = add_values(df)
     df, ref_df = main_df(df)
