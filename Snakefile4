@@ -3,12 +3,10 @@ from pathlib import Path
 import pandas as pd
 from scripts.pipeline import *
 
+# Setting up the global config object. 
 configfile: 'config/config.yaml'
 
-cwd = Path.cwd()
-
-print(config)
-# Setup. Loading Accession, machine, chromosomes and haplotypes.
+# Setup. Loading Accession, machine, flanking.
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
 FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values()]
@@ -23,9 +21,6 @@ wildcard_constraints:
 rule all:
     input:
         expand("final/all_outputs_{accession}_{machine}_chr{chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, chrs=config["CHROMOSOMES"], haplo=config["HAPLOTYPES"]),
-        # expand("downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta", chrs=CHROMOSOMES),
-        # expand("assembly/hifiasm/chr{chrs}/{accession}_chr{chrs}_hifiasmUL.bp.txt", chrs=CHROMOSOMES, accession=ACCESSION)
-        # expand("flye/{chrs}_{accession}/assembly.fasta", chrs=["chr3", "chr7"], accession=ACCESSION),
 
 rule downloadMmul10:
     output:
@@ -523,6 +518,8 @@ rule getLibrary:
         """
         python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup --simple-headers
         """
+
+
 rule annotation:
     input:
         "annotation/all_regions.txt",
@@ -546,5 +543,3 @@ rule fetchAllInput:
     output:
         touch("final/all_outputs_{accession}_{machine}_chr{chrs}_hap{haplo}.txt")
 
-
-        
