@@ -1,16 +1,22 @@
 import re
+import yaml
 import logging
 import subprocess
 import pandas as pd
 from Bio import SeqIO
 from pathlib import Path
 
+CONFIG = None
 
 # Method for logging current states of the program.
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+def load_config(cwd):
+    global CONFIG
+    with open(cwd / 'config' / 'config.yaml', 'r') as file:
+        CONFIG = yaml.safe_load(file)
 
 class MappingFiles:
     """
@@ -68,9 +74,11 @@ def get_region_and_segment(name):
         str, str: Return either a region name, segment name as string 
         or LOC and - as str.
     """
-    prefix = [i for i in name.split("_") if i.startswith(("TR", "LOC"))][0]
+    cell_type = CONFIG.get("CELL", "TR")
+    options = (cell_type, "LOC")
+    prefix = [i for i in name.split("_") if i.startswith(options)][0]
     prefix = re.sub(r"[0-9]", "", prefix)
-    if prefix.startswith("TR"):
+    if prefix.startswith(cell_type):
         return prefix[0:3], prefix[3]
     else:
         return "LOC", "-"
@@ -144,11 +152,12 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file):
     Returns:
         str: A constructed bowtie2 command.
     """
+    threads = 20
     N = 1 if acc < 50 else 0
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -171,8 +180,9 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file):
     Returns:
         str: A constructed bowtie command.
     """
+    threads = 20
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
@@ -190,7 +200,8 @@ def make_minimap2_command(acc, ffile, rfasta, sam_file):
     Returns:
         command (str): Constructed minimap2 command.
     """
-    command = f"minimap2 -a -m {acc} -t 10 {ffile} {rfasta} > {sam_file}"
+    threads = 20
+    command = f"minimap2 -a -m {acc} -t {threads} {ffile} {rfasta} > {sam_file}"
     return command
 
 

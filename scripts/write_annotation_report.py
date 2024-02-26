@@ -1,9 +1,16 @@
-from pathlib import Path
+import re
+import yaml
 import pandas as pd
 from Bio.Seq import Seq
-import re
+from pathlib import Path
 
+CONFIG = None
 
+def load_config(cwd):
+    global CONFIG
+    with open(cwd / 'config' / 'config.yaml', 'r') as file:
+        CONFIG = yaml.safe_load(file)
+        
 def add_region_segment(row):
     """
     Determines based on the potential name of the segment what the 
@@ -21,7 +28,8 @@ def add_region_segment(row):
         row (series): Current row with the two extra columns 
         "Region" and "Segment".
     """
-    options = ("TR", "LOC")
+    cell_type = CONFIG.get("CELL", "TR")
+    options = (cell_type, "LOC")
     query = row['Old name-like']
     prefix = [i for i in query.split("_") if i.startswith(options)][0]
     prefix = re.sub(r"[0-9-]", "", prefix)
