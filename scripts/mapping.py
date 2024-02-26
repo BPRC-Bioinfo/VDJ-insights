@@ -352,6 +352,7 @@ def mapping_main(mapping_type):
     Returns:
         df (DataFrame): A df containing all the entries.
     """
+    load_config()
     cwd = Path.cwd()
     outdir = cwd / f"{mapping_type}_db"
     indir = cwd / "contig"
