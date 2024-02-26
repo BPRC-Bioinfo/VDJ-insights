@@ -49,11 +49,10 @@ def write_fasta_file(dictionary, folder):
     for key, value in dictionary.items():
         for region, segments in value.items():
             ffile = folder / f"{key}{region}.fasta"
-            if len(segments) > 1:
-                with open(ffile, 'w') as f:
-                    for header, segment in segments.items():
-                        for x, rss in enumerate(segment):
-                            f.write(f">{header}-{x+1}\n{rss}\n")
+            with open(ffile, 'w') as f:
+                for header, segment in segments.items():
+                    for x, rss in enumerate(segment):
+                        f.write(f">{header}-{x+1}\n{rss}\n")
 
 
 def calculate_position(position, length, operation):
@@ -265,8 +264,15 @@ def run_meme(out, rss_file: Path):
         out (Path): Path of the output file for the meme command result.
         rss_file (Path): Path of the RSS input file.
     """
-    command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw 6 -maxw 50"
-    subprocess.run(command, shell=True)
+    multi_command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -maxw 39"
+    single_command = f"meme {rss_file} -o {out} -dna -mod anr -nmotifs 1 -maxw 39"
+    amount = subprocess.run(f"cat {rss_file} | egrep '^>' | wc -l",
+                            shell=True, capture_output=True)
+    if int(amount.stdout) > 1:
+        subprocess.run(multi_command, shell=True, check=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        subprocess.run(single_command, shell=True, stdout=subprocess.PIPE)
 
 
 def get_reference_mers(regex_string, segment, rss_variant):
@@ -336,7 +342,18 @@ def make_ref_dict(segment, ref_rss, val1, val2):
     return ref_rss
 
 
-def make_referece_rss(cwd):
+def create_meme_directory(meme_directory, RSS_directory):
+    create_directory(meme_directory)
+    for rss_file in Path(RSS_directory).iterdir():
+        stem = rss_file.stem
+        out = meme_directory / stem
+        meme = out / "meme.txt"
+        if not meme.exists():
+            run_meme(out, rss_file)
+    return meme_directory
+
+
+def make_referece_rss(cwd, RSS_directory):
     """
     Loops over the folder "cwd (current directory the user is in) / RSS".
     It determines the segments name based on the name (stem) of the fasta file.
@@ -357,24 +374,22 @@ def make_referece_rss(cwd):
         heptamers and nonamers for all the regions and segments.
     """
     ref_rss = {}
-    create_directory(cwd / "meme")
-    rss = cwd / "RSS"
-    for rss_file in rss.iterdir():
-        stem = rss_file.stem
-        out = cwd / "meme" / stem
-        meme = out / "meme.txt"
-        if not meme.exists():
-            run_meme(out, rss_file)
-        command = f'cat {meme} | egrep -A2 "regular expression"'
+    meme_directory = "reference_meme"
+    create_meme_directory(cwd / meme_directory, cwd / RSS_directory)
+    meme_directory: Path = create_meme_directory(
+        cwd / meme_directory, RSS_directory)
+    for meme in meme_directory.iterdir():
+        meme_text = meme / "meme.txt"
+        command = f'cat {meme_text} | egrep -A2 "regular expression"'
         result = subprocess.run(command, shell=True,
                                 capture_output=True, text=True)
         hits = result.stdout.replace(
             "-", "").replace("\t", "").strip().split("\n")
         hits = [hit for hit in hits if hit]
-        split_stem = stem.split("_")
+        split_stem = meme.stem.split("_")
         segment, rss_variant = split_stem[0][-1], int(split_stem[1])
         val1, val2 = get_reference_mers(hits[1], segment, rss_variant)
-        make_ref_dict(stem, ref_rss, val1, val2)
+        make_ref_dict(meme.stem, ref_rss, val1, val2)
     return ref_rss
 
 
@@ -477,12 +492,12 @@ def create_dict(row, separated_segments):
     return row
 
 
-def create_ref_RSS_files(cwd):
+def create_RSS_files(cwd, file, directory):
     separated_segments = {}
-    df = pd.read_excel(cwd / 'annotation' / 'annotation_report_100%.xlsx')
+    df = pd.read_excel(cwd / 'annotation' / file)
     df = df.apply(lambda row: create_dict(
         row, separated_segments), axis=1)
-    rss_path = cwd / 'RSS'
+    rss_path = cwd / directory
     if not rss_path.exists():
         write_fasta_file(separated_segments, rss_path)
 
@@ -510,11 +525,14 @@ def RSS_main():
     """
     cwd = Path.cwd()
     load_config(cwd)
+    ref_RSS_file, new_RSS_file = "reference_RSS", "new_RSS"
     df = pd.read_excel(cwd / 'annotation' / 'RSS_report.xlsx')
     df = df.apply(lambda row: add_base_rss_parts(
         row), axis=1)
-    create_ref_RSS_files(cwd)
-    ref_rss = make_referece_rss(cwd)
+    create_RSS_files(cwd, 'annotation_report_100%.xlsx', ref_RSS_file)
+    create_RSS_files(cwd, 'RSS_report.xlsx', new_RSS_file)
+    ref_rss = make_referece_rss(cwd, ref_RSS_file)
+    create_meme_directory(cwd / "new_meme", cwd / new_RSS_file)
     df = df.apply(
         lambda row: apply_check_ref_rss(
             row, ref_rss), axis=1)
