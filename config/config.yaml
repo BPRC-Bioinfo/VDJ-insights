@@ -1,8 +1,10 @@
 CHROMOSOMES: 
-  [3, 7]
+  - 3
+  - 7
 
 HAPLOTYPES: 
-  [1, 2]
+  - 1
+  - 2
 
 BUSCO_DATASET:
   primates_odb10
@@ -83,5 +85,9 @@ RSS_LENGTH:
   "12": 28
   "23": 39
 RSS_MERS:
-  "12": [9, 7]
-  "23": [7, 9]
+  "12": 
+    - 9
+    - 7
+  "23": 
+    - 7
+    - 9
