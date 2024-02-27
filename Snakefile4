@@ -429,7 +429,7 @@ rule downloadFlankingGenes:
         """
         mkdir -p flanking/{wildcards.fgene}
         cd flanking/{wildcards.fgene}
-        datasets download gene symbol {wildcards.fgene} --taxon macaca mulatta --include gene --filename {wildcards.fgene}.zip
+        datasets download gene symbol {wildcards.fgene} --taxon "macaca mulatta" --include gene --filename {wildcards.fgene}.zip
         unzip {wildcards.fgene}.zip
         """
 
