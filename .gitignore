@@ -257,12 +257,15 @@ minimap2/*
 
 alignments_excel/*
 blast_db/*
+
 # RSS files
-RSS/*
+*RSS/*
 
 # Annotation files
 annotation/*
-meme/*
+
+# MEME files
+*meme/*
 
 # Inspector files
 inspector/*
