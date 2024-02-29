@@ -186,6 +186,19 @@ rule combineFastQ:
         cat {input} > {output}
         """
 
+rule seqkitFiltered:
+    input:
+        ancient("combined/{accession}_{machine}.combined.fastq.gz")
+    output:
+        "QC/filtered/filtered_{accession}_{machine}.stats"
+    conda:
+        "envs/seqkit.yaml"
+    threads:
+        10
+    shell:
+        """
+        seqkit stats {input} -a -j {threads} -o {output}
+        """
 
 ## Mapping, sorting, indexing
 rule minimap2:
@@ -536,6 +549,7 @@ rule fetchAllInput:
     input:
         "annotation/annotation_report_plus.xlsx",
         "QC/raw/{accession}_{machine}.stats",
+        "QC/filtered/filtered_{accession}_{machine}.stats",
         "quast/hifiasm/chr{chrs}_{accession}",
         "BUSCO/{accession}/chr{chrs}_{accession}_hap{haplo}",
         "BUSCO/mmul10/chr{chrs}",
