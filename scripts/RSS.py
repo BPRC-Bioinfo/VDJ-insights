@@ -254,7 +254,7 @@ def add_base_rss_parts(row):
     return row
 
 
-def run_meme(out, rss_file: Path):
+def run_meme(out, rss_file: Path, rss_variant):
     """
     Generate the meme suite command based on the provided "rss_file" 
     and output (out) file. The constructed command is then 
@@ -264,8 +264,8 @@ def run_meme(out, rss_file: Path):
         out (Path): Path of the output file for the meme command result.
         rss_file (Path): Path of the RSS input file.
     """
-    multi_command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -maxw 39"
-    single_command = f"meme {rss_file} -o {out} -dna -mod anr -nmotifs 1 -maxw 39"
+    multi_command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant}"
+    single_command = f"meme {rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
     amount = subprocess.run(f"cat {rss_file} | egrep '^>' | wc -l",
                             shell=True, capture_output=True)
     if int(amount.stdout) > 1:
@@ -346,10 +346,12 @@ def create_meme_directory(meme_directory, RSS_directory):
     create_directory(meme_directory)
     for rss_file in Path(RSS_directory).iterdir():
         stem = rss_file.stem
+        rss_variant = stem.split("_")[-1]
+        RSS_convert = CONFIG.get("RSS_LENGTH", {})
         out = meme_directory / stem
         meme = out / "meme.txt"
         if not meme.exists():
-            run_meme(out, rss_file)
+            run_meme(out, rss_file, RSS_convert[rss_variant])
     return meme_directory
 
 
