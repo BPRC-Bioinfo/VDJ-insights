@@ -6,11 +6,20 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 
+# Global config setting set from config/config.yaml
 CONFIG = None
 OPTIONS = None
 
 
 def load_config(cwd):
+    """
+    Reads the config file from config/config.yaml. 
+    It stores the content as a dictionary in CONFIG. It also parses 
+    all the potential region and segment combination in OPTIONS.
+
+    Args:
+        cwd (Path): Path object with the current working directory.
+    """
     global CONFIG
     global OPTIONS
     with open(cwd / 'config' / 'config.yaml', 'r') as file:
@@ -55,26 +64,45 @@ def write_fasta_file(dictionary, folder):
                         f.write(f">{header}-{x+1}\n{rss}\n")
 
 
-def calculate_position(position, length, operation):
+def calculate_position(position, variant_length, operation):
+    """
+    Determines the start or end position of where do cut the RSS.
+    It checks the operation and based on the value.
+    It either return a end coordinate ("end_plus") or start coordinate
+    ("start_minus). The coordinate is returned as string. 
+    Args:
+        position (int): Coordinate that either contains the 
+        end or start of a RSS.
+        variant_length (int): The length of needed RSS.
+        operation (str): Indicator on which operation the perform.
+        Can either be start_minus or end_plus.
+
+    Returns:
+        str: Needed coordinate as string
+    """
     if operation.endswith("plus"):
-        return str(position + length)
+        return str(position + variant_length)
     elif operation.endswith("minus"):
-        return str(position - length)
+        return str(position - variant_length)
     return str(position)
 
 
 def rss_type(start, end, combi, rss_variant, strand):
     """
-    Calculates a dictionary for every possible segment variation based 
-    on the start and end coordinates, the type of segment and RSS type. 
-    Based on the given segment and RSS the right coordinates are chosen
-    from the dictionary and is returned as list. 
+    Calculates a list with coordinates on where the RSS is positioned. 
+    It used either the start or end coordinate based on the value in 
+    the config file. The rss length and layout are retreived from 
+    the config.yaml file. Next the type of segment/region (combi) 
+    combination is determined and the which RSS type it has. 
+    Finally the way of cutting for this combi is fetched and 
+    the coordinates are calculated and returned.
+
 
 
     Args:
         start (str): The start coordinate of the VDJ segment sequence.
         end (str): The end coordinate of the VDJ segment sequence.
-        segment (str): Type of segment either a V,D or J.
+        combi (str): Combination of V,D or J and region.
         rss_variant (int): Type of RSS variant either 12 or 23.
         strand (str): Indicator is the sequence.
         is a "normal" or reverse.
@@ -114,9 +142,8 @@ def fetch_sequence(row, segment, rss_variant):
         rss (str): The sequence of the RSS based of the coordinates
         of segment.
     """
-    query, fasta, start, end, strand, region = row[[
-        'Old name-like', 'Path', 'Start coord', 'End coord', 'Strand',
-        'Region']]
+    fasta, start, end, strand, region = row[[
+        'Path', 'Start coord', 'End coord', 'Strand', 'Region']]
     with open(fasta, 'r') as fasta_file:
         record = SeqIO.read(fasta_file, 'fasta')
         rss_start, rss_stop = rss_type(
@@ -124,7 +151,7 @@ def fetch_sequence(row, segment, rss_variant):
         rss = record.seq[int(rss_start):int(rss_stop)]
         if strand == '-':
             rss = str(Seq(str(rss)).reverse_complement())
-    return query, rss
+    return rss
 
 
 def add_to_dict(query, dictionary, rss):
@@ -144,19 +171,15 @@ def add_to_dict(query, dictionary, rss):
     dictionary.setdefault(query, []).append(rss)
 
 
-def get_mers(segment, rss, rss_variant):
+def get_mers(rss, rss_variant):
     """
-    Calculates a dictionary with the different 
-    heptamer and the nonamer possibilities as list with two values.
-    Based on the "segment"and "rss_variant" the right heptamer
-    and nonamer list is chosen and returned. If no valid entry
-    is found, ["", ""] is returned.
-
+    Calculates the heptamer and the nonamer based on the 
+    RSS_MERS in the config file based on the rss_variant. 
+    The  heptamer and nonamer is returned as a list.
 
     Args:
-        segment (str): Type of segment either a V,D or J.
         rss (str): The sequence of the RSS.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant.
 
     Returns:
         list: List containing the heptamer and nonamer
@@ -205,8 +228,7 @@ def add_segment(query, segment, region, separated_segments, rss_sequence, functi
     Args:
         query (str): The name of the segment.
         segment (str): Type of segment either a V,D or J.
-        region (str): The type of V, D or J. 
-        For example beta and gamma.
+        region (str): The destination where the VDJs are coming from.
         separated_segments (dict): Dictionary containing the different
         regions, segments and queries (if they already).
         rss_sequence (str): The sequence of the RSS.
@@ -248,17 +270,19 @@ def add_base_rss_parts(row):
     row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
     rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
-        query, rss_sequence = fetch_sequence(row, segment, rss_variant)
-        val1, val2 = get_mers(segment, rss_sequence, rss_variant)
+        rss_sequence = fetch_sequence(row, segment, rss_variant)
+        val1, val2 = get_mers(rss_sequence, rss_variant)
         add_to_row(row, val1, val2, rss_variant)
     return row
 
 
-def run_meme(out, rss_file: Path, rss_variant):
+def run_meme(out, rss_file, rss_variant):
     """
-    Generate the meme suite command based on the provided "rss_file" 
-    and output (out) file. The constructed command is then 
-    ran with subprocess.
+    Generate the meme suite commands based on the provided rss file,
+    output file and rss_file. The constructed command is then 
+    ran with subprocess. With a egrep and wc -l is calculated how many 
+    headers are present in the file. If it is equal to 1 single command 
+    is used otherwise the multi command.
 
     Args:
         out (Path): Path of the output file for the meme command result.
@@ -275,31 +299,30 @@ def run_meme(out, rss_file: Path, rss_variant):
         subprocess.run(single_command, shell=True, stdout=subprocess.PIPE)
 
 
-def get_reference_mers(regex_string, segment, rss_variant):
+def get_reference_mers(regex_string, rss_variant):
     """
     Gets a string (regex_string) which contains the 
     full RSS sequence from the meme result. Then with help of a
     regular expressions, certain characters within brackets or 
     any single characters are matched and returned as list. 
-    Then a dictionary is constructed with all the possibilities. 
-    Based on the "segment" type and "rss_variant" the right list is chosen.
-    Finally the two values are extracted from the list and returned as 
-    "val1" and "val2".
+    With the rss mers and rss variant the heptamer and nonamer 
+    are extracted from the regex list as separate lists
+    mer1 and mer2. Finally both lists are returned.
+
 
 
     Args:
         regex_string (str): The meme regex string that contains
         the RSS including spacer.
-        segment (str): Type of segment either a V,D or J.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant.
 
 
 
     Returns:
-        val1(list): List containing the first of the extracted elements out of the 
-        dictionary, this can either be a value which is 7 long or 9 long.
-        val1(list): List containing the second of the extracted elements out of the 
-        dictionary, this can either be a value which is 7 long or 9 long.
+        list: List containing the first of the extracted elements out of the 
+        regex list, this can either be a value which is 7 long or 9 long.
+        list: List containing the second of the extracted elements out of the 
+        regex list, this can either be a value which is 7 long or 9 long.
     """
     rss = re.findall(r'\[[^\]]*\]|.', regex_string)
     mers = CONFIG["RSS_MERS"].get(str(rss_variant), [])
@@ -307,18 +330,18 @@ def get_reference_mers(regex_string, segment, rss_variant):
     return rss[0:mer1], rss[-mer2:]
 
 
-def make_ref_dict(segment, ref_rss, val1, val2):
+def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     """
-    Checks ifs a "segments" exists in the "ref_rss" dictionary if this 
+    Checks ifs a segments exists in the ref rss dict dictionary if this 
     is not the case its creates a empty dictionary, it also checks 
     this for the "heptamer" and "nonamer". Then checks if the length of 
-    "val1" is equal to seven or nine. Depending of this result either 
+    "mer1" is equal to seven or nine. Depending of this result either 
     "val1" or "val2" is appointed to "heptamer" or "nonamer".
 
     Args:
         segment (str): Type of segment either a V,D or J.
-        ref_rss (dict): Dictionary which contains the segment, heptamer,
-        nonamer. 
+        ref_rss_dict (dict): Dictionary which contains the heptamers and
+        nonamers for a the different segments. 
         val1(list): List containing the first of the extracted 
         elements out of the dictionary, this can either be a value 
         which is 7 long or 9 long.
@@ -327,22 +350,39 @@ def make_ref_dict(segment, ref_rss, val1, val2):
         which is 7 long or 9 long.
 
     Returns:
-        _type_: _description_
+        ref_rss_dict (dict): Dictionary which contains the heptamers and
+        nonamers for a the different segments. Plus this current 
+        segments heptamer and nonamer.
     """
-    if len(val1) == 7:
-        ref_rss.setdefault(segment, {}).setdefault(
-            "heptamer", ''.join(val1))
-        ref_rss.setdefault(segment, {}).setdefault(
-            "nonamer", ''.join(val2))
+    if len(mer1) == 7:
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "heptamer", ''.join(mer1))
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "nonamer", ''.join(mer2))
     else:
-        ref_rss.setdefault(segment, {}).setdefault(
-            "heptamer", ''.join(val2))
-        ref_rss.setdefault(segment, {}).setdefault(
-            "nonamer", ''.join(val1))
-    return ref_rss
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "heptamer", ''.join(mer2))
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "nonamer", ''.join(mer1))
+    return ref_rss_dict
 
 
 def create_meme_directory(meme_directory, RSS_directory):
+    """
+    Creates a directory for the meme directory. Next it loops over the 
+    fasta files (ffile) in rss directory and creates the needed 
+    output directory path, based on the stem of the current ffile. 
+    From the name of the ffile the rss type is also determined and 
+    converted to the right length with rss length. 
+    After this it is checked if the meme.txt file exists. If this is 
+    not the case meme suite is run with the output directory, 
+    the file itself and the rss length.
+
+    Args:
+        meme_directory (Path): Path of the meme directory.
+        RSS_directory (Path): Path to the directory where the RSS fasta 
+        ffiles are stored.
+    """
     create_directory(meme_directory)
     for rss_file in Path(RSS_directory).iterdir():
         stem = rss_file.stem
@@ -354,28 +394,28 @@ def create_meme_directory(meme_directory, RSS_directory):
             run_meme(out, rss_file, RSS_convert[rss_variant])
 
 
-def make_referece_rss(meme_directory):
+def make_reference_rss(ref_meme_directory):
     """
-    Loops over the folder "cwd (current directory the user is in) / RSS".
-    It determines the segments name based on the name (stem) of the fasta file.
-    After this it is checked if the different meme.txt files exists. If they does
-    not exists the the run_meme() command is executed. When the meme.txt is 
-    found/or created the whole RSS regular expression is fetched, the 
+    Loops over the ref meme directory.
+    It first determines the rss variant based on the name (stem) 
+    of the ref meme subdirectory. If the file meme.txt is found in the 
+    subdirectory the whole RSS regular expression is fetched, the 
     important heptamer and nonamer extracted and appended to the
-    "ref_rss" dictionary. When all the files from the "cwd / RSS"
-    are processed, the "ref_rss" is returned.
+    ref rss dictionary. When all the files from the ref meme sub directory
+    are processed, the ref_rss_dict is returned.
 
 
     Args:
-        cwd (Path): The current directory path where the user currently 
-        is in.
+        ref_meme_directory (Path): The  directory of the reference meme 
+        directory, where the needed reference meme sub directories 
+        are located.
 
     Returns:
-        ref_rss (dict): Directory that contains all the reference RSS 
+        ref_rss_dict (dict): Directory that contains all the reference RSS 
         heptamers and nonamers for all the regions and segments.
     """
-    ref_rss = {}
-    for meme in meme_directory.iterdir():
+    ref_rss_dict = {}
+    for meme in ref_meme_directory.iterdir():
         meme_text = meme / "meme.txt"
         command = f'cat {meme_text} | egrep -A2 "regular expression"'
         result = subprocess.run(command, shell=True,
@@ -384,13 +424,13 @@ def make_referece_rss(meme_directory):
             "-", "").replace("\t", "").strip().split("\n")
         hits = [hit for hit in hits if hit]
         split_stem = meme.stem.split("_")
-        segment, rss_variant = split_stem[0][-1], int(split_stem[1])
-        val1, val2 = get_reference_mers(hits[1], segment, rss_variant)
-        make_ref_dict(meme.stem, ref_rss, val1, val2)
-    return ref_rss
+        rss_variant = int(split_stem[1])
+        val1, val2 = get_reference_mers(hits[1], rss_variant)
+        make_ref_dict(meme.stem, ref_rss_dict, val1, val2)
+    return ref_rss_dict
 
 
-def check_ref_rss(row, ref_rss, rss_variant):
+def check_ref_rss(row, ref_rss_dict, rss_variant):
     """
     Compares the heptamer and nonamers from the current row with the 
     generated reference heptamers and nonamers. When the reference and 
@@ -402,15 +442,15 @@ def check_ref_rss(row, ref_rss, rss_variant):
 
     Args:
         row (Series): Current row of the df. 
-        ref_rss (dict): Directory that contains all the reference RSS 
+        ref_rss_dict (dict): Directory that contains all the reference RSS 
         heptamers and nonamers for all the regions and segments.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant.
 
     Returns:
-        _type_: _description_
+        Series: Current row with the filled in matched column.
     """
     region, segment = row[["Region", "Segment"]]
-    ref = ref_rss[f"{region}{segment}_{rss_variant}"]
+    ref = ref_rss_dict[f"{region}{segment}_{rss_variant}"]
     for i in ["heptamer", "nonamer"]:
         ref_seq = ref[i]
         query_seq = row[f"{rss_variant}_{i}"]
@@ -454,7 +494,7 @@ def combine_df(original_df, new_df):
     return combined_df
 
 
-def apply_check_ref_rss(row, ref_rss):
+def apply_check_ref_rss(row, ref_rss_dict):
     """
     Gets the segment from the row and subtracts the last 
     character, which is the segment itself. Then verifies
@@ -462,7 +502,7 @@ def apply_check_ref_rss(row, ref_rss):
 
     Args:
         row (Series): Current row of the df.
-        ref_rss (dict): Directory that contains all the reference RSS 
+        ref_rss_dict (dict): Directory that contains all the reference RSS 
         heptamers and nonamers for all the regions and segments.
         rss_variant (int): Type of RSS variant either 12 or 23.
 
@@ -474,7 +514,7 @@ def apply_check_ref_rss(row, ref_rss):
     rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
         if full in OPTIONS:
-            return check_ref_rss(row, ref_rss, rss_variant)
+            return check_ref_rss(row, ref_rss_dict, rss_variant)
     return row
 
 
@@ -515,17 +555,17 @@ def RSS_main():
     Main function of the RSS creation script. It first sets 
     a cwd (current directory the user is in) object 
     based current location. Based on this cwd some 
-    input and output directories and files are set.
-    Then loads the a DataFrame (df) based on RSS_report.xlsx and 
-    initiates the first dictionary (separated_segment) which contains 
-    the different region, segments, query (name of the potential new
-    segment) and the respective RSS sequence. After this, new columns 
-    are added to the df, such as "Segment", "Region" and the
-    new RSS heptamers and nonamers columns. 
-    Additionally is checked if the "RSS" exists. 
-    If this is not the case it is created with the 
-    write_fasta_file() function. Now the reference RSS heptamers and 
-    nonamers dictionary is created to validate against. 
+    input and output directory and file paths are set.
+    Then loads the a DataFrame (df) based on RSS_report.xlsx.
+    First the needed whole RSSs are extracted and saved. Based on these 
+    RSS, the meme motifs are generated. There are three types of 
+    RSSs and meme motif being generated. The first is based 
+    non-novel sequences, the second on novel-sequences and the last is 
+    based on both novel and non-novel. The non-novel sequence meme motifs 
+    are used to create the reference meme dictionary. After this, new columns 
+    are added to the df, such as segment and region and the
+    new RSS heptamers and nonamers columns. Now the reference RSS heptamers and 
+    nonamers meme dictionary is created to use for validation.
     In the end the validation between the potential new segments 
     heptamers and nonamers and the reference ones is done. This new df 
     is merged with the old df from "annotation_report.xlsx" to form and 
@@ -534,12 +574,12 @@ def RSS_main():
     cwd = Path.cwd()
     load_config(cwd)
     df = pd.read_excel(cwd / 'annotation' / 'RSS_report.xlsx')
-    ref_meme = create_all_RSS_meme_files(cwd, df)
+    ref_meme_directory = create_all_RSS_meme_files(cwd, df)
     df = df.apply(lambda row: add_base_rss_parts(row), axis=1)
-    ref_rss = make_referece_rss(ref_meme)
+    ref_rss_dict = make_reference_rss(ref_meme_directory)
     df = df.apply(
         lambda row: apply_check_ref_rss(
-            row, ref_rss), axis=1)
+            row, ref_rss_dict), axis=1)
     filename = "annotation_report"
     final_df = combine_df(df, pd.read_excel(
         cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
