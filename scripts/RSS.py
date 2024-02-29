@@ -342,9 +342,7 @@ def make_ref_dict(segment, ref_rss, val1, val2):
     return ref_rss
 
 
-def create_meme_directory(cwd, meme_directory, RSS_directory):
-    meme_directory = cwd / "RSS" / meme_directory
-    RSS_directory = cwd / "RSS" / RSS_directory
+def create_meme_directory(meme_directory, RSS_directory):
     create_directory(meme_directory)
     for rss_file in Path(RSS_directory).iterdir():
         stem = rss_file.stem
@@ -354,10 +352,9 @@ def create_meme_directory(cwd, meme_directory, RSS_directory):
         meme = out / "meme.txt"
         if not meme.exists():
             run_meme(out, rss_file, RSS_convert[rss_variant])
-    return meme_directory
 
 
-def make_referece_rss(cwd, RSS_directory):
+def make_referece_rss(meme_directory):
     """
     Loops over the folder "cwd (current directory the user is in) / RSS".
     It determines the segments name based on the name (stem) of the fasta file.
@@ -378,9 +375,6 @@ def make_referece_rss(cwd, RSS_directory):
         heptamers and nonamers for all the regions and segments.
     """
     ref_rss = {}
-    meme_directory = "reference_meme"
-    meme_directory: Path = create_meme_directory(
-        cwd, meme_directory, RSS_directory)
     for meme in meme_directory.iterdir():
         meme_text = meme / "meme.txt"
         command = f'cat {meme_text} | egrep -A2 "regular expression"'
@@ -495,25 +489,25 @@ def create_dict(row, separated_segments):
     return row
 
 
-def create_RSS_files(cwd, df, directory):
+def create_RSS_files(df, directory):
     separated_segments = {}
     df = df.apply(lambda row: create_dict(
         row, separated_segments), axis=1)
-    rss_path = cwd / "RSS" / directory
-    if not rss_path.exists():
-        write_fasta_file(separated_segments, rss_path)
+    if not directory.exists():
+        write_fasta_file(separated_segments, directory)
 
 
 def create_all_RSS_meme_files(cwd, df):
-    ref_RSS_file, new_RSS_file, combined_RSS = "reference_RSS", "new_RSS", "combined_RSS"
+    base = cwd / "RSS"
     df_100 = pd.read_excel(cwd / 'annotation' / 'annotation_report_100%.xlsx')
     combined = pd.concat([df_100, df], axis=0)
-    create_RSS_files(cwd, df_100, ref_RSS_file)
-    create_RSS_files(cwd, df, new_RSS_file)
-    create_RSS_files(cwd, combined, combined_RSS)
-    create_meme_directory(cwd, "new_meme", new_RSS_file)
-    create_meme_directory(cwd, "complete_meme", combined_RSS)
-    return ref_RSS_file
+    datasets = [df_100, df, combined]
+    rss_filenames = ["reference_RSS", "new_RSS", "combined_RSS"]
+    meme_directories = ["reference_meme", "new_meme", "complete_meme"]
+    for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
+        create_RSS_files(dataset, base / rss_filename)
+        create_meme_directory(base / meme_directory, base / rss_filename)
+    return base / meme_directories[0]
 
 
 def RSS_main():
@@ -540,9 +534,9 @@ def RSS_main():
     cwd = Path.cwd()
     load_config(cwd)
     df = pd.read_excel(cwd / 'annotation' / 'RSS_report.xlsx')
-    ref_RSS_file = create_all_RSS_meme_files(cwd, df)
+    ref_meme = create_all_RSS_meme_files(cwd, df)
     df = df.apply(lambda row: add_base_rss_parts(row), axis=1)
-    ref_rss = make_referece_rss(cwd, ref_RSS_file)
+    ref_rss = make_referece_rss(ref_meme)
     df = df.apply(
         lambda row: apply_check_ref_rss(
             row, ref_rss), axis=1)
