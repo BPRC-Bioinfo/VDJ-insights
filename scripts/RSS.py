@@ -6,7 +6,7 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 
-# Global config setting set from config/config.yaml
+# Global config settings set from config/config.yaml
 CONFIG = None
 OPTIONS = None
 
@@ -103,7 +103,7 @@ def rss_type(start, end, combi, rss_variant, strand):
         start (str): The start coordinate of the VDJ segment sequence.
         end (str): The end coordinate of the VDJ segment sequence.
         combi (str): Combination of V,D or J and region.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant either.
         strand (str): Indicator is the sequence.
         is a "normal" or reverse.
 
@@ -135,7 +135,7 @@ def fetch_sequence(row, segment, rss_variant):
     Args:
         row (Series): Current row from the the df.
         segment (str): Type of segment either a V,D or J.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant.
 
     Returns:
         query (str): The name of the segment.
@@ -203,7 +203,7 @@ def add_to_row(row, val1, val2, rss_variant):
         which represent either the heptamer or the nonamer of the RSS.
         val2 (list): List containing either seven or nine elements, 
         which represent either the heptamer or the nonamer of the RSS.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant.
 
 
     Returns:
@@ -230,7 +230,7 @@ def add_segment(query, segment, region, separated_segments, rss_sequence, functi
         segment (str): Type of segment either a V,D or J.
         region (str): The destination where the VDJs are coming from.
         separated_segments (dict): Dictionary containing the different
-        regions, segments and queries (if they already).
+        regions, segments and rss sequence.
         rss_sequence (str): The sequence of the RSS.
         function (str): The functional status of the segment,
         either "P" or "F/ORF"
@@ -245,7 +245,7 @@ def add_base_rss_parts(row):
     """
     Gets the "region, segment, function" from the current row of the 
     df and determines the value for the following new columns
-    ["12_heptamer", "12_nonamer", "23_heptamer", "23_nonamer"] of this segment.
+    12_heptamer, 12_nonamer, 23_heptamer, 23_nonamer of this segment.
     It first creates these columns with black ("") values, then checks 
     if the type of segment it is. If it is a D then all four columns are 
     filled in because the D contains the two types of RSS. If it is not a D,
@@ -257,11 +257,11 @@ def add_base_rss_parts(row):
     Args:
         row (Series): Current row in the df.
         separated_segments (dict): Dictionary containing the different
-        regions, segments and queries (if they already).
+        regions, segments and rss sequence.
 
     Returns:
-        (Series): Row with the added columns ["12_heptamer", 
-        "12_nonamer", "23_heptamer", "23_nonamer"]. Depending on 
+        (Series): Row with the added columns 12_heptamer, 
+        12_nonamer, 23_heptamer, 23_nonamer. Depending on 
         the type of segment certain columns are filled in. If not not 
         filled in, the value is "".
     """
@@ -309,14 +309,10 @@ def get_reference_mers(regex_string, rss_variant):
     are extracted from the regex list as separate lists
     mer1 and mer2. Finally both lists are returned.
 
-
-
     Args:
         regex_string (str): The meme regex string that contains
         the RSS including spacer.
         rss_variant (int): Type of RSS variant.
-
-
 
     Returns:
         list: List containing the first of the extracted elements out of the 
@@ -504,7 +500,7 @@ def apply_check_ref_rss(row, ref_rss_dict):
         row (Series): Current row of the df.
         ref_rss_dict (dict): Directory that contains all the reference RSS 
         heptamers and nonamers for all the regions and segments.
-        rss_variant (int): Type of RSS variant either 12 or 23.
+        rss_variant (int): Type of RSS variant.
 
     Returns:
         row (Series): Row with extra added columns.
@@ -519,9 +515,25 @@ def apply_check_ref_rss(row, ref_rss_dict):
 
 
 def create_dict(row, separated_segments):
+    """
+    Fetched the region, segment and function from the current row of the 
+    df. Then it creates a combi of the region and segment to get 
+    the complete variant. Of this variant the rss variant(s) are determined.
+    Next loop over the rss variant(s) to get the rss sequence and name (query).
+    Finally the sequence and name, segment and region are added to
+    separated segments dict. 
+
+    Args:
+        row (Series): The current row of the df.
+        separated_segments (dict): Dictionary containing the different
+        regions, segments and rss sequence.
+
+    Returns:
+        row (Series): Current row of the df.
+    """
     region, segment, function = row[["Region", "Segment", "Function"]]
-    full = region + segment
-    rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
+    combi = region + segment
+    rss_variants = CONFIG['RSS_LAYOUT'].get(combi, {}).keys()
     for rss_variant in rss_variants:
         query, rss_sequence = fetch_sequence(row, segment, rss_variant)
         add_segment(query, f"{segment}_{rss_variant}", region,
@@ -529,15 +541,46 @@ def create_dict(row, separated_segments):
     return row
 
 
-def create_RSS_files(df, directory):
-    separated_segments = {}
-    df = df.apply(lambda row: create_dict(
-        row, separated_segments), axis=1)
-    if not directory.exists():
-        write_fasta_file(separated_segments, directory)
+def create_RSS_files(df, RSS_directory):
+    """
+    Generates the separated segments dict if RSS directory is not 
+    created. It also parses the separated segments dict to generate 
+    the RSS fasta file.
+
+    Args:
+        df (DataFrame): Dataframe containing all the information needed 
+        to create the RSS files.
+        RSS_directory (Path): Path to the RSS directory the files 
+        need to be stored.
+    """
+    if not RSS_directory.exists():
+        separated_segments = {}
+        df = df.apply(lambda row: create_dict(
+            row, separated_segments), axis=1)
+        write_fasta_file(separated_segments, RSS_directory)
 
 
 def create_all_RSS_meme_files(cwd, df):
+    """
+    Set a base path, where the RSS and meme directories need to be 
+    saved (cwd / RSS). Then create or fetch all the needed dfs, such as 
+    the df containing information about novel sequences, non-novel sequences 
+    and a combination of novel and non-novel sequences. 
+    All the dfs are stored in a list.
+    For the different dfs the suffixes are determined and stored in two list.
+    Next it loops over all three lists with zip to create
+    the RSS and meme files.
+
+
+    Args:
+        cwd (Path): Path object with the current working directory.
+        df (DataFrame): Dataframe containing all the information of the
+        novel sequences. 
+
+    Returns:
+        Path: The full path to the directory containing the novel meme 
+        sequencing motifs.
+    """
     base = cwd / "RSS"
     df_100 = pd.read_excel(cwd / 'annotation' / 'annotation_report_100%.xlsx')
     combined = pd.concat([df_100, df], axis=0)
