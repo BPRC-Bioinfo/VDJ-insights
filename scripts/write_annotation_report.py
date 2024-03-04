@@ -165,14 +165,16 @@ def add_orf(row):
 def filter_df(df):
     """
     Filters the BLAST df to identify the best reference and creates 
-    a list of leftover similar references. First the 'Specific Part',
-    which begins with "TR", from the 'Old name-like' column is filtered out. 
+    a list of leftover similar references. First the Specific Part,
+    which begins with the chosen cell type. It is determined from the 
+    Old name-like column. 
     Then selects the best reference based on the presence of 
     this 'Specific Part' in the 'Reference' column, sorting by 
     'Mismatches' and 'Reference' and taking the first hit. 
     If no specific hit is found, the first row of the df is 
     used. Remaining similar references are stored in the 'Similar 
-    references' column.
+    references' column. In the end the Old name-like naming is 
+    constructed again.
 
     Args:
         df (DataFrame): An df containing BLAST results.
