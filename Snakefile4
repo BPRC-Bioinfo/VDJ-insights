@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 import pandas as pd
-from scripts.pipeline import *
 
 # Setting up the global config object. 
 configfile: 'config/config.yaml'
