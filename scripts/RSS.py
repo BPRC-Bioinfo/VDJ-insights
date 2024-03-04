@@ -531,11 +531,12 @@ def create_dict(row, separated_segments):
     Returns:
         row (Series): Current row of the df.
     """
-    region, segment, function = row[["Region", "Segment", "Function"]]
+    query, region, segment, function = row[[
+        "Old name-like", "Region", "Segment", "Function"]]
     combi = region + segment
     rss_variants = CONFIG['RSS_LAYOUT'].get(combi, {}).keys()
     for rss_variant in rss_variants:
-        query, rss_sequence = fetch_sequence(row, segment, rss_variant)
+        rss_sequence = fetch_sequence(row, segment, rss_variant)
         add_segment(query, f"{segment}_{rss_variant}", region,
                     separated_segments, rss_sequence, function)
     return row
