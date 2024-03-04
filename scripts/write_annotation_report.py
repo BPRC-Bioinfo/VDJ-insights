@@ -6,11 +6,13 @@ from pathlib import Path
 
 CONFIG = None
 
+
 def load_config(cwd):
     global CONFIG
     with open(cwd / 'config' / 'config.yaml', 'r') as file:
         CONFIG = yaml.safe_load(file)
-        
+
+
 def add_region_segment(row):
     """
     Determines based on the potential name of the segment what the 
@@ -134,7 +136,6 @@ def add_like_to_df(df):
     ]
     output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
-
     return output_df
 
 
@@ -190,6 +191,7 @@ def filter_df(df):
     all_references = ', '.join(
         set(df['Reference']) - set(best_row['Reference']))
     best_row['Similar references'] = all_references
+    best_row["Old name-like"] = best_row["Reference"] + "-like"
     return best_row.squeeze()
 
 
@@ -284,6 +286,7 @@ def write_annotation_reports(annotation_folder):
     df, ref_df = main_df(df)
     df, ref_df = run_like_and_orf(df), run_like_and_orf(ref_df)
     annotation_long(df, annotation_folder)
+    # df = group_similar(df)
     df, ref_df = group_similar(df), group_similar(ref_df)
     annotation(df, annotation_folder, 'annotation_report.xlsx')
     annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
