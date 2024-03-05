@@ -1,64 +1,149 @@
-# TCR Macaque Snakemake Pipeline README
 
-## Overview
-
-This Snakemake pipeline is designed for analysing TCR region of the Rhesus Macaque from publicly available data. It includes a set of rules for downloading SRA data, performing initial QC, removing adaptors, removing duplicates and filtering reads based on length.
-
-## Dependencies
-
-To run this pipeline, make sure you have the following software and environments:
-### Already installed
-1. Conda (for managing environments)
-### Need to be install
-1. Snakemake
-2. Singularity (for containerization)
-3. Questionairy
-
-### Installation Steps
-
-To install the required packages, you can use a Conda environment defined in **pipeline.yaml**. Run the following command to install the packages:
-
-    conda env create -f pipeline.yaml
+# VDJ Analize, Assamble and Annotate Pipeline (VDJ-AAAP)
 
 
-## Pipeline Rules
 
-**SRA_download**: Downloads data from the SRA database. The rule switches between "wget" and a custom downloader based on the number of files.
+## Abstract
 
-**seqkit**: Generates basic statistics for the raw reads.
+## Authors
 
-**pbAdaptFilt**: Filters adaptors specific to PacBio reads.
+- [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
+- [@Giang Le](https://github.com/GiangLeN)
 
-**hifiAdaptFilt**: Filters adaptors specific to PacBio hifi reads.
 
-**removeDuplicateReads**: Removes duplicate reads from the dataset.
+## Installation
 
-**filteredReads**: Filters reads longer than 5000 bases.
+### Base setup
+To use VDJ-AAAP, you need to have Conda ([Conda installation](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)) and Python3 ([Python installation](https://realpython.com/installing-python/)) installed.
 
-**seqkitFiltered**: Generates basic statistics for filtered reads.
+### Environment Setup
 
-## Python scripts
+VDJ-AAAP requires a specific environment to run . You can install all necessary dependencies by setting up a Conda environment using the provided pipeline.yaml file.
 
-1. fetchall.py
-2. pipeline.py
+    1. Open your terminal.
+    2. Run the following command to create the Conda environment:
+``` bash
+conda env create -f pipeline.yaml
+```
 
-## fetchall.py
+This command installs the following critical packages within the environment:
 
-The **fetchall.py** script is responsible for automating the downloading and SRA data. It parses command-line arguments to specify the downloading method, run type, input data, and output location. The argements it uses are:
+    1. mamba: A fast, flexible package manager that extends conda.
+    2. singularity: A container platform focused on supporting "mobility of compute".
+    3. snakemake: A workflow management system that helps to create and manage bioinformatics pipelines.
 
-* **-t, --type**: Specifies the method to download sequence files. Options include "sra" for SRA Toolkit, "kingfisher" for Kingfisher utility, and "wget" for wget command.
-* **-i, --input**: In pipeline mode the input needs to be a URL link from the ENA/SRA database. In manual mode it needs to be a file containing URLs from the ENA/SRA database.
-* **-o, --output**: In pipeline mode the output is a direct output path. In manual it's a output directory where the downloaded and processed files will be saved.
-* **-r, --run-type**: Choose a run type for usage. Options include pipeline and manual.
+### Getting Started
 
-## Usage for manual mode
+To run the VDJ-AAAP pipeline, follow these steps:
 
-    python script/fetchall.py -t wget -r manual -i input/input.txt -o downloads
+    1. Download the pipeline source code from the GitHub repository:
+    `[TCR_macaque at BPRC-CGR](https://github.com/BPRC-CGR/TCR_macaque)`. Use the “Code” button and then select "Download ZIP".
+    2. Extract the downloaded TCR_macaque-main.zip file to your desired location.
+    3. Open your terminal and navigate to the extracted TCR_macaque-main directory. You can do this with the cd command followed by the path to the directory.
+    4. Activate the Conda environment you created earlier by running:
 
-## Usage for pipeline mode with snakemake
 
-    python scripts/fetchall.py -t {download_type} -r pipeline -i {file} -o {output}
+``` bash
+conda activate pipeline
+```
+If not created earlier run:
+``` bash
+conda env create -f pipeline.yaml
+```
+You are now ready to run the pipeline. Execute the pipeline using Snakemake by entering:
 
-## pipeline.py
+``` bash
+snakemake -s Snakefile --cores --use-conda -pr
+```
 
-The **pipeline.py** script offers an interactive interface for downloading sequence files for the main pipeline. The script employs the **questionary** library to create user-friendly prompts, allowing the user to select options easily.
+This command runs the pipeline using the default settings specified in config/config.yaml. The default is set for the analysis of the rhesus macaque, using Mmul10 as reference. 
+
+### Configuration settings
+The **config.yaml** file, located within the **config** directory, serves as the central place for customizing the pipeline's operation. This YAML file allows you to adjust various parameters to tailor the analysis to your specific requirements. 
+
+#### Basic configuration options
+Below is an overview of the file's structure and the basic options you can configure:
+``` yaml
+CHROMOSOMES: 
+  - 3
+  - 7
+
+HAPLOTYPES: 
+  - 1
+  - 2
+
+CELL:
+  TR
+
+SPECIES:
+  "macaca mulatta"
+
+FLANKING:
+  chr7:
+    alpha-delta:
+      start: SALL2
+      end: DAD1
+  chr3:
+    beta:
+      start: MGAM2
+      end: TRPV6
+    gamma:
+      start: VPS41
+      end: EPDR1
+```
+
+- **CHROMOSOMES**: Define the chromosomes for analysis by listing their numbers. This allows you to focus on specific chromosomes of interest.
+
+- **HAPLOTYPES**: Specify the haplotypes to retrieve from the assembly. List each haplotype you wish to include in the analysis.
+
+- **CELL**: Indicate the cell type being analyzed. Set this value to either `TR` (T-cell receptor) or `IG` (Immunoglobulin), depending on your study's focus.
+
+- **SPECIES**: Define the species being studied. For example, `"macaca mulatta"` for Rhesus macaque. Ensure the species name is enclosed in quotes.
+
+- **FLANKING**: Configure the flanking genes for extracting the necessary information. This section requires specifying the chromosomes (`chr7`, `chr3`, etc.), the regions within those chromosomes (`alpha-delta`, `beta`, `gamma`), and the `start` and `end` genes flanking the region of interest.
+    - **start**: The gene marking the beginning of the region. If left as an empty string (`""`), the pipeline defaults to the start of the contig (position 0).
+    - **end**: The gene marking the end of the region. If left as an empty string (`""`), the pipeline defaults to the end of the contig where the region is located.
+
+#### Important configuration settings
+To enable accurate annotation of the VDJ gene segments, specifying the RSS layout is crucial. This ensures proper validation can be performed. There are three critical variables to adjust: **RSS_LAYOUT**, **RSS_LENGTH**, and **RSS_MERS**.
+
+```yaml
+RSS_LAYOUT:
+  TRAV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  TRAJ:
+    "12":
+      "+": start_minus
+      "-": end_plus
+RSS_LENGTH:
+  "12": 28
+  "23": 39
+RSS_MERS:
+  "12": 
+    - 9
+    - 7
+  "23": 
+    - 7
+    - 9
+
+```
+- **RSS_LAYOUT**: Dictates the identification approach for Recombination Signal Sequences (RSS) in relation to the VDJ gene segments. This configuration is crucial for determining the precise location of RSS for accurate gene segment annotation. Within this setting, you specify:
+  - The segment type (e.g., `TRAV`, `TRAJ`) to configure.
+  - The RSS type (`12`, `23`) indicating the spacer length in base pairs.
+  - The orientation (`+`, `-`) for identifying the RSS direction in relation to the gene segment.
+  - Methods of extraction (`start_minus`, `end_plus`) which define how the RSS is located and annotated based on its positional context to the VDJ segment.
+    - `start_minus`: Extracts the RSS from the start (left side) of the VDJ segment, utilizing the segment's start coordinate and subtracting the RSS length to locate the RSS.
+    - `end_plus`: Extracts the RSS from the end (right side) of the VDJ segment, using the segment's end coordinate and adding the RSS length to pinpoint the RSS.
+
+- **RSS_LENGTH**: Specifies the length of each RSS type, classified by the spacer length (`12`, `23`). This length is essential for correctly identifying and annotating the RSS within the genomic sequence. The numbers (e.g., `28`, `39`) represent the total length in base pairs for each RSS type.
+
+- **RSS_MERS**: Defines the positions of key components within the RSS - specifically, the heptamer and nonamer elements, denoted as `7` and `9`, respectively. This configuration allows for detailed specification of each RSS's structural components, critical for the annotation process. The lists under each RSS type (`12`, `23`) enumerate the preferred positions of these elements, facilitating precise identification and analysis of RSS structures within the genomic data.
+
+## Acknowledgements
+I want to thank [@Jesse Bruijnesteijn](https://github.com/JesseBNL) and [@ Susan Ott](https://github.com/SusanOtt) for their contributions and inseight on how to improve the pipeline.
+## Demo
+
+Insert gif or link to demo
+
