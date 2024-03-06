@@ -10,7 +10,7 @@ configfile: 'config/config.yaml'
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
 FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values()]
-
+reference_species = config["REFERENCE"]["reference"]
 
 
 wildcard_constraints:
@@ -27,11 +27,13 @@ rule downloadMmul10:
         ref_report = "downloads/mmul10/reports/mmul10_assembly_report.txt",
         ref = "downloads/mmul10/genome/mmul10.fna",
     params:
+        report = config["REFERENCE"]["report"]
+        genome = config["REFERENCE"]["genome"]
         zipped_ref = temp("downloads/mmul10/genome/mmul10.fna.gz")
     shell:
         """
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
+        wget {params.report} -P reports -O {output.ref_report}
+        wget {params.genome} -O {params.zipped_ref}
         gunzip {params.zipped_ref}
         """
 
