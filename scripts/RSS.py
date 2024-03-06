@@ -190,18 +190,18 @@ def get_mers(rss, rss_variant):
     return [rss[0:mer1], rss[-mer2:]]
 
 
-def add_to_row(row, val1, val2, rss_variant):
+def add_to_row(row, mer1, mer2, rss_variant):
     """
     Add two columns "{rss_variant}_heptamer", "{rss_variant}_nonamer"
-    to the current row from the df. The values from "val1" and "val2"
+    to the current row from the df. The values from "mer1" and "mer2"
     are individually joined and checked which of them are seven bases long,
     this would be the heptamer and retained value is the nonamer.
 
     Args:
         row (Series): Current row from the df.
-        val1 (list): List containing either seven or nine elements, 
+        mer1 (list): List containing either seven or nine elements, 
         which represent either the heptamer or the nonamer of the RSS.
-        val2 (list): List containing either seven or nine elements, 
+        mer2 (list): List containing either seven or nine elements, 
         which represent either the heptamer or the nonamer of the RSS.
         rss_variant (int): Type of RSS variant.
 
@@ -212,8 +212,8 @@ def add_to_row(row, val1, val2, rss_variant):
         Which contains the reference heptamer and nonamer for this row.
 
     """
-    heptamer, nonamer = (''.join(val1), ''.join(val2)) if len(
-        val1) == 7 else (''.join(val2), ''.join(val1))
+    heptamer, nonamer = (''.join(mer1), ''.join(mer2)) if len(
+        mer1) == 7 else (''.join(mer2), ''.join(mer1))
     row[f"{rss_variant}_heptamer"], row[f"{rss_variant}_nonamer"] = heptamer, nonamer
     return row
 
@@ -271,8 +271,8 @@ def add_base_rss_parts(row):
     rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
         rss_sequence = fetch_sequence(row, segment, rss_variant)
-        val1, val2 = get_mers(rss_sequence, rss_variant)
-        add_to_row(row, val1, val2, rss_variant)
+        mer1, mer2 = get_mers(rss_sequence, rss_variant)
+        add_to_row(row, mer1, mer2, rss_variant)
     return row
 
 
@@ -332,16 +332,16 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     is not the case its creates a empty dictionary, it also checks 
     this for the "heptamer" and "nonamer". Then checks if the length of 
     "mer1" is equal to seven or nine. Depending of this result either 
-    "val1" or "val2" is appointed to "heptamer" or "nonamer".
+    "mer1" or "mer2" is appointed to "heptamer" or "nonamer".
 
     Args:
         segment (str): Type of segment either a V,D or J.
         ref_rss_dict (dict): Dictionary which contains the heptamers and
         nonamers for a the different segments. 
-        val1(list): List containing the first of the extracted 
+        mer1(list): List containing the first of the extracted 
         elements out of the dictionary, this can either be a value 
         which is 7 long or 9 long.
-        val1(list): List containing the second of the extracted 
+        mer1(list): List containing the second of the extracted 
         elements out of the dictionary, this can either be a value 
         which is 7 long or 9 long.
 
@@ -478,14 +478,15 @@ def combine_df(original_df, new_df):
         nonamers of the newly found segments.
     """
     columns_to_merge = [
-        'Reference', 'Old name-like',
+        'Reference', 'Old name-like', 'Start coord', 'End coord',
         '12_heptamer', '12_ref_heptamer', '12_heptamer_matched',
         '12_nonamer', '12_ref_nonamer', '12_nonamer_matched',
         '23_heptamer', '23_ref_heptamer', '23_heptamer_matched',
         '23_nonamer', '23_ref_nonamer', '23_nonamer_matched',
     ]
     combined_df = pd.merge(new_df, original_df[columns_to_merge],
-                           on=['Reference', 'Old name-like'],
+                           on=['Reference', 'Old name-like',
+                               'Start coord', 'End coord'],
                            how='left')
     return combined_df
 
