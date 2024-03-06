@@ -280,6 +280,9 @@ def run_like_and_orf(df, record):
     df = df.apply(add_orf, axis=1)
     df = df.apply(add_region_segment, axis=1)
     df = df.apply(add_reference_length, axis=1, record=record)
+    length_mask = df[["Reference Length",	"Old name-like Length",
+                      "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
+    df = df[length_mask]
     df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
     return df
 
