@@ -3,6 +3,7 @@ import yaml
 import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
+from Bio import SeqIO
 
 CONFIG = None
 
@@ -11,6 +12,12 @@ def load_config(cwd):
     global CONFIG
     with open(cwd / 'config' / 'config.yaml', 'r') as file:
         CONFIG = yaml.safe_load(file)
+
+
+def make_record_dict(fasta):
+    with open(fasta, 'r') as fasta_file:
+        record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+        return record_dict
 
 
 def add_region_segment(row):
@@ -242,7 +249,7 @@ def annotation(df, annotation_folder, file_name):
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
              'Reference seq', 'Old name-like seq', 'Reference Length',
-             'Old name-like Length']]
+             'Old name-like Length', "Library Length"]]
     df.to_excel(annotation_folder / file_name, index=False)
 
 
@@ -262,10 +269,17 @@ def rss(df, annotation_folder):
     df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
 
 
-def run_like_and_orf(df):
+def add_reference_length(row, record):
+    reference = row["Reference"]
+    row["Library Length"] = len(record[reference].seq)
+    return row
+
+
+def run_like_and_orf(df, record):
     df = add_like_to_df(df)
     df = df.apply(add_orf, axis=1)
     df = df.apply(add_region_segment, axis=1)
+    df = df.apply(add_reference_length, axis=1, record=record)
     df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
     return df
 
@@ -295,10 +309,11 @@ def write_annotation_reports(annotation_folder):
     """
     cwd = Path.cwd()
     load_config(cwd)
+    record = make_record_dict(cwd / "library" / "library.fasta")
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = add_values(df)
     df, ref_df = main_df(df)
-    df, ref_df = run_like_and_orf(df), run_like_and_orf(ref_df)
+    df, ref_df = run_like_and_orf(df, record), run_like_and_orf(ref_df, record)
     annotation_long(df, annotation_folder)
     df, ref_df = group_similar(df), group_similar(ref_df)
     annotation(df, annotation_folder, 'annotation_report.xlsx')
