@@ -1,15 +1,32 @@
 
+![Logo](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/th5xamgrr6se0x5ro4g6.png)
+
+
 # VDJ Analize, Assamble and Annotate Pipeline (VDJ-AAAP)
 
+## Table of content
+- [VDJ Analize, Assamble and Annotate Pipeline (VDJ-AAAP)](#vdj-analize-assamble-and-annotate-pipeline-vdj-aaap)
+  - [Table of content](#table-of-content)
+  - [Authors](#authors)
+  - [Abstract](#abstract)
+  - [Installation](#installation)
+    - [Base setup](#base-setup)
+    - [Environment Setup](#environment-setup)
+    - [Getting Started](#getting-started)
+  - [Configuration settings](#configuration-settings)
+    - [Basic configuration options](#basic-configuration-options)
+    - [Important configuration settings](#important-configuration-settings)
+  - [File structure](#file-structure)
+  - [Demo](#demo)
+  - [Acknowledgements](#acknowledgements)
 
-
-## Abstract
 
 ## Authors
 
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Giang Le](https://github.com/GiangLeN)
 
+## Abstract
 
 ## Installation
 
@@ -58,10 +75,11 @@ snakemake -s Snakefile --cores --use-conda -pr
 
 This command runs the pipeline using the default settings specified in config/config.yaml. The default is set for the analysis of the rhesus macaque, using Mmul10 as reference. 
 
-### Configuration settings
+
+## Configuration settings
 The **config.yaml** file, located within the **config** directory, serves as the central place for customizing the pipeline's operation. This YAML file allows you to adjust various parameters to tailor the analysis to your specific requirements. 
 
-#### Basic configuration options
+### Basic configuration options
 Below is an overview of the file's structure and the basic options you can configure:
 ``` yaml
 CHROMOSOMES: 
@@ -104,7 +122,7 @@ FLANKING:
     - **start**: The gene marking the beginning of the region. If left as an empty string (`""`), the pipeline defaults to the start of the contig (position 0).
     - **end**: The gene marking the end of the region. If left as an empty string (`""`), the pipeline defaults to the end of the contig where the region is located.
 
-#### Important configuration settings
+### Important configuration settings
 To enable accurate annotation of the VDJ gene segments, specifying the RSS layout is crucial. This ensures proper validation can be performed. There are three critical variables to adjust: **RSS_LAYOUT**, **RSS_LENGTH**, and **RSS_MERS**.
 
 ```yaml
@@ -141,9 +159,51 @@ RSS_MERS:
 
 - **RSS_MERS**: Defines the positions of key components within the RSS - specifically, the heptamer and nonamer elements, denoted as `7` and `9`, respectively. This configuration allows for detailed specification of each RSS's structural components, critical for the annotation process. The lists under each RSS type (`12`, `23`) enumerate the preferred positions of these elements, facilitating precise identification and analysis of RSS structures within the genomic data.
 
-## Acknowledgements
-I want to thank [@Jesse Bruijnesteijn](https://github.com/JesseBNL) and [@ Susan Ott](https://github.com/SusanOtt) for their contributions and inseight on how to improve the pipeline.
+## File structure
+The pipeline creates a lot of important files locateded in different directories. In the next code sample show the tree with all the directories that are created with the pipeline.
+```txt
+.
+├── alignments
+├── annotation
+├── assembly
+├── benchmarks
+├── blast_db
+├── bowtie
+├── bowtie2
+├── bowtie2_db
+├── bowtie_db
+├── BUSCO
+├── busco_downloads
+├── config
+├── contig
+├── converted
+├── demo
+├── downloads
+├── envs
+├── final
+├── flank_alignment
+├── flanking
+├── input
+├── inspector
+├── library
+├── logs
+├── minimap2
+├── QC
+├── quast
+├── raws
+├── results
+├── RSS
+├── scripts
+├── snakemake_pipelines
+├── split_files
+└── temp
+```
+
+
 ## Demo
 
 Insert gif or link to demo
 
+
+## Acknowledgements
+I want to thank [@Jesse Bruijnesteijn](https://github.com/JesseBNL) and [@ Susan Ott](https://github.com/SusanOtt) for their contributions and inseight on how to improve the pipeline.
