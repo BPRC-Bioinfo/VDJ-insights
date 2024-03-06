@@ -1,5 +1,5 @@
 
-![Logo](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/th5xamgrr6se0x5ro4g6.png)
+![Logo](images/BPRC_logo.png)
 
 
 # VDJ Analize, Assamble and Annotate Pipeline (VDJ-AAAP)
@@ -16,7 +16,8 @@
   - [Configuration settings](#configuration-settings)
     - [Basic configuration options](#basic-configuration-options)
     - [Important configuration settings](#important-configuration-settings)
-  - [File structure](#file-structure)
+  - [Output](#output)
+    - [Annotation](#annotation)
   - [Demo](#demo)
   - [Acknowledgements](#acknowledgements)
 
@@ -159,8 +160,8 @@ RSS_MERS:
 
 - **RSS_MERS**: Defines the positions of key components within the RSS - specifically, the heptamer and nonamer elements, denoted as `7` and `9`, respectively. This configuration allows for detailed specification of each RSS's structural components, critical for the annotation process. The lists under each RSS type (`12`, `23`) enumerate the preferred positions of these elements, facilitating precise identification and analysis of RSS structures within the genomic data.
 
-## File structure
-The pipeline creates a lot of important files locateded in different directories. In the next code sample show the tree with all the directories that are created with the pipeline.
+## Output
+The pipeline creates a lot of important files locateded in different directories. The next code sample shows the tree with all the directories that are created when running pipeline.
 ```txt
 .
 ├── alignments
@@ -177,7 +178,6 @@ The pipeline creates a lot of important files locateded in different directories
 ├── config
 ├── contig
 ├── converted
-├── demo
 ├── downloads
 ├── envs
 ├── final
@@ -194,16 +194,26 @@ The pipeline creates a lot of important files locateded in different directories
 ├── results
 ├── RSS
 ├── scripts
-├── snakemake_pipelines
 ├── split_files
 └── temp
 ```
-
-
+### Annotation
+One of the most important parts of the pipeline is the finding of novel VDJ gene segments. The result of the findings are located in the folder called **annotation**. In this directory, are the following excel files located.
+```txt
+annotation/
+├── annotation_report_100%.xlsx
+├── annotation_report_long.xlsx
+├── annotation_report_plus.xlsx
+├── annotation_report.xlsx
+├── blast_results.xlsx
+├── report.xlsx
+└── RSS_report.xlsx
+```
+- **Report.xlsx**
 ## Demo
 
 Insert gif or link to demo
 
 
 ## Acknowledgements
-I want to thank [@Jesse Bruijnesteijn](https://github.com/JesseBNL) and [@ Susan Ott](https://github.com/SusanOtt) for their contributions and inseight on how to improve the pipeline.
+I would like to thank [Jesse Bruijnesteijn](https://github.com/JesseBNL) and [Susan Ott](https://github.com/SusanOtt) for their contributions and insights which have significantly enhanced the pipeline. Your expertise and suggestions have been really helpful in improving the pipelines functionality and effectiveness. Thank you both for your dedication and support.****
