@@ -6,11 +6,13 @@ from pathlib import Path
 
 CONFIG = None
 
+
 def load_config(cwd):
     global CONFIG
     with open(cwd / 'config' / 'config.yaml', 'r') as file:
         CONFIG = yaml.safe_load(file)
-        
+
+
 def add_region_segment(row):
     """
     Determines based on the potential name of the segment what the 
@@ -110,7 +112,7 @@ def add_like_to_df(df):
     """
     Sorts the BLAST results df by 'reference'. It also creates a new 
     column 'Old name-like' which contains the reference with -like 
-    behind it.
+    behind it. It also extract the important columns and renames them. 
 
     Args:
         df (DataFrame): An df containing BLAST results.
@@ -123,14 +125,17 @@ def add_like_to_df(df):
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
-        'strand', 'path', 'haplotype'
+        'strand', 'path', 'haplotype',
+        'query_seq_length', 'subject_seq_length',
+
     ]]
     output_df.columns = [
         'Reference', 'Old name-like',
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
-        'Strand', 'Path', 'Haplotype'
+        'Strand', 'Path', 'Haplotype',
+        'Reference Length', 'Old name-like Length'
     ]
     output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
@@ -154,6 +159,10 @@ def add_orf(row):
     """
     sequence, strand = row[['Old name-like seq', 'Strand']]
     sequence = Seq(sequence)
+    seq_length = len(sequence)
+    excess_aa = seq_length % 3
+    if excess_aa != 0:
+        sequence = sequence[:-excess_aa]
     if strand == "-":
         sequence = sequence.reverse_complement()
     aa = sequence.translate()
@@ -161,9 +170,9 @@ def add_orf(row):
     return row
 
 
-def filter_df(df):
+def filter_df(row):
     """
-    Filters the BLAST df to identify the best reference and creates 
+    Filters the BLAST row/section to identify the best reference and creates 
     a list of leftover similar references. First the 'Specific Part',
     which begins with "TR", from the 'Old name-like' column is filtered out. 
     Then selects the best reference based on the presence of 
@@ -174,21 +183,26 @@ def filter_df(df):
     references' column.
 
     Args:
-        df (DataFrame): An df containing BLAST results.
+        row (pd.Series): The current section that is being filtered.
 
     Returns:
         best_row: the BLAST df with now the best reference chosen and 
         a extra column "Similar references" containing the list with similar 
         references.
     """
-    df['Specific Part'] = df['Old name-like'].apply(
-        lambda x: x.split('_')[2] if len(x.split('_')) > 2 else '')
-    best_row = df[df.apply(lambda x: x['Specific Part'] in x['Reference'], axis=1)] \
-        .sort_values(by=['Mismatches', 'Reference']).head(1)
+    row['Specific Part'] = row['Old name-like'].apply(
+        lambda x: ' '.join(x.split('_')[2:]) if len(x.split('_')) > 2 else '')
+    specific_part_in_reference = row.apply(
+        lambda x: x['Specific Part'] in x['Reference'], axis=1)
+    query_subject_length_equal = row['Reference seq'].str.len(
+    ) == row['Old name-like seq'].str.len()
+    filtered_rows = row[specific_part_in_reference & query_subject_length_equal]
+    best_row = filtered_rows.sort_values(by=['Mismatches', 'Reference']).head(1)
+
     if best_row.empty:
-        best_row = df.head(1)
+        best_row = row.head(1)
     all_references = ', '.join(
-        set(df['Reference']) - set(best_row['Reference']))
+        set(row['Reference']) - set(best_row['Reference']))
     best_row['Similar references'] = all_references
     return best_row.squeeze()
 
@@ -226,7 +240,9 @@ def annotation(df, annotation_folder, file_name):
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
-             'Strand', 'Region', 'Segment', 'Haplotype', 'Sample']]
+             'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
+             'Reference seq', 'Old name-like seq', 'Reference Length',
+             'Old name-like Length']]
     df.to_excel(annotation_folder / file_name, index=False)
 
 
