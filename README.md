@@ -212,6 +212,7 @@ annotation/
 -  **blast_resutls.xlsx**: In the blast result are all the revaluated segments. This includes the deviation between found segment and the most similar. 
 -  **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the intial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the non novel segments. Lastly the long format is uncondesed version, where the similar sequences are not combined in one row.
 -  **annotation_report_plus.xlsx**: Lastly the annotation report plus version contains validations columns based on the RSS types of the segments. This indicate the found RSS heptamer and nonamer for a given segment and the a RSS heptamer and nonamer that where used for comperison. The final report looks as follows.
+
 |                                 | Explanation   |
 | ------------------------------- | ------------- |
 | Reference                       | The reference |
