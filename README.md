@@ -18,10 +18,11 @@
     - [Important configuration settings](#important-configuration-settings)
   - [Output](#output)
     - [Annotation](#annotation)
-    - [Plots](#plots)
-      - [Single plots](#single-plots)
-      - [Interactive plot](#interactive-plot)
-  - [Demo](#demo)
+  - [Plots](#plots)
+    - [Single plots](#single-plots)
+    - [Interactive plot](#interactive-plot)
+      - [Activation](#activation)
+      - [Aplication demo](#aplication-demo)
   - [Acknowledgements](#acknowledgements)
 
 
@@ -230,18 +231,32 @@ annotation/
 | Haplotype                 | A indication on which haplotype the segment is found, this can be either haplotype 1 or 2.                                                                                                                  |
 | Sample                    | The name of the sample where the genetic information is coming from.                                                                                                                                        |
 
-### Plots 
+## Plots 
 This pipeline also creates individual plots and a interactive plot to showcase the results.
 
-#### Single plots
+### Single plots
 In the single plots infoinfo...
 
-#### Interactive plot
+### Interactive plot
 The interactive plot is automtically generated based on the results in the **annotation_report_plots.xlsx**.
 
-## Demo
+#### Activation
+You can start the interactive plot by following these commands:
+1. Navigate to the TCR_macaque-main directory with the command line.
+2. Type the following command:
+```bash
+bokeh serve scripts/visualistion.ipynb
+```
+You should text similar to this in the command line:
+* 2024-03-08 10:08:34,162 Starting Bokeh server version 3.3.0 (running on Tornado 6.3.3).
+* 2024-03-08 10:08:34,163 User authentication hooks NOT provided (default user enabled).
+* 2024-03-08 10:08:34,166 Bokeh app running at: http://localhost:5006/visualisation.
+* 2024-03-08 10:08:34,166 Starting Bokeh server with process id: 3759457.
+3. Press this link http://localhost:5006/visualisation. You should see a webbrowser appear.
+4.  To deactivate the application press `⌃c` (MacOS) or `Ctrl c` (Windows) in the command line.
 
-Insert gif or link to demo
+#### Aplication demo
+![Demo](images/visual.gif)
 
 
 ## Acknowledgements
