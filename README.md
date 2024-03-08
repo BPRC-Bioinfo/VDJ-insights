@@ -38,27 +38,27 @@ To use VDJ-AAAP, you need to have Conda ([Conda installation](https://conda.io/p
 
 VDJ-AAAP requires a specific environment to run . You can install all necessary dependencies by setting up a Conda environment using the provided pipeline.yaml file.
 
-    1. Open your terminal.
-    2. Run the following command to create the Conda environment:
+  1. Open your terminal.
+  2. Run the following command to create the Conda environment:
 ``` bash
 conda env create -f pipeline.yaml
 ```
 
 This command installs the following critical packages within the environment:
 
-    1. mamba: A fast, flexible package manager that extends conda.
-    2. singularity: A container platform focused on supporting "mobility of compute".
-    3. snakemake: A workflow management system that helps to create and manage bioinformatics pipelines.
+ 1. mamba: A fast, flexible package manager that extends conda.
+ 2. singularity: A container platform focused on supporting "mobility of compute".
+ 3. snakemake: A workflow management system that helps to create and manage bioinformatics pipelines.
 
 ### Getting Started
 
 To run the VDJ-AAAP pipeline, follow these steps:
 
-    1. Download the pipeline source code from the GitHub repository:
-    `[TCR_macaque at BPRC-CGR](https://github.com/BPRC-CGR/TCR_macaque)`. Use the “Code” button and then select "Download ZIP".
-    2. Extract the downloaded TCR_macaque-main.zip file to your desired location.
-    3. Open your terminal and navigate to the extracted TCR_macaque-main directory. You can do this with the cd command followed by the path to the directory.
-    4. Activate the Conda environment you created earlier by running:
+ 1. Download the pipeline source code from the GitHub repository:
+ [TCR_macaque at BPRC-CGR](https://github.com/BPRC-CGR/TCR_macaque). Use the “Code” button and then select "Download ZIP".
+ 1. Extract the downloaded TCR_macaque-main.zip file to your desired location.
+ 2. Open your terminal and navigate to the extracted TCR_macaque-main directory. You can do this with the cd command followed by the path to the directory.
+ 3. Activate the Conda environment you created earlier by running:
 
 
 ``` bash
@@ -213,22 +213,19 @@ annotation/
 -  **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the intial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the non novel segments. Lastly the long format is uncondesed version, where the similar sequences are not combined in one row.
 -  **annotation_report_plus.xlsx**: Lastly the annotation report plus version contains validations columns based on the RSS types of the segments. This indicate the found RSS heptamer and nonamer for a given segment and the a RSS heptamer and nonamer that where used for comperison. The final report looks as follows.
 
-|                                 | Explanation   |
-| ------------------------------- | ------------- |
-| Reference                       | The reference |
-| Old name-like                   |               |
-| Mismatches                      |               |
-| % Mismatches of total alignment |               |
-| Start coord                     |               |
-| End coord                       |               |
-| Function                        |               |
-| Similar references              |               |
-| Path                            |               |
-| Strand                          |               |
-| Region                          |               |
-| Segment                         |               |
-| Haplotype                       |               |
-| Sample                          |               |
+| Column                    | Explanation                                                                                                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reference                 | The name of the reference where the new segments is most similar to.                                                                                                                                        |
+| Old name-like             | The new name of the segments it is based on the most similar reference with the word like behind it.                                                                                                        |
+| Mismatches & % Mismatches | The amount of mismatches against the reference and the percentage of mismatches against the total length of the reference.                                                                                  |
+| Start and End coord       | The coordinates of the the segment in the region of interest.                                                                                                                                               |
+| Function                  | Function of the segment, this could either be functial (F) or open reading frame (ORF). Or pseudogene (P) if a early stop codon is found in the segment.                                                    |
+| Similar references        | When a start and end coord combination has multiple different hits, the best one is chosen based on the amount of mutation and the reference name. The other references are kept and stored in this column. |
+| Path                      | The path to the region fasta file where the segment is found.                                                                                                                                               |
+| Strand                    | A indication if the segment is found in either 5' to 3' (`+`) orientation or in 3' to 5' (`-`) orientation on the region.                                                                                   |
+| Region and Segments       | The type of the region and segment that is found.                                                                                                                                                           |
+| Haplotype                 | A indication on which haplotype the segment is found, this can be either haplotype 1 or 2.                                                                                                                  |
+| Sample                    | The name of the sample where the genetic information is coming from.                                                                                                                                        |
 
 ## Demo
 
