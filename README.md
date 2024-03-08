@@ -18,6 +18,9 @@
     - [Important configuration settings](#important-configuration-settings)
   - [Output](#output)
     - [Annotation](#annotation)
+    - [Plots](#plots)
+      - [Single plots](#single-plots)
+      - [Interactive plot](#interactive-plot)
   - [Demo](#demo)
   - [Acknowledgements](#acknowledgements)
 
@@ -226,6 +229,15 @@ annotation/
 | Region and Segments       | The type of the region and segment that is found.                                                                                                                                                           |
 | Haplotype                 | A indication on which haplotype the segment is found, this can be either haplotype 1 or 2.                                                                                                                  |
 | Sample                    | The name of the sample where the genetic information is coming from.                                                                                                                                        |
+
+### Plots 
+This pipeline also creates individual plots and a interactive plot to showcase the results.
+
+#### Single plots
+In the single plots infoinfo...
+
+#### Interactive plot
+The interactive plot is automtically generated based on the results in the **annotation_report_plots.xlsx**.
 
 ## Demo
 
