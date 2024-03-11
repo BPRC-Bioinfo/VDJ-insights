@@ -22,7 +22,7 @@
     - [Single plots](#single-plots)
     - [Interactive plot](#interactive-plot)
       - [Activation](#activation)
-      - [Aplication demo](#aplication-demo)
+      - [Application demo](#application-demo)
   - [Acknowledgements](#acknowledgements)
 
 
@@ -253,9 +253,13 @@ You should text similar to this in the command line:
 * 2024-03-08 10:08:34,166 Bokeh app running at: http://localhost:5006/visualisation.
 * 2024-03-08 10:08:34,166 Starting Bokeh server with process id: 3759457.
 3. Press this link http://localhost:5006/visualisation. You should see a webbrowser appear.
-4.  To deactivate the application press `⌃c` (MacOS) or `Ctrl c` (Windows) in the command line.
+4. To deactivate the application press `⌃c` (MacOS) or `Ctrl c` (Windows) in the command line.
 
-#### Aplication demo
+In the interactive plot there are three buttons you can press to alter the functionality of the plot.
+
+- **Dropdown**: In first button, the dropdown, there is a dropdown menu which shows a list containing the regions with segments for the different haplotypes. 
+
+#### Application demo
 ![Demo](images/visual.gif)
 
 
