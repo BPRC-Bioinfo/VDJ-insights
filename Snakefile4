@@ -544,8 +544,8 @@ rule getLibrary:
 
 rule annotation:
     input:
-        "annotation/all_regions.txt",
-        "library/library.fasta"
+        ancient("annotation/all_regions.txt"),
+        ancient("library/library.fasta")
     output:
         "annotation/annotation_report_plus.xlsx"
     conda:
