@@ -324,7 +324,7 @@ def argparser_setup():
         'Homo sapiens', 'Mus', 'Bos taurus',
         'Ovis aries', 'Danio rerio', 'Canis lupus familiaris',
         'Macaca mulatta', 'Tursiops truncatus', 'Oryctolagus cuniculus',
-        'Heterocephalus glaber'
+        'Heterocephalus glaber', 'Macaca fascicularis'
     ]
 
     parser = argparse.ArgumentParser(
