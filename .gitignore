@@ -209,6 +209,7 @@ raw_sequences/*
 
 # Alignment folder
 alignments/*
+chromosomes/*
 
 #Chromosome folder
 chrom_folder/*
