@@ -306,7 +306,7 @@ rule rejoinChrs:
 
 rule chrFastq:
     input:
-        bam = "{accession}_{machine}_chr{all_chrs}.bam",
+        bam = ancient("{accession}_{machine}_chr{all_chrs}.bam"),
     output:
         "converted/chr{all_chrs}_{accession}_{machine}.fastq.gz",
     conda:
@@ -325,7 +325,7 @@ rule allChromosomes:
     input:
         expand("{accession}_{machine}_chr{all_chrs}.bam", accession=ACCESSION, machine=MACHINE, all_chrs=config["ALL_CHROMOSOMES"])
     output:
-        "final/allchromosomes.txt"
+        temp("final/allchromosomes.txt")
     shell:
         """
         echo {input} | tr " " "\n" > {output}
