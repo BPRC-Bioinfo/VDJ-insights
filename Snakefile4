@@ -20,42 +20,46 @@ rule all:
     input:
         expand("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], haplo=config["HAPLOTYPES"]),
 
-rule downloadMmul10:
+rule downloadReference:
     output:
-        ref_report = "downloads/mmul10/reports/mmul10_assembly_report.txt",
-        ref = "downloads/mmul10/genome/mmul10.fna",
+        ref_report = "downloads/reference/reports/assembly_report.jsonl",
+        ref = "downloads/reference/genome/reference.fna",
     params:
-        zipped_ref = temp("downloads/mmul10/genome/mmul10.fna.gz")
+        reference_code = "GCF_003339765"
+    conda:
+        "envs/NCBI.yaml"
     shell:
         """
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt -P reports -O {output.ref_report}
-        wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz -O {params.zipped_ref}
-        gunzip {params.zipped_ref}
+        mkdir -p downloads/reference
+        cd downloads/reference
+        datasets download genome accession {params.reference_code} --include genome --filename reference.zip
+        unzip reference.zip
+        mv ncbi_dataset/data/{params.reference_code}*/* > {output.ref}
+        datasets summary genome accession {params.reference_code} --report sequence --as-json-lines > {output.ref_report}
         """
 
 
 rule splitChromosomes:
     input:
-        fa = "downloads/mmul10/genome/mmul10.fna",
-        report = ancient("downloads/mmul10/reports/mmul10_assembly_report.txt")
+        fa = "downloads/reference/genome/reference.fna",
+        report = ancient("downloads/reference/reports/assembly_report.jsonl")
     output:
-        fa = "downloads/mmul10/chromosomes/mmul10_chr{all_chrs}.fasta",
-        temp = "downloads/mmul10/chromosomes/mmul10_chr{all_chrs}.txt"
+        fa = "downloads/reference/chromosomes/reference_chr{all_chrs}.fasta",
+        temp = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
     conda:
         "envs/seqkit.yaml"
     shell:
         """
-        awk -F'\t' -v var={wildcards.all_chrs} '$1=="chr"var {{print $5}}' {input.report} > {output.temp}
-        awk -F'\t' -v var={wildcards.all_chrs} '$1~"chr"var"_" {{print $5}}' {input.report} >> {output.temp}
+        cat {input.report} | egrep '"chr_name":"{wildcards.all_chrs}"' | jq -r ".genbank_accession"  > {output.temp}
         seqkit grep -f {output.temp} {input.fa} | sed "s/>/>chr{wildcards.all_chrs}_/g" > {output.fa}
         """
 
 # Making new reference file.
 rule newReferenceFile:
     input:
-        expand("downloads/mmul10/chromosomes/mmul10_chr{all_chrs}.fasta", all_chrs=config["ALL_CHROMOSOMES"])
+        expand("downloads/reference/chromosomes/reference_chr{all_chrs}.fasta", all_chrs=config["ALL_CHROMOSOMES"])
     output:
-        "downloads/mmul10/genome/mmul10_new_ref.fasta"
+        "downloads/reference/genome/reference_new_ref.fasta"
     shell:
         """
         cat {input} > {output}
@@ -202,7 +206,7 @@ rule seqkitFiltered:
 rule minimap2:
     input:
         read = ancient("combined/{accession}_{machine}.combined.fastq.gz"),
-        mmul10 = ancient("downloads/mmul10/genome/mmul10_new_ref.fasta"),
+        reference = ancient("downloads/reference/genome/reference_new_ref.fasta"),
     output:
         temp("alignments/{accession}_{machine}.sam")
     log:
@@ -219,9 +223,9 @@ rule minimap2:
     shell:
         """
         if [[ "{wildcards.machine}" == "pacbio" ]]; then
-            minimap2 -ax {params.read_type_pacbio} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+            minimap2 -ax {params.read_type_pacbio} -t {threads} {input.reference} {input.read} > {output} 2> {log}
         elif [[ "{wildcards.machine}" == "nanopore" ]]; then
-            minimap2 -ax {params.read_type_nanopore} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+            minimap2 -ax {params.read_type_nanopore} -t {threads} {input.reference} {input.read} > {output} 2> {log}
         fi
         """
 
@@ -264,7 +268,7 @@ checkpoint separateChrs:
     input:
         bam = ancient("alignments/sorted_{accession}_{machine}.bam"),
         index_bam = "alignments/sorted_{accession}_{machine}.bam.bai",
-        mmul10 = "downloads/mmul10/chromosomes/mmul10_chr{all_chrs}.txt"
+        reference = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
     output:
         directory("chromosomes/{accession}_{machine}_{all_chrs}")
     conda:
@@ -276,7 +280,7 @@ checkpoint separateChrs:
     shell:
         """
         mkdir -p {output}
-        for i in $(cat {input.mmul10}); do
+        for i in $(cat {input.reference}); do
             # Extract individual chrs
             samtools view -b {input.bam} "chr"{wildcards.all_chrs}"_"$i > {output}/$i".bam"
         done
@@ -306,7 +310,7 @@ rule rejoinChrs:
 
 rule chrFastq:
     input:
-        bam = "{accession}_{machine}_chr{all_chrs}.bam",
+        bam = ancient("{accession}_{machine}_chr{all_chrs}.bam"),
     output:
         "converted/chr{all_chrs}_{accession}_{machine}.fastq.gz",
     conda:
@@ -325,7 +329,7 @@ rule allChromosomes:
     input:
         expand("{accession}_{machine}_chr{all_chrs}.bam", accession=ACCESSION, machine=MACHINE, all_chrs=config["ALL_CHROMOSOMES"])
     output:
-        "final/allchromosomes.txt"
+        temp("final/allchromosomes.txt")
     shell:
         """
         echo {input} | tr " " "\n" > {output}
@@ -402,18 +406,18 @@ rule BUSCO:
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
         """
 
-# BUSCO mmul10
+# BUSCO reference
 rule BUSCOReference:
     input:
-        ancient("downloads/mmul10/chromosomes/mmul10_chr{assembly_chrs}.fasta")
+        ancient("downloads/reference/chromosomes/reference_chr{assembly_chrs}.fasta")
     output:
-        directory("BUSCO/mmul10/chr{assembly_chrs}")
+        directory("BUSCO/reference/chr{assembly_chrs}")
     params:
         dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
     log:
-        "logs/BUSCO/log_busco_mmul10_chr{assembly_chrs}.log"
+        "logs/BUSCO/log_busco_reference_chr{assembly_chrs}.log"
     shell:
         """
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
@@ -442,7 +446,7 @@ rule downloadFlankingGenes:
     output:
         "flanking/{fgene}/ncbi_dataset/data/gene.fna"
     conda:
-        "envs/flanking.yaml"
+        "envs/NCBI.yaml"
     shell:
         """
         mkdir -p flanking/{wildcards.fgene}
@@ -556,8 +560,8 @@ rule fetchAllInput:
         "QC/raw/{accession}_{machine}.stats",
         "QC/filtered/filtered_{accession}_{machine}.stats",
         "quast/hifiasm/chr{assembly_chrs}_{accession}",
-        "BUSCO/{accession}/chr{all_chrs}_{accession}_hap{haplo}",
-        "BUSCO/mmul10/chr{all_chrs}",
+        "BUSCO/{accession}/chr{assembly_chrs}_{accession}_hap{haplo}",
+        "BUSCO/reference/chr{assembly_chrs}",
         "inspector/chr{assembly_chrs}_{accession}_hap{haplo}",
     output:
         touch("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt")
