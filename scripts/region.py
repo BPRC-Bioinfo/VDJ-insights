@@ -133,7 +133,7 @@ def process(cwd, chrom, hap, sam, config):
     for region, value in config[chrom].items():
         coords, name = get_positions_and_name(value, sam, record_dict)
         if len(set(name)) == 1:
-            directory = cwd / "contig"
+            directory = cwd / "region"
             make_dir(directory)
             outfile = directory / f"EAW_{region}_hap{hap}.fasta"
             write_seq(record_dict, name[0], min(coords), max(coords), outfile)

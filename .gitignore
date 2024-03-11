@@ -242,8 +242,8 @@ busco_downloads/*
 flanking/*
 flank_alignment/*
 
-# Contig files
-contig/*
+# Region files
+region/*
 
 # Libraries files
 library/*
