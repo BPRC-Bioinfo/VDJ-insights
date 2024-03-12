@@ -40,16 +40,16 @@ def load_config(cwd):
 
 def write_seq(record_dict, name, start, stop, out):
     """
-    Get the record_dict from the used fasta file (record_dict). The name of contig, start and 
+    Get the record_dict from the used fasta file (record_dict). The name of region, start and 
     stop coordinates (name, start and stop) and output ("out") file. 
-    It parses the name of the contig to record_dict and fetches the needed contig sequence out of the record_dict.
+    It parses the name of the region to record_dict and fetches the needed region sequence out of the record_dict.
     The sequence and header are parsed and written to the fasta file 
-    "contig/{accession}_{region}_hap{hap}.fasta".
+    "region/{accession}_{region}_hap{hap}.fasta".
 
     Args:
         record_dict (dict): Dictionary containing the SeqIO information
         for a certain fasta file.
-        name (str): Name of the contig the current region is on.
+        name (str): Name of the region the current region is on.
         start (int): Start coordinate of the region of interest. 
         stop (int): End coordinate of the region of interest. 
         out (Path): Path of the output directory.
@@ -62,13 +62,13 @@ def write_seq(record_dict, name, start, stop, out):
 def get_positions_and_name(genes, sam, record_dict):
     """
     Initiate a list (coords) for the coordinates and list for the 
-    contig name (contig_list). As well a global contig_name is set to 
-    store the contig name. Then loop over genes dict to get the position 
+    region name (region_list). As well a global region_name is set to 
+    store the region name. Then loop over genes dict to get the position 
     (start or end) and the flanking gene name. First there is checked if there 
     is no flaking gene name. If this is the case for a start position 
     a 0 appended to the coord list, if this is for the end position 
-    the end of the contig is determined based on the contig name of
-    the start contig and appended to coord list. If the flanking gene 
+    the end of the region is determined based on the region name of
+    the start region and appended to coord list. If the flanking gene 
     name is present the start, end and name are retrieved from sam
     with help of awk and appended to the coord and name list.
     The coord and name list are returned.
@@ -83,16 +83,16 @@ def get_positions_and_name(genes, sam, record_dict):
 
     Returns:
         coords (list): List containing the coordinates of the 
-        flanking gene(s), begin or end of the contig.
-        name (list): List containing the name of the contigs
+        flanking gene(s), begin or end of the region.
+        name (list): List containing the name of the regions
     """
     coords, name = list(), list()
-    contig_name = ""
+    region_name = ""
     for position, flank in genes.items():
         if position == "start" and flank == "":
             coords.append(0)
         elif position == "end" and flank == "":
-            record = record_dict[contig_name]
+            record = record_dict[region_name]
             coords.append(len(record.seq))
         else:
             awk = "awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $3, $4, $4 + length($10) - 1}}'"
@@ -100,9 +100,9 @@ def get_positions_and_name(genes, sam, record_dict):
             line = subprocess.run(command, shell=True,
                                   capture_output=True, text=True)
             splitted = line.stdout.strip().split()
-            contig_name = splitted[0]
+            region_name = splitted[0]
             coords.extend([int(i) for i in splitted[1:]]
-                          ), name.append(contig_name)
+                          ), name.append(region_name)
     return coords, name
 
 
@@ -110,12 +110,12 @@ def process(cwd, chrom, hap, sam, config):
     """
     Loops over the config dictionary with the parsed chromosome. 
     It first parses the given sam file to make_record_dict to construct a list 
-    containing the name of the contig ("name"), the start and stop coordinates 
+    containing the name of the region ("name"), the start and stop coordinates 
     based on the start and stop coordinates. 
-    Then is checked if the contig names are on the same contig and the 
-    region of interest in on the same contig. If this is not the case a 
+    Then is checked if the region names are on the same region and the 
+    region of interest in on the same region. If this is not the case a 
     message is given, that is was not able to construct a region. 
-    Otherwise it parses the name of the contig 
+    Otherwise it parses the name of the region 
     and min and max values from the coords list.
 
     Args:
@@ -138,7 +138,7 @@ def process(cwd, chrom, hap, sam, config):
             outfile = directory / f"EAW_{region}_hap{hap}.fasta"
             write_seq(record_dict, name[0], min(coords), max(coords), outfile)
         else:
-            print("Broken contig, can't create region!")
+            print("Broken region, can't create region!")
 
 
 def main():
