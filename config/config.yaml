@@ -22,10 +22,6 @@ ALL_CHROMOSOMES:
   - "X"
   - "Y"
 
-ASSEMBLY_CHROMOSOMES: 
-  - 3
-  - 7
-
 HAPLOTYPES: 
   - 1
   - 2
@@ -33,11 +29,17 @@ HAPLOTYPES:
 BUSCO_DATASET:
   primates_odb10
 
-CELL:
-  TR
+ASSEMBLY_CHROMOSOMES: 
+  - 3
+  - 7
 
 SPECIES:
-  "macaca mulatta"
+  name:
+    "macaca mulatta"
+  genome:
+    GCF_003339765.1
+  cell:
+    TR
 
 FLANKING:
   chr7:
@@ -51,12 +53,6 @@ FLANKING:
     gamma:
       start: VPS41
       end: EPDR1
-
-LIBRARY:
-  species: 
-    macaca mulatta
-  cell_type: 
-    TCR
 
 RSS_LAYOUT:
   TRAV:
@@ -105,9 +101,11 @@ RSS_LAYOUT:
     "12":
       "+": start_minus
       "-": end_plus
+
 RSS_LENGTH:
   "12": 28
   "23": 39
+
 RSS_MERS:
   "12": 
     - 9
@@ -115,3 +113,9 @@ RSS_MERS:
   "23": 
     - 7
     - 9
+
+LIBRARY:
+  species: 
+    macaca mulatta
+  cell_type: 
+    TCR
