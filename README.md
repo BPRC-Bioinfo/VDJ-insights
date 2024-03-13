@@ -108,11 +108,13 @@ HAPLOTYPES:
   - 1
   - 2
 
-CELL:
-  TR
-
 SPECIES:
-  "macaca mulatta"
+  name:
+    "macaca mulatta"
+  genome:
+    GCF_003339765.1
+  cell:
+    TR
 
 FLANKING:
   chr7:
@@ -134,9 +136,11 @@ FLANKING:
 
 - **HAPLOTYPES**: Specify the haplotypes to retrieve from the assembly. List each haplotype you wish to include in the analysis.
 
-- **CELL**: Indicate the cell type being analyzed. Set this value to either `TR` (T-cell receptor) or `IG` (Immunoglobulin), depending on your study's focus.
+- **SPECIES: name**: Define the species being studied. For example, `"macaca mulatta"` for Rhesus macaque. Ensure the species name is enclosed in quotes.
 
-- **SPECIES**: Define the species being studied. For example, `"macaca mulatta"` for Rhesus macaque. Ensure the species name is enclosed in quotes.
+- **SPECIES: genome**: Specify the genome that is being used for the run. It can be found on the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/). 
+  
+- **SPECIES: cell**: Indicate the cell type being analyzed. Set this value to either `TR` (T-cell receptor) or `IG` (Immunoglobulin), depending on your study's focus.
 
 - **FLANKING**: Configure the flanking genes for extracting the necessary information. This section requires specifying the chromosomes (`chr7`, `chr3`, etc.), the regions within those chromosomes (`alpha-delta`, `beta`, `gamma`), and the `start` and `end` genes flanking the region of interest.
     - **start**: The gene marking the beginning of the region. If left as an empty string (`""`), the pipeline defaults to the start of the contig (position 0).
@@ -155,9 +159,11 @@ RSS_LAYOUT:
     "12":
       "+": start_minus
       "-": end_plus
+
 RSS_LENGTH:
   "12": 28
   "23": 39
+
 RSS_MERS:
   "12": 
     - 9
