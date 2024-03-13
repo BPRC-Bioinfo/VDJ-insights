@@ -33,6 +33,13 @@
 - [@Giang Le](https://github.com/GiangLeN)
 
 ## Abstract
+The VDJ-AAAP pipeline offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). Designed to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors/immunoglobulins (Ig), this versatile tool supports analysis across various species, given the availability of a reference genome and assembly report on NCBI. Configuration adjustments are facilitated through a user-friendly **`config.yaml`** file, enabling tailored pipeline functionality to suit specific research needs.
+
+Addressing the challenge of assembling the repetitive VDJ regions, the pipeline selectively processes reads exceeding 5 Kbs, minimizing erroneous mappings and noise. It generates a refined reference genome, preserving only known chromosomes and specified fragments to prevent assembly inaccuracies. Utilizing minimap2, reads are meticulously mapped against this curated reference in a dual-phase approach tailored to each read type, ensuring accurate localization.
+
+The assembly phase leverages the strengths of both PacBio and ONT reads, combining PacBio's precision with ONT's extensive read lengths for superior assembly outcomes. Specific genomic regions are then isolated using predefined flanking genes, with customization options available in the configuration file.
+
+The pipeline extends its functionality to annotation, comparing assembled region sequences against a comprehensive library of non-novel VDJ segments sourced from the IMGT database or a pre-existing library in **`library/library.fasta`**. Outputs include detailed Excel reports on identified sequences, supplemented with an interactive plotting feature for enhanced data visualization and analysis.
 
 ## Installation
 
@@ -225,19 +232,20 @@ annotation/
 -  **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the intial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the non novel segments. Lastly the long format is uncondesed version, where the similar sequences are not combined in one row.
 -  **annotation_report_plus.xlsx**: Lastly the annotation report plus version contains validations columns based on the RSS types of the segments. This indicate the found RSS heptamer and nonamer for a given segment and the a RSS heptamer and nonamer that where used for comperison. The final report looks as follows.
 
-| Column                        | Explanation                                                                                                                                    |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reference**                 | Name of the closest reference for the new segment.                                                                                             |
-| **Old name-like**             | New segment's name, derived from the closest reference, appended with "like" to indicate similarity.                                           |
-| **Mismatches & % Mismatches** | Number of mismatches with the reference and their percentage relative to the total length of the reference.                                    |
-| **Start and End coord**       | Coordinates of the segment within the region of interest.                                                                                      |
-| **Function**                  | Segment function: functional (F), open reading frame (ORF), or pseudogene (P) if an early stop codon is detected.                              |
-| **Similar references**        | Other references for a segment with the same start and end coordinates; the best match is selected based on mutation count and reference name. |
-| **Path**                      | Path to the FASTA file of the region containing the segment.                                                                                   |
-| **Strand**                    | Orientation of the segment: 5' to 3' (`+`) or 3' to 5' (`-`).                                                                                  |
-| **Region and Segments**       | Type of region and segment identified.                                                                                                         |
-| **Haplotype**                 | Haplotype (1 or 2) on which the segment is found.                                                                                              |
-| **Sample**                    | Name of the sample providing the genetic data.                                                                                                 |
+| Column                        | Explanation                                                                                                                                                                                                                                   |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reference**                 | Name of the closest reference for the new segment.                                                                                                                                                                                            |
+| **Old name-like**             | New segment's name, derived from the closest reference, appended with "like" to indicate similarity.                                                                                                                                          |
+| **Mismatches & % Mismatches** | Number of mismatches with the reference and their percentage relative to the total length of the reference.                                                                                                                                   |
+| **Start and End coord**       | Coordinates of the segment within the region of interest.                                                                                                                                                                                     |
+| **Function**                  | Segment function: functional (F), open reading frame (ORF), or pseudogene (P) if an early stop codon is detected.                                                                                                                             |
+| **Similar references**        | Other references for a segment with the same start and end coordinates; the best match is selected based on mutation count and reference name.                                                                                                |
+| **Path**                      | Path to the FASTA file of the region containing the segment.                                                                                                                                                                                  |
+| **Strand**                    | Orientation of the segment: 5' to 3' (`+`) or 3' to 5' (`-`).                                                                                                                                                                                 |
+| **Region and Segments**       | Type of region and segment identified.                                                                                                                                                                                                        |
+| **Haplotype**                 | Haplotype (1 or 2) on which the segment is found.                                                                                                                                                                                             |
+| **Sample**                    | Name of the sample providing the genetic data.                                                                                                                                                                                                |
+| **RSS**                       | Each RSS spacer type includes six columns, with three dedicated to both the heptamer and nonamer segments. These columns represent the segment sequence, a reference sequence, and a boolean indicating if the segment matches the reference. |
 
 ## Plots 
 This pipeline also creates individual plots and a interactive plot to showcase the results.
