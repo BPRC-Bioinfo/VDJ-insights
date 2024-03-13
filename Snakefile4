@@ -368,7 +368,7 @@ rule hifiasmUlChromosomeAssembly:
 
 rule gfaToFasta:
     input:
-        "assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa"
+        ancient("assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa")
     output:
         "converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta"
     conda:
@@ -481,7 +481,7 @@ rule combineFlankingGenes:
 
 rule flankingByChromosomes:
     input:
-        flanking = "flanking/all_flanking_genes.fna"
+        flanking = ancient("flanking/all_flanking_genes.fna")
     params:
         chrs_id = "flanking/chr{assembly_chrs}_{accession}_flanking_genes_id.txt" 
     output:
@@ -513,7 +513,7 @@ rule mapFlankingGenes:
 
 
 ## Generate regions
-rule contigFiles:
+rule regionFiles:
     input:
         ancient("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam")
     output:
