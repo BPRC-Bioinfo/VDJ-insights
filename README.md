@@ -22,7 +22,8 @@
     - [Single plots](#single-plots)
     - [Interactive plot](#interactive-plot)
       - [Activation](#activation)
-      - [Application demo](#application-demo)
+      - [Options](#options)
+      - [Interactive plot demo](#interactive-plot-demo)
   - [Acknowledgements](#acknowledgements)
 
 
@@ -87,7 +88,12 @@ The **config.yaml** file, located within the **config** directory, serves as the
 ### Basic configuration options
 Below is an overview of the file's structure and the basic options you can configure:
 ``` yaml
-CHROMOSOMES: 
+ALL_CHROMOSOMES:
+  - 1
+  - "X"
+  - "Y"
+
+ASSEMBLY_CHROMOSOMES: 
   - 3
   - 7
 
@@ -115,7 +121,9 @@ FLANKING:
       end: EPDR1
 ```
 
-- **CHROMOSOMES**: Define the chromosomes for analysis by listing their numbers. This allows you to focus on specific chromosomes of interest.
+- **All_CHROMOSOMES**: This list contains all chromosomes found within the reference genome. For those uncertain of the specific chromosomes included in their reference genome, it's advisable to consult the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/). By default, the list covers chromosomes 1 through 20, in addition to the X and Y chromosomes. Adjustments to the **All_CHROMOSOMES** list should be made if your reference genome's chromosome composition differs.
+
+- **ASSEMBLY_CHROMOSOMES**: Define the chromosomes for analysis by listing their numbers. This allows you to focus on specific chromosomes of interest.
 
 - **HAPLOTYPES**: Specify the haplotypes to retrieve from the assembly. List each haplotype you wish to include in the analysis.
 
@@ -217,19 +225,19 @@ annotation/
 -  **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the intial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the non novel segments. Lastly the long format is uncondesed version, where the similar sequences are not combined in one row.
 -  **annotation_report_plus.xlsx**: Lastly the annotation report plus version contains validations columns based on the RSS types of the segments. This indicate the found RSS heptamer and nonamer for a given segment and the a RSS heptamer and nonamer that where used for comperison. The final report looks as follows.
 
-| Column                    | Explanation                                                                                                                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reference                 | The name of the reference where the new segments is most similar to.                                                                                                                                        |
-| Old name-like             | The new name of the segments it is based on the most similar reference with the word like behind it.                                                                                                        |
-| Mismatches & % Mismatches | The amount of mismatches against the reference and the percentage of mismatches against the total length of the reference.                                                                                  |
-| Start and End coord       | The coordinates of the the segment in the region of interest.                                                                                                                                               |
-| Function                  | Function of the segment, this could either be functial (F) or open reading frame (ORF). Or pseudogene (P) if a early stop codon is found in the segment.                                                    |
-| Similar references        | When a start and end coord combination has multiple different hits, the best one is chosen based on the amount of mutation and the reference name. The other references are kept and stored in this column. |
-| Path                      | The path to the region fasta file where the segment is found.                                                                                                                                               |
-| Strand                    | A indication if the segment is found in either 5' to 3' (`+`) orientation or in 3' to 5' (`-`) orientation on the region.                                                                                   |
-| Region and Segments       | The type of the region and segment that is found.                                                                                                                                                           |
-| Haplotype                 | A indication on which haplotype the segment is found, this can be either haplotype 1 or 2.                                                                                                                  |
-| Sample                    | The name of the sample where the genetic information is coming from.                                                                                                                                        |
+| Column                        | Explanation                                                                                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reference**                 | Name of the closest reference for the new segment.                                                                                             |
+| **Old name-like**             | New segment's name, derived from the closest reference, appended with "like" to indicate similarity.                                           |
+| **Mismatches & % Mismatches** | Number of mismatches with the reference and their percentage relative to the total length of the reference.                                    |
+| **Start and End coord**       | Coordinates of the segment within the region of interest.                                                                                      |
+| **Function**                  | Segment function: functional (F), open reading frame (ORF), or pseudogene (P) if an early stop codon is detected.                              |
+| **Similar references**        | Other references for a segment with the same start and end coordinates; the best match is selected based on mutation count and reference name. |
+| **Path**                      | Path to the FASTA file of the region containing the segment.                                                                                   |
+| **Strand**                    | Orientation of the segment: 5' to 3' (`+`) or 3' to 5' (`-`).                                                                                  |
+| **Region and Segments**       | Type of region and segment identified.                                                                                                         |
+| **Haplotype**                 | Haplotype (1 or 2) on which the segment is found.                                                                                              |
+| **Sample**                    | Name of the sample providing the genetic data.                                                                                                 |
 
 ## Plots 
 This pipeline also creates individual plots and a interactive plot to showcase the results.
@@ -241,25 +249,40 @@ In the single plots infoinfo...
 The interactive plot is automtically generated based on the results in the **annotation_report_plots.xlsx**.
 
 #### Activation
-You can start the interactive plot by following these commands:
-1. Navigate to the TCR_macaque-main directory with the command line.
-2. Type the following command:
-```bash
-bokeh serve scripts/visualistion.ipynb
-```
-You should text similar to this in the command line:
-* 2024-03-08 10:08:34,162 Starting Bokeh server version 3.3.0 (running on Tornado 6.3.3).
-* 2024-03-08 10:08:34,163 User authentication hooks NOT provided (default user enabled).
-* 2024-03-08 10:08:34,166 Bokeh app running at: http://localhost:5006/visualisation.
-* 2024-03-08 10:08:34,166 Starting Bokeh server with process id: 3759457.
-3. Press this link http://localhost:5006/visualisation. You should see a webbrowser appear.
-4. To deactivate the application press `⌃c` (MacOS) or `Ctrl c` (Windows) in the command line.
 
-In the interactive plot there are three buttons you can press to alter the functionality of the plot.
+Launch the interactive visualization by executing the following steps:
 
-- **Dropdown**: In first button, the dropdown, there is a dropdown menu which shows a list containing the regions with segments for the different haplotypes. 
+1. **Open Terminal**: Navigate to the `TCR_macaque-main` directory using your command line interface.
+   
+2. **Start Bokeh Server**: Enter the command below and press `Enter`:
 
-#### Application demo
+    ```bash
+    bokeh serve scripts/visualisation.ipynb
+    ```
+
+    Upon execution, you should see messages similar to these:
+
+    ```
+    2024-03-08 10:08:34,162 Starting Bokeh server version 3.3.0 (running on Tornado 6.3.3).
+    2024-03-08 10:08:34,163 User authentication hooks NOT provided (default user enabled).
+    2024-03-08 10:08:34,166 Bokeh app running at: http://localhost:5006/visualisation.
+    2024-03-08 10:08:34,166 Starting Bokeh server with process id: 3759457.
+    ```
+
+3. **Access the Visualization**: Click on [http://localhost:5006/visualisation](http://localhost:5006/visualisation) or copy and paste this URL into your web browser.
+
+4. **Deactivate**: To deactivate the application, press `⌃C` (Control + C) on MacOS or `Ctrl + C` on Windows in the command line interface.
+
+#### Options
+
+The interactive plot includes several controls to customize the display:
+
+- **Region-Haplotype**: This dropdown menu lists regions containing different segments for various haplotypes. When choosing `All`, all regions will be shown.
+- **Function**: A green toggle button following the dropdown. It allows for switching between displaying only segments classified as functional (F/ORF) and showing all segments (F/ORF & P).
+- **New**: Another green toggle button enabling the option to display only novel segments or both novel and non-novel segments.
+
+
+#### Interactive plot demo
 ![Demo](images/visual.gif)
 
 

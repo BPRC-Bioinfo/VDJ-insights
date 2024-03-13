@@ -13,13 +13,13 @@ def combine_df():
     Calling the mapping script annotation.py. This script is called 
     with either "bowtie", "bowtie2" or "minimap2" as input value. 
     These all return a df.
-    Then all df's are concatinated to form a new complete one. 
+    Then all df's are concatenated to form a new complete one. 
     Finally dropping all duplicates in the df based on a
     subset of ["start", "stop"], resetting the index of this df 
     and return this new df.
 
     Returns:
-        unique_combinations (DataFrame): A df containg all the unique
+        unique_combinations (DataFrame): A df containing all the unique
         mapping entries from bowtie(2) and minimap2.
     """
     minimap2_df = mapping_main("minimap2")
@@ -130,6 +130,9 @@ def construct_blast_command(fasta_file_path, database_path, identity_cutoff, out
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"
     command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
+    if segment == "D":
+        extra = "-word_size 7 -evalue 1000 -max_target_seqs 100 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
+        command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' {extra} -perc_identity {identity_cutoff} -out {output_file_path}"
     return command
 
 

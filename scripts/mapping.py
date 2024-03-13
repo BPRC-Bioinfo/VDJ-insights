@@ -13,10 +13,12 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+
 def load_config(cwd):
     global CONFIG
     with open(cwd / 'config' / 'config.yaml', 'r') as file:
         CONFIG = yaml.safe_load(file)
+
 
 class MappingFiles:
     """
@@ -355,7 +357,7 @@ def mapping_main(mapping_type):
     cwd = Path.cwd()
     load_config(cwd)
     outdir = cwd / f"{mapping_type}_db"
-    indir = cwd / "contig"
+    indir = cwd / "region"
     rfasta = cwd / "library" / "library.fasta"
     start, stop = 100, 0
     all_entries = []
