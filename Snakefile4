@@ -22,20 +22,26 @@ rule all:
 
 rule downloadReference:
     output:
+        temp("downloads/reference/reference.zip"),
+        temp("downloads/reference/README.md"),
         ref_report = "downloads/reference/reports/assembly_report.jsonl",
         ref = "downloads/reference/genome/reference.fna",
+
     params:
-        reference_code = "GCF_003339765"
+        reference_code = "GCF_012559485.2",
+        prefix = "downloads/reference/ncbi_dataset/data"
     conda:
         "envs/NCBI.yaml"
     shell:
         """
-        mkdir -p downloads/reference
+        mkdir -p downloads/reference/genome
         cd downloads/reference
         datasets download genome accession {params.reference_code} --include genome --filename reference.zip
-        unzip reference.zip
-        mv ncbi_dataset/data/{params.reference_code}*/* > {output.ref}
+        cd ../../
         datasets summary genome accession {params.reference_code} --report sequence --as-json-lines > {output.ref_report}
+        unzip downloads/reference/reference.zip -d downloads/reference/
+        mv {params.prefix}/{params.reference_code}/* {output.ref}
+        rm -r downloads/reference/ncbi*
         """
 
 
@@ -50,7 +56,7 @@ rule splitChromosomes:
         "envs/seqkit.yaml"
     shell:
         """
-        cat {input.report} | egrep '"chr_name":"{wildcards.all_chrs}"' | jq -r ".genbank_accession"  > {output.temp}
+        cat {input.report} | egrep '"chr_name":"{wildcards.all_chrs}"' | jq -r ".refseq_accession"  > {output.temp}
         seqkit grep -f {output.temp} {input.fa} | sed "s/>/>chr{wildcards.all_chrs}_/g" > {output.fa}
         """
 
@@ -451,7 +457,7 @@ rule downloadFlankingGenes:
         """
         mkdir -p flanking/{wildcards.fgene}
         cd flanking/{wildcards.fgene}
-        datasets download gene symbol {wildcards.fgene} --taxon "macaca mulatta" --include gene --filename {wildcards.fgene}.zip
+        datasets download gene symbol {wildcards.fgene} --taxon "macaca fascicularis" --include gene --filename {wildcards.fgene}.zip
         unzip {wildcards.fgene}.zip
         """
 
@@ -556,13 +562,13 @@ rule annotation:
 
 rule fetchAllInput:
     input:
-        "annotation/annotation_report_plus.xlsx",
-        "QC/raw/{accession}_{machine}.stats",
-        "QC/filtered/filtered_{accession}_{machine}.stats",
-        "quast/hifiasm/chr{assembly_chrs}_{accession}",
-        "BUSCO/{accession}/chr{assembly_chrs}_{accession}_hap{haplo}",
-        "BUSCO/reference/chr{assembly_chrs}",
-        "inspector/chr{assembly_chrs}_{accession}_hap{haplo}",
+        ancient("annotation/annotation_report_plus.xlsx"),
+        ancient("QC/raw/{accession}_{machine}.stats"),
+        ancient("QC/filtered/filtered_{accession}_{machine}.stats"),
+        ancient("quast/hifiasm/chr{assembly_chrs}_{accession}"),
+        ancient("BUSCO/{accession}/chr{assembly_chrs}_{accession}_hap{haplo}"),
+        ancient("BUSCO/reference/chr{assembly_chrs}"),
+        ancient("inspector/chr{assembly_chrs}_{accession}_hap{haplo}"),
     output:
         touch("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt")
 
