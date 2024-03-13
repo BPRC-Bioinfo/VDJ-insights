@@ -542,7 +542,7 @@ rule getLibrary:
         "library/library.fasta"
     params:
         species = config["SPECIES"]["name"],
-        cell_type = config["LIBRARY"]["cell_type"],
+        cell_type = config["SPECIES"]["cell"],
     conda:
         "envs/IMGT.yaml"
     shell:
