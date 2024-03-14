@@ -37,7 +37,7 @@ def add_region_segment(row):
         row (series): Current row with the two extra columns 
         "Region" and "Segment".
     """
-    cell_type = CONFIG.get("CELL", "TR")
+    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
     options = (cell_type, "LOC")
     query = row['Old name-like']
     prefix = [i for i in query.split("_") if i.startswith(options)][0]
