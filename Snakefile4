@@ -8,7 +8,7 @@ configfile: 'config/config.yaml'
 # Setup. Loading Accession, machine, flanking.
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
-FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values()]
+FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values() if gene]
 
 
 wildcard_constraints:
