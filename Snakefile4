@@ -28,7 +28,7 @@ rule downloadReference:
         ref = "downloads/reference/genome/reference.fna",
 
     params:
-        reference_code = "GCF_012559485.2",
+        reference_code = config["SPECIES"]["genome"],
         prefix = "downloads/reference/ncbi_dataset/data"
     conda:
         "envs/NCBI.yaml"
@@ -368,7 +368,7 @@ rule hifiasmUlChromosomeAssembly:
 
 rule gfaToFasta:
     input:
-        "assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa"
+        ancient("assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa")
     output:
         "converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta"
     conda:
@@ -453,11 +453,14 @@ rule downloadFlankingGenes:
         "flanking/{fgene}/ncbi_dataset/data/gene.fna"
     conda:
         "envs/NCBI.yaml"
+    
+    params:
+        species_name = config["SPECIES"]["name"]
     shell:
         """
         mkdir -p flanking/{wildcards.fgene}
         cd flanking/{wildcards.fgene}
-        datasets download gene symbol {wildcards.fgene} --taxon "macaca fascicularis" --include gene --filename {wildcards.fgene}.zip
+        datasets download gene symbol {wildcards.fgene} --taxon "{params.species_name}" --include gene --filename {wildcards.fgene}.zip
         unzip {wildcards.fgene}.zip
         """
 
@@ -481,7 +484,7 @@ rule combineFlankingGenes:
 
 rule flankingByChromosomes:
     input:
-        flanking = "flanking/all_flanking_genes.fna"
+        flanking = ancient("flanking/all_flanking_genes.fna")
     params:
         chrs_id = "flanking/chr{assembly_chrs}_{accession}_flanking_genes_id.txt" 
     output:
@@ -513,7 +516,7 @@ rule mapFlankingGenes:
 
 
 ## Generate regions
-rule contigFiles:
+rule regionFiles:
     input:
         ancient("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam")
     output:
@@ -538,8 +541,8 @@ rule getLibrary:
     output:
         "library/library.fasta"
     params:
-        species = config["LIBRARY"]["species"],
-        cell_type = config["LIBRARY"]["cell_type"],
+        species = config["SPECIES"]["name"],
+        cell_type = config["SPECIES"]["cell"],
     conda:
         "envs/IMGT.yaml"
     shell:

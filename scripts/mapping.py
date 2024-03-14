@@ -76,7 +76,7 @@ def get_region_and_segment(name):
         str, str: Return either a region name, segment name as string 
         or LOC and - as str.
     """
-    cell_type = CONFIG.get("CELL", "TR")
+    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
     options = (cell_type, "LOC")
     prefix = [i for i in name.split("_") if i.startswith(options)][0]
     prefix = re.sub(r"[0-9]", "", prefix)

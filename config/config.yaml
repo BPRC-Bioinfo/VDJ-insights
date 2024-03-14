@@ -113,9 +113,3 @@ RSS_MERS:
   "23": 
     - 7
     - 9
-
-LIBRARY:
-  species: 
-    macaca mulatta
-  cell_type: 
-    TCR
