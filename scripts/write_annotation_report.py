@@ -211,6 +211,7 @@ def filter_df(row):
     all_references = ', '.join(
         set(row['Reference']) - set(best_row['Reference']))
     best_row['Similar references'] = all_references
+    best_row["Old name-like"] = best_row["Reference"] + "-like"
     return best_row.squeeze()
 
 
