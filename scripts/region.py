@@ -121,8 +121,7 @@ def get_positions_and_name(genes, sam, record_dict):
         flanking gene(s), begin or end of the region.
         name (list): List containing the name of the regions
     """
-    coords, name = list(), list()
-    contig_name = ""
+    coords, name, best_coords, contig_name = list(), list(), list(), ""
     for position, flank in genes.items():
         if position == "start" and flank == "":
             coords.append(0)
@@ -135,7 +134,8 @@ def get_positions_and_name(genes, sam, record_dict):
             line = subprocess.run(command, shell=True,
                                   capture_output=True, text=True)
             sam_list = line.stdout.strip().split()
-            best_coords, contig_name = get_best_coords(sam_list)
+            if sam_list:
+                best_coords, contig_name = get_best_coords(sam_list)
             coords.extend([int(i) for i in best_coords]
                           ), name.append(contig_name)
     return coords, name
