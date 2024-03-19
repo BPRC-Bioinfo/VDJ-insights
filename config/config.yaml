@@ -41,6 +41,14 @@ SPECIES:
   cell:
     TR
 
+REFERENCE:
+  name:
+    "mmul10"
+  report: 
+    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_assembly_report.txt"
+  genome:
+    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/003/339/765/GCA_003339765.3_Mmul_10/GCA_003339765.3_Mmul_10_genomic.fna.gz"
+
 FLANKING:
   chr7:
     alpha-delta:

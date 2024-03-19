@@ -146,7 +146,6 @@ def add_like_to_df(df):
     ]
     output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
-
     return output_df
 
 
@@ -180,14 +179,15 @@ def add_orf(row):
 def filter_df(row):
     """
     Filters the BLAST row/section to identify the best reference and creates 
-    a list of leftover similar references. First the 'Specific Part',
-    which begins with "TR", from the 'Old name-like' column is filtered out. 
-    Then selects the best reference based on the presence of 
+    a list of leftover similar references. First the Specific Part,
+    which begins with the chosen cell type. It is determined from the 
+    Old name-like column. Then selects the best reference based on the presence of 
     this 'Specific Part' in the 'Reference' column, sorting by 
     'Mismatches' and 'Reference' and taking the first hit. 
     If no specific hit is found, the first row of the df is 
     used. Remaining similar references are stored in the 'Similar 
-    references' column.
+    references' column. In the end the Old name-like naming is 
+    constructed again.
 
     Args:
         row (pd.Series): The current section that is being filtered.
@@ -319,6 +319,7 @@ def write_annotation_reports(annotation_folder):
     df, ref_df = main_df(df)
     df, ref_df = run_like_and_orf(df, record), run_like_and_orf(ref_df, record)
     annotation_long(df, annotation_folder)
+    # df = group_similar(df)
     df, ref_df = group_similar(df), group_similar(ref_df)
     annotation(df, annotation_folder, 'annotation_report.xlsx')
     annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
