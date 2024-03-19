@@ -3,6 +3,7 @@ import yaml
 import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
+from Bio import SeqIO
 
 CONFIG = None
 
@@ -11,6 +12,12 @@ def load_config(cwd):
     global CONFIG
     with open(cwd / 'config' / 'config.yaml', 'r') as file:
         CONFIG = yaml.safe_load(file)
+
+
+def make_record_dict(fasta):
+    with open(fasta, 'r') as fasta_file:
+        record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+        return record_dict
 
 
 def add_region_segment(row):
@@ -30,7 +37,7 @@ def add_region_segment(row):
         row (series): Current row with the two extra columns 
         "Region" and "Segment".
     """
-    cell_type = CONFIG.get("CELL", "TR")
+    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
     options = (cell_type, "LOC")
     query = row['Old name-like']
     prefix = [i for i in query.split("_") if i.startswith(options)][0]
@@ -112,7 +119,7 @@ def add_like_to_df(df):
     """
     Sorts the BLAST results df by 'reference'. It also creates a new 
     column 'Old name-like' which contains the reference with -like 
-    behind it.
+    behind it. It also extract the important columns and renames them. 
 
     Args:
         df (DataFrame): An df containing BLAST results.
@@ -125,14 +132,17 @@ def add_like_to_df(df):
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
-        'strand', 'path', 'haplotype'
+        'strand', 'path', 'haplotype',
+        'query_seq_length', 'subject_seq_length',
+
     ]]
     output_df.columns = [
         'Reference', 'Old name-like',
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
-        'Strand', 'Path', 'Haplotype'
+        'Strand', 'Path', 'Haplotype',
+        'Reference Length', 'Old name-like Length'
     ]
     output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
@@ -155,6 +165,10 @@ def add_orf(row):
     """
     sequence, strand = row[['Old name-like seq', 'Strand']]
     sequence = Seq(sequence)
+    seq_length = len(sequence)
+    excess_aa = seq_length % 3
+    if excess_aa != 0:
+        sequence = sequence[:-excess_aa]
     if strand == "-":
         sequence = sequence.reverse_complement()
     aa = sequence.translate()
@@ -162,13 +176,12 @@ def add_orf(row):
     return row
 
 
-def filter_df(df):
+def filter_df(row):
     """
-    Filters the BLAST df to identify the best reference and creates 
+    Filters the BLAST row/section to identify the best reference and creates 
     a list of leftover similar references. First the Specific Part,
     which begins with the chosen cell type. It is determined from the 
-    Old name-like column. 
-    Then selects the best reference based on the presence of 
+    Old name-like column. Then selects the best reference based on the presence of 
     this 'Specific Part' in the 'Reference' column, sorting by 
     'Mismatches' and 'Reference' and taking the first hit. 
     If no specific hit is found, the first row of the df is 
@@ -177,21 +190,26 @@ def filter_df(df):
     constructed again.
 
     Args:
-        df (DataFrame): An df containing BLAST results.
+        row (pd.Series): The current section that is being filtered.
 
     Returns:
         best_row: the BLAST df with now the best reference chosen and 
         a extra column "Similar references" containing the list with similar 
         references.
     """
-    df['Specific Part'] = df['Old name-like'].apply(
-        lambda x: x.split('_')[2] if len(x.split('_')) > 2 else '')
-    best_row = df[df.apply(lambda x: x['Specific Part'] in x['Reference'], axis=1)] \
-        .sort_values(by=['Mismatches', 'Reference']).head(1)
+    row['Specific Part'] = row['Old name-like'].apply(
+        lambda x: ' '.join(x.split('_')[2:]) if len(x.split('_')) > 2 else '')
+    specific_part_in_reference = row.apply(
+        lambda x: x['Specific Part'] in x['Reference'], axis=1)
+    query_subject_length_equal = row['Reference seq'].str.len(
+    ) == row['Old name-like seq'].str.len()
+    filtered_rows = row[specific_part_in_reference & query_subject_length_equal]
+    best_row = filtered_rows.sort_values(by=['Mismatches', 'Reference']).head(1)
+
     if best_row.empty:
-        best_row = df.head(1)
+        best_row = row.head(1)
     all_references = ', '.join(
-        set(df['Reference']) - set(best_row['Reference']))
+        set(row['Reference']) - set(best_row['Reference']))
     best_row['Similar references'] = all_references
     best_row["Old name-like"] = best_row["Reference"] + "-like"
     return best_row.squeeze()
@@ -230,7 +248,9 @@ def annotation(df, annotation_folder, file_name):
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
-             'Strand', 'Region', 'Segment', 'Haplotype', 'Sample']]
+             'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
+             'Reference seq', 'Old name-like seq', 'Reference Length',
+             'Old name-like Length', "Library Length"]]
     df.to_excel(annotation_folder / file_name, index=False)
 
 
@@ -250,10 +270,20 @@ def rss(df, annotation_folder):
     df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
 
 
-def run_like_and_orf(df):
+def add_reference_length(row, record):
+    reference = row["Reference"]
+    row["Library Length"] = len(record[reference].seq)
+    return row
+
+
+def run_like_and_orf(df, record):
     df = add_like_to_df(df)
     df = df.apply(add_orf, axis=1)
     df = df.apply(add_region_segment, axis=1)
+    df = df.apply(add_reference_length, axis=1, record=record)
+    length_mask = df[["Reference Length",	"Old name-like Length",
+                      "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
+    df = df[length_mask]
     df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
     return df
 
@@ -283,10 +313,11 @@ def write_annotation_reports(annotation_folder):
     """
     cwd = Path.cwd()
     load_config(cwd)
+    record = make_record_dict(cwd / "library" / "library.fasta")
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = add_values(df)
     df, ref_df = main_df(df)
-    df, ref_df = run_like_and_orf(df), run_like_and_orf(ref_df)
+    df, ref_df = run_like_and_orf(df, record), run_like_and_orf(ref_df, record)
     annotation_long(df, annotation_folder)
     # df = group_similar(df)
     df, ref_df = group_similar(df), group_similar(ref_df)

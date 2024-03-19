@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 import pandas as pd
-from scripts.pipeline import *
 
 # Setting up the global config object. 
 configfile: 'config/config.yaml'
@@ -9,8 +8,7 @@ configfile: 'config/config.yaml'
 # Setup. Loading Accession, machine, flanking.
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
-FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values()]
-reference_species = config["REFERENCE"]["reference"]
+FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values() if gene]
 
 
 wildcard_constraints:
@@ -20,46 +18,54 @@ wildcard_constraints:
 # Target rule specifying the desired final output
 rule all:
     input:
-        expand("final/all_outputs_{accession}_{machine}_chr{chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, chrs=config["CHROMOSOMES"], haplo=config["HAPLOTYPES"]),
+        expand("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], haplo=config["HAPLOTYPES"]),
 
-rule downloadMmul10:
+rule downloadReference:
     output:
-        ref_report = "downloads/mmul10/reports/mmul10_assembly_report.txt",
-        ref = "downloads/mmul10/genome/mmul10.fna",
+        temp("downloads/reference/reference.zip"),
+        temp("downloads/reference/README.md"),
+        ref_report = "downloads/reference/reports/assembly_report.jsonl",
+        ref = "downloads/reference/genome/reference.fna",
+
     params:
-        report = config["REFERENCE"]["report"]
-        genome = config["REFERENCE"]["genome"]
-        zipped_ref = temp("downloads/mmul10/genome/mmul10.fna.gz")
+        reference_code = config["SPECIES"]["genome"],
+        prefix = "downloads/reference/ncbi_dataset/data"
+    conda:
+        "envs/NCBI.yaml"
     shell:
         """
-        wget {params.report} -P reports -O {output.ref_report}
-        wget {params.genome} -O {params.zipped_ref}
-        gunzip {params.zipped_ref}
+        mkdir -p downloads/reference/genome
+        cd downloads/reference
+        datasets download genome accession {params.reference_code} --include genome --filename reference.zip
+        cd ../../
+        datasets summary genome accession {params.reference_code} --report sequence --as-json-lines > {output.ref_report}
+        unzip downloads/reference/reference.zip -d downloads/reference/
+        mv {params.prefix}/{params.reference_code}/* {output.ref}
+        rm -r downloads/reference/ncbi*
         """
 
 
 rule splitChromosomes:
     input:
-        fa = "downloads/mmul10/genome/mmul10.fna",
-        report = ancient("downloads/mmul10/reports/mmul10_assembly_report.txt")
+        fa = "downloads/reference/genome/reference.fna",
+        report = ancient("downloads/reference/reports/assembly_report.jsonl")
     output:
-        fa = "downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta",
-        temp = "downloads/mmul10/chromosomes/mmul10_chr{chrs}.txt"
+        fa = "downloads/reference/chromosomes/reference_chr{all_chrs}.fasta",
+        temp = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
     conda:
         "envs/seqkit.yaml"
     shell:
         """
-        awk -F'\t' -v var={wildcards.chrs} '$1=="chr"var {{print $5}}' {input.report} > {output.temp}
-        awk -F'\t' -v var={wildcards.chrs} '$1~"chr"var"_" {{print $5}}' {input.report} >> {output.temp}
-        seqkit grep -f {output.temp} {input.fa} | sed "s/>/>chr{wildcards.chrs}_/g" > {output.fa}
+        cat {input.report} | egrep '"chr_name":"{wildcards.all_chrs}"' | jq -r ".refseq_accession"  > {output.temp}
+        seqkit grep -f {output.temp} {input.fa} | sed "s/>/>chr{wildcards.all_chrs}_/g" > {output.fa}
         """
 
 # Making new reference file.
 rule newReferenceFile:
     input:
-        expand("downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta", chrs = config["CHROMOSOMES"])
+        expand("downloads/reference/chromosomes/reference_chr{all_chrs}.fasta", all_chrs=config["ALL_CHROMOSOMES"])
     output:
-        "downloads/mmul10/genome/mmul10_new_ref.fasta"
+        "downloads/reference/genome/reference_new_ref.fasta"
     shell:
         """
         cat {input} > {output}
@@ -206,7 +212,7 @@ rule seqkitFiltered:
 rule minimap2:
     input:
         read = ancient("combined/{accession}_{machine}.combined.fastq.gz"),
-        mmul10 = ancient("downloads/mmul10/genome/mmul10_new_ref.fasta"),
+        reference = ancient("downloads/reference/genome/reference_new_ref.fasta"),
     output:
         temp("alignments/{accession}_{machine}.sam")
     log:
@@ -223,9 +229,9 @@ rule minimap2:
     shell:
         """
         if [[ "{wildcards.machine}" == "pacbio" ]]; then
-            minimap2 -ax {params.read_type_pacbio} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+            minimap2 -ax {params.read_type_pacbio} -t {threads} {input.reference} {input.read} > {output} 2> {log}
         elif [[ "{wildcards.machine}" == "nanopore" ]]; then
-            minimap2 -ax {params.read_type_nanopore} -t {threads} {input.mmul10} {input.read} > {output} 2> {log}
+            minimap2 -ax {params.read_type_nanopore} -t {threads} {input.reference} {input.read} > {output} 2> {log}
         fi
         """
 
@@ -267,26 +273,22 @@ rule sortIndexBam:
 checkpoint separateChrs:
     input:
         bam = ancient("alignments/sorted_{accession}_{machine}.bam"),
-        index_bam = temp("alignments/sorted_{accession}_{machine}.bam.bai"),
-        temp = "downloads/mmul10/chromosomes/mmul10_chr{chrs}.txt"
+        index_bam = "alignments/sorted_{accession}_{machine}.bam.bai",
+        reference = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
     output:
-        directory("temp/{accession}_{machine}_{chrs}")
+        directory("chromosomes/{accession}_{machine}_{all_chrs}")
     conda:
         "envs/samtools.yaml"
     threads: 
         8
     benchmark:
-        "benchmarks/05_{accession}_{machine}_chr{chrs}.time"
+        "benchmarks/05_{accession}_{machine}_chr{all_chrs}.time"
     shell:
         """
         mkdir -p {output}
-        for i in $(cat {input.temp}); do
+        for i in $(cat {input.reference}); do
             # Extract individual chrs
-            samtools view -b {input.bam} "chr"{wildcards.chrs}"_"$i > {output}/$i".bam"
-            #nummap=$(samtools view -h {output}/$i".bam" | grep -v "@" | wc -l || true)
-            #if [[ $nummap == "0" ]]; then
-            #    rm {output}/$i".bam"
-            #fi
+            samtools view -b {input.bam} "chr"{wildcards.all_chrs}"_"$i > {output}/$i".bam"
         done
         """
 
@@ -300,7 +302,7 @@ rule rejoinChrs:
     input:
         combineChrFragments
     output:
-        temp("{accession}_{machine}_chr{chrs}.bam"),
+        temp("{accession}_{machine}_chr{all_chrs}.bam"),
     conda:
         "envs/samtools.yaml"
     threads: 
@@ -311,53 +313,64 @@ rule rejoinChrs:
         samtools merge -@ {threads} -o {output} {input} 
         """
 
+
 rule chrFastq:
     input:
-        bam = "{accession}_{machine}_chr{chrs}.bam",
+        bam = ancient("{accession}_{machine}_chr{all_chrs}.bam"),
     output:
-        "converted/chr{chrs}_{accession}_{machine}.fastq.gz",
+        "converted/chr{all_chrs}_{accession}_{machine}.fastq.gz",
     conda:
         "envs/samtools.yaml"
     threads: 
         8
     benchmark:
-        "benchmarks/06_{accession}_{machine}_chr{chrs}_fastq.time"
+        "benchmarks/06_{accession}_{machine}_chr{all_chrs}_fastq.time"
     shell:
         """
         # Extract fastq
         samtools fastq -@ {threads} -0 {output} {input.bam}
         """
 
+rule allChromosomes:
+    input:
+        expand("{accession}_{machine}_chr{all_chrs}.bam", accession=ACCESSION, machine=MACHINE, all_chrs=config["ALL_CHROMOSOMES"])
+    output:
+        temp("final/allchromosomes.txt")
+    shell:
+        """
+        echo {input} | tr " " "\n" > {output}
+        """
 
 
 
 ## Hifiasm ultra long assembly
 rule hifiasmUlChromosomeAssembly:
     input:
-        pacbio = ancient("converted/chr{chrs}_{accession}_pacbio.fastq.gz"),
-        nanopore = ancient("converted/chr{chrs}_{accession}_nanopore.fastq.gz") 
+        "final/allchromosomes.txt",
+        pacbio = ancient("converted/chr{assembly_chrs}_{accession}_pacbio.fastq.gz"),
+        nanopore = ancient("converted/chr{assembly_chrs}_{accession}_nanopore.fastq.gz") 
     output:
-        "assembly/hifiasm/chr{chrs}/{accession}_chr{chrs}_hifiasmUL.bp.hap1.p_ctg.gfa", 
-        "assembly/hifiasm/chr{chrs}/{accession}_chr{chrs}_hifiasmUL.bp.hap2.p_ctg.gfa", 
+        "assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap1.p_ctg.gfa", 
+        "assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap2.p_ctg.gfa", 
     conda:
         "envs/hifiasm.yaml"
     log:
-        "logs/assembly/hifiasm/log_hifiasmUL_chr{chrs}_{accession}.log"
+        "logs/assembly/hifiasm/log_hifiasmUL_chr{assembly_chrs}_{accession}.log"
     threads:
         24
     benchmark:
-        "benchmarks/assembly_hifiasm_{accession}_chr{chrs}_hifiasmUL.time"
+        "benchmarks/assembly_hifiasm_{accession}_chr{assembly_chrs}_hifiasmUL.time"
     shell:
         """
-        hifiasm -o assembly/hifiasm/chr{wildcards.chrs}/{wildcards.accession}_chr{wildcards.chrs}_hifiasmUL -t {threads} --ul {input.nanopore}  {input.pacbio} 2> {log}
+        hifiasm -o assembly/hifiasm/chr{wildcards.assembly_chrs}/{wildcards.accession}_chr{wildcards.assembly_chrs}_hifiasmUL -t {threads} --ul {input.nanopore}  {input.pacbio} 2> {log}
         """
 
 
 rule gfaToFasta:
     input:
-        "assembly/hifiasm/chr{chrs}/{accession}_chr{chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa"
+        ancient("assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa")
     output:
-        "converted/gfatofasta/chr{chrs}_{accession}_hap{haplo}.fasta"
+        "converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta"
     conda:
         "envs/gfatools.yaml"
     shell:
@@ -371,10 +384,10 @@ rule gfaToFasta:
 # Quast
 rule quastAssemblyStatistics:
     input:
-        hap1 = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap1.fasta"),
-        hap2 = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap2.fasta")
+        hap1 = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap1.fasta"),
+        hap2 = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap2.fasta")
     output:
-        directory("quast/hifiasm/chr{chrs}_{accession}")
+        directory("quast/hifiasm/chr{assembly_chrs}_{accession}")
     conda:
         "envs/quast.yaml"
     shell:
@@ -385,32 +398,32 @@ rule quastAssemblyStatistics:
 # BUSCO
 rule BUSCO:
     input:
-        ancient("converted/gfatofasta/chr{chrs}_{accession}_hap{haplo}.fasta")
+        ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta")
     output:
-        directory("BUSCO/{accession}/chr{chrs}_{accession}_hap{haplo}")
+        directory("BUSCO/{accession}/chr{assembly_chrs}_{accession}_hap{haplo}")
     params:
         dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
     log:
-        "logs/BUSCO/log_busco_chr{chrs}_{accession}_hap{haplo}.log"
+        "logs/BUSCO/log_busco_chr{assembly_chrs}_{accession}_hap{haplo}.log"
     shell:
         """
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
         """
 
-# BUSCO mmul10
+# BUSCO reference
 rule BUSCOReference:
     input:
-        ancient("downloads/mmul10/chromosomes/mmul10_chr{chrs}.fasta")
+        ancient("downloads/reference/chromosomes/reference_chr{assembly_chrs}.fasta")
     output:
-        directory("BUSCO/mmul10/chr{chrs}")
+        directory("BUSCO/reference/chr{assembly_chrs}")
     params:
         dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
     log:
-        "logs/BUSCO/log_busco_mmul10_chr{chrs}.log"
+        "logs/BUSCO/log_busco_reference_chr{assembly_chrs}.log"
     shell:
         """
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
@@ -419,11 +432,11 @@ rule BUSCOReference:
 # Inspector
 rule inspector:
     input:
-        pacbio = ancient("converted/chr{chrs}_{accession}_pacbio.fastq.gz"),
-        nanopore = ancient("converted/chr{chrs}_{accession}_nanopore.fastq.gz"), 
-        contig = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap{haplo}.fasta")
+        pacbio = ancient("converted/chr{assembly_chrs}_{accession}_pacbio.fastq.gz"),
+        nanopore = ancient("converted/chr{assembly_chrs}_{accession}_nanopore.fastq.gz"), 
+        contig = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta")
     output:
-        directory("inspector/chr{chrs}_{accession}_hap{haplo}")
+        directory("inspector/chr{assembly_chrs}_{accession}_hap{haplo}")
     params:
         data_type = "mixed" 
     conda:
@@ -439,12 +452,15 @@ rule downloadFlankingGenes:
     output:
         "flanking/{fgene}/ncbi_dataset/data/gene.fna"
     conda:
-        "envs/flanking.yaml"
+        "envs/NCBI.yaml"
+    
+    params:
+        species_name = config["SPECIES"]["name"]
     shell:
         """
         mkdir -p flanking/{wildcards.fgene}
         cd flanking/{wildcards.fgene}
-        datasets download gene symbol {wildcards.fgene} --taxon "macaca mulatta" --include gene --filename {wildcards.fgene}.zip
+        datasets download gene symbol {wildcards.fgene} --taxon "{params.species_name}" --include gene --filename {wildcards.fgene}.zip
         unzip {wildcards.fgene}.zip
         """
 
@@ -468,16 +484,16 @@ rule combineFlankingGenes:
 
 rule flankingByChromosomes:
     input:
-        flanking = "flanking/all_flanking_genes.fna"
+        flanking = ancient("flanking/all_flanking_genes.fna")
     params:
-        chrs_id = "flanking/chr{chrs}_{accession}_flanking_genes_id.txt" 
+        chrs_id = "flanking/chr{assembly_chrs}_{accession}_flanking_genes_id.txt" 
     output:
-        "flanking/chr{chrs}_{accession}_flanking_genes.fna"
+        "flanking/chr{assembly_chrs}_{accession}_flanking_genes.fna"
     conda:
         "envs/seqtk.yaml"
     shell:
         """
-        chromosome_number=$(echo "{wildcards.chrs}" | egrep -o "[0-9]")
+        chromosome_number=$(echo "{wildcards.assembly_chrs}" | egrep -o "[0-9]")
         cat {input} | egrep "chromosome=$chromosome_number" | tr -d ">" > {params.chrs_id}
         seqtk subseq {input} {params.chrs_id} > {output}
         """
@@ -485,10 +501,10 @@ rule flankingByChromosomes:
 
 rule mapFlankingGenes:
     input:
-        reads = ancient("converted/gfatofasta/chr{chrs}_{accession}_hap{haplo}.fasta"),
-        flanking_genes = ancient("flanking/chr{chrs}_{accession}_flanking_genes.fna")
+        reads = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta"),
+        flanking_genes = ancient("flanking/chr{assembly_chrs}_{accession}_flanking_genes.fna")
     output:
-        sam_file = "flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.sam",
+        sam_file = temp("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam"),
     conda:
         "envs/minimap2.yaml"
     threads:
@@ -500,11 +516,11 @@ rule mapFlankingGenes:
 
 
 ## Generate regions
-rule contigFiles:
+rule regionFiles:
     input:
-        ancient("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.sam")
+        ancient("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam")
     output:
-        touch("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.txt")
+        temp(touch("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.txt"))
     conda:
         "envs/scripts.yaml"
     script:
@@ -513,7 +529,7 @@ rule contigFiles:
 
 rule combineRegion:
     input:
-        expand("flank_alignment/chr{chrs}_{accession}_hap{haplo}_aligned.txt", chrs=config["CHROMOSOMES"], accession=ACCESSION, haplo=config["HAPLOTYPES"])
+        expand("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.txt", assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], accession=ACCESSION, haplo=config["HAPLOTYPES"])
     output:
         temp("annotation/all_regions.txt")
     shell:
@@ -525,8 +541,8 @@ rule getLibrary:
     output:
         "library/library.fasta"
     params:
-        species = config["LIBRARY"]["species"],
-        cell_type = config["LIBRARY"]["cell_type"],
+        species = config["SPECIES"]["name"],
+        cell_type = config["SPECIES"]["cell"],
     conda:
         "envs/IMGT.yaml"
     shell:
@@ -537,8 +553,8 @@ rule getLibrary:
 
 rule annotation:
     input:
-        "annotation/all_regions.txt",
-        "library/library.fasta"
+        ancient("annotation/all_regions.txt"),
+        ancient("library/library.fasta")
     output:
         "annotation/annotation_report_plus.xlsx"
     conda:
@@ -549,13 +565,13 @@ rule annotation:
 
 rule fetchAllInput:
     input:
-        "annotation/annotation_report_plus.xlsx",
-        "QC/raw/{accession}_{machine}.stats",
-        "QC/filtered/filtered_{accession}_{machine}.stats",
-        "quast/hifiasm/chr{chrs}_{accession}",
-        "BUSCO/{accession}/chr{chrs}_{accession}_hap{haplo}",
-        "BUSCO/mmul10/chr{chrs}",
-        "inspector/chr{chrs}_{accession}_hap{haplo}",
+        ancient("annotation/annotation_report_plus.xlsx"),
+        ancient("QC/raw/{accession}_{machine}.stats"),
+        ancient("QC/filtered/filtered_{accession}_{machine}.stats"),
+        ancient("quast/hifiasm/chr{assembly_chrs}_{accession}"),
+        ancient("BUSCO/{accession}/chr{assembly_chrs}_{accession}_hap{haplo}"),
+        ancient("BUSCO/reference/chr{assembly_chrs}"),
+        ancient("inspector/chr{assembly_chrs}_{accession}_hap{haplo}"),
     output:
-        touch("final/all_outputs_{accession}_{machine}_chr{chrs}_hap{haplo}.txt")
+        touch("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt")
 

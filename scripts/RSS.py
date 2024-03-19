@@ -419,10 +419,11 @@ def make_reference_rss(ref_meme_directory):
         hits = result.stdout.replace(
             "-", "").replace("\t", "").strip().split("\n")
         hits = [hit for hit in hits if hit]
-        split_stem = meme.stem.split("_")
-        rss_variant = int(split_stem[1])
-        val1, val2 = get_reference_mers(hits[1], rss_variant)
-        make_ref_dict(meme.stem, ref_rss_dict, val1, val2)
+        if hits:
+            split_stem = meme.stem.split("_")
+            rss_variant = int(split_stem[1])
+            val1, val2 = get_reference_mers(hits[1], rss_variant)
+            make_ref_dict(meme.stem, ref_rss_dict, val1, val2)
     return ref_rss_dict
 
 

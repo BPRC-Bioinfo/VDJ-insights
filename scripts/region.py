@@ -40,16 +40,16 @@ def load_config(cwd):
 
 def write_seq(record_dict, name, start, stop, out):
     """
-    Get the record_dict from the used fasta file (record_dict). The name of contig, start and 
+    Get the record_dict from the used fasta file (record_dict). The name of region, start and 
     stop coordinates (name, start and stop) and output ("out") file. 
-    It parses the name of the contig to record_dict and fetches the needed contig sequence out of the record_dict.
+    It parses the name of the region to record_dict and fetches the needed region sequence out of the record_dict.
     The sequence and header are parsed and written to the fasta file 
-    "contig/{accession}_{region}_hap{hap}.fasta".
+    "region/{accession}_{region}_hap{hap}.fasta".
 
     Args:
         record_dict (dict): Dictionary containing the SeqIO information
         for a certain fasta file.
-        name (str): Name of the contig the current region is on.
+        name (str): Name of the region the current region is on.
         start (int): Start coordinate of the region of interest. 
         stop (int): End coordinate of the region of interest. 
         out (Path): Path of the output directory.
@@ -57,6 +57,41 @@ def write_seq(record_dict, name, start, stop, out):
     with open(out, 'w') as out:
         record = record_dict[name]
         out.write(f">{record.id}\n{record.seq[start:stop]}")
+
+
+def get_best_coords(sam_list):
+    """
+    Gets a list from a flanking gene with the mapping results. The list 
+    contains the contig that the flanking gene was found on, coordinates 
+    with the location of the flanking gene and the bitwise flag. 
+    The bitwise flag indicates how the mapping was done. For example 
+    flag flag 0 indicates a read is mapped in a normal forward orientation, 
+    16 is the reverse complement mapping, and 2064 signifies a 
+    duplicate read in a read pair. If the sam list is larger that 4, 
+    it means that the flanking gene is found multiple times.
+    It chooses the best bitwise flag 0 or 16. 
+    It returns the best coordinates and the contig name of 
+    these best coordinates.
+
+    Args:
+        sam_list (list): List containing the bitwise flag(s),
+        coordinates and contig name(s), for a flanking gene.
+
+    Returns:
+        best[2:] (Slice): Slice of the best hit in the sam list. 
+        It contains only the coordinates.
+        contig_name (str): The name of the contig of the best hit in 
+        the sam list. 
+    """
+    bitwise_flag = float("inf")
+    best = list()
+    for i in range(0, len(sam_list), 4):
+        sublist = sam_list[i:i+4]
+        sam_bitwise = int(sublist[0])
+        if sam_bitwise < bitwise_flag:
+            bitwise_flag, contig_name, best = (
+                sam_bitwise, sublist[1], sublist)
+    return best[2:], contig_name
 
 
 def get_positions_and_name(genes, sam, record_dict):
@@ -67,7 +102,7 @@ def get_positions_and_name(genes, sam, record_dict):
     (start or end) and the flanking gene name. First there is checked if there 
     is no flaking gene name. If this is the case for a start position 
     a 0 appended to the coord list, if this is for the end position 
-    the end of the contig is determined based on the contig name of
+    the end of the region is determined based on the contig name of
     the start contig and appended to coord list. If the flanking gene 
     name is present the start, end and name are retrieved from sam
     with help of awk and appended to the coord and name list.
@@ -83,11 +118,10 @@ def get_positions_and_name(genes, sam, record_dict):
 
     Returns:
         coords (list): List containing the coordinates of the 
-        flanking gene(s), begin or end of the contig.
-        name (list): List containing the name of the contigs
+        flanking gene(s), begin or end of the region.
+        name (list): List containing the name of the regions
     """
-    coords, name = list(), list()
-    contig_name = ""
+    coords, name, best_coords, contig_name = list(), list(), list(), ""
     for position, flank in genes.items():
         if position == "start" and flank == "":
             coords.append(0)
@@ -95,13 +129,14 @@ def get_positions_and_name(genes, sam, record_dict):
             record = record_dict[contig_name]
             coords.append(len(record.seq))
         else:
-            awk = "awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $3, $4, $4 + length($10) - 1}}'"
+            awk = "awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $2, $3, $4, $4 + length($10) - 1}}'"
             command = f"cat {sam} | egrep '{flank}' | {awk}"
             line = subprocess.run(command, shell=True,
                                   capture_output=True, text=True)
-            splitted = line.stdout.strip().split()
-            contig_name = splitted[0]
-            coords.extend([int(i) for i in splitted[1:]]
+            sam_list = line.stdout.strip().split()
+            if sam_list:
+                best_coords, contig_name = get_best_coords(sam_list)
+            coords.extend([int(i) for i in best_coords]
                           ), name.append(contig_name)
     return coords, name
 
@@ -110,12 +145,12 @@ def process(cwd, chrom, hap, sam, config):
     """
     Loops over the config dictionary with the parsed chromosome. 
     It first parses the given sam file to make_record_dict to construct a list 
-    containing the name of the contig ("name"), the start and stop coordinates 
+    containing the name of the region ("name"), the start and stop coordinates 
     based on the start and stop coordinates. 
-    Then is checked if the contig names are on the same contig and the 
-    region of interest in on the same contig. If this is not the case a 
+    Then is checked if the region names are on the same region and the 
+    region of interest in on the same region. If this is not the case a 
     message is given, that is was not able to construct a region. 
-    Otherwise it parses the name of the contig 
+    Otherwise it parses the name of the region 
     and min and max values from the coords list.
 
     Args:
@@ -127,18 +162,19 @@ def process(cwd, chrom, hap, sam, config):
         config (Dict): Dictionary containing the chromosomes with their 
         region of interest and their start and stop flanking genes.
     """
+    chromosome, sample, haplotype = snakemake.wildcards
     ffile = cwd / "converted" / "gfatofasta" / \
-        f"{chrom}_EAW_hap{hap}.fasta"
+        f"{chrom}_{sample}_hap{hap}.fasta"
     record_dict = make_record_dict(ffile)
     for region, value in config[chrom].items():
         coords, name = get_positions_and_name(value, sam, record_dict)
         if len(set(name)) == 1:
-            directory = cwd / "contig"
+            directory = cwd / "region"
             make_dir(directory)
-            outfile = directory / f"EAW_{region}_hap{hap}.fasta"
+            outfile = directory / f"{sample}_{region}_hap{hap}.fasta"
             write_seq(record_dict, name[0], min(coords), max(coords), outfile)
         else:
-            print("Broken contig, can't create region!")
+            print("Broken region, can't create region!")
 
 
 def main():

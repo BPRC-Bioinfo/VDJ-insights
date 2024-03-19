@@ -230,13 +230,13 @@ def scrape_IMGT(species, immune_type, directory, frame):
         species (str): The chosen species, which is choses from the
         argparse list for species.
         immune_type (str): The type of receptor that is being used. 
-        Either TCR or IG.
+        Either TR or IG.
         directory (Path): Path to the directory.
         frame (str): the chosen frame, which is choses from the argparse
         list for regarding frame.
     """
     segments = {
-        "TCR": [
+        "TR": [
             "TRBV", "TRBJ", "TRBD", "TRAV", "TRAJ",
             "TRDD", "TRDJ", "TRDV", "TRGV", "TRGJ"
         ],
@@ -324,11 +324,11 @@ def argparser_setup():
         'Homo sapiens', 'Mus', 'Bos taurus',
         'Ovis aries', 'Danio rerio', 'Canis lupus familiaris',
         'Macaca mulatta', 'Tursiops truncatus', 'Oryctolagus cuniculus',
-        'Heterocephalus glaber'
+        'Heterocephalus glaber', 'Macaca fascicularis',
     ]
 
     parser = argparse.ArgumentParser(
-        description='Scrape IMGT for TCR and IG segment sequences of a given species.',
+        description='Scrape IMGT for TR and IG segment sequences of a given species.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Grouping arguments
@@ -338,8 +338,8 @@ def argparser_setup():
     # Species options
     required_group.add_argument('-S', "--species", type=to_capital, choices=latin_names, required=True,
                                 help='Name of the species to scrape for (e.g., "Homo sapiens"). Capitalization is handled automatically.')
-    required_group.add_argument('-T', '--type', type=str.upper, choices=['TCR', 'IG'], required=True,
-                                help='Type of sequence to scrape: TCR (T-cell receptor) or IG (Immunoglobulin).')
+    required_group.add_argument('-T', '--type', type=str.upper, choices=['TR', 'IG'], required=True,
+                                help='Type of sequence to scrape: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     # Output options
     optional_group.add_argument('-O', '--output', type=validate_directory,
