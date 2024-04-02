@@ -33,7 +33,7 @@
 - [@Giang Le](https://github.com/GiangLeN)
 
 ## Abstract
-The VDJ-AAAP pipeline offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). Designed to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors/immunoglobulins (Ig), this versatile tool supports analysis across various species, given the availability of a reference genome and assembly report on NCBI. Configuration adjustments are facilitated through a user-friendly **`config.yaml`** file, enabling tailored pipeline functionality to suit specific research needs.
+The VDJ-AAAP pipeline offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). Designed to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors/immunoglobulins (Ig), this part is still in beta. This versatile tool supports analysis across various species, given the availability of a reference genome and assembly report on NCBI. Configuration adjustments are facilitated through a user-friendly **`config.yaml`** file, enabling tailored pipeline functionality to suit specific research needs.
 
 Addressing the challenge of assembling the repetitive VDJ regions, the pipeline selectively processes reads exceeding 5 Kbs, minimizing erroneous mappings and noise. It generates a refined reference genome, preserving only known chromosomes and specified fragments to prevent assembly inaccuracies. Utilizing minimap2, reads are meticulously mapped against this curated reference in a dual-phase approach tailored to each read type, ensuring accurate localization.
 
@@ -193,15 +193,10 @@ The pipeline creates a lot of important files locateded in different directories
 ├── annotation
 ├── assembly
 ├── benchmarks
-├── blast_db
-├── bowtie
-├── bowtie2
-├── bowtie2_db
-├── bowtie_db
 ├── BUSCO
 ├── busco_downloads
+├── chromosomes
 ├── config
-├── contig
 ├── converted
 ├── downloads
 ├── envs
@@ -212,15 +207,14 @@ The pipeline creates a lot of important files locateded in different directories
 ├── inspector
 ├── library
 ├── logs
-├── minimap2
+├── mapping
 ├── QC
 ├── quast
-├── raws
 ├── results
+├── region
 ├── RSS
 ├── scripts
-├── split_files
-└── temp
+└── split_files
 ```
 ### Annotation
 One of the most important parts of the pipeline is the finding of novel VDJ gene segments. The result of the findings are located in the folder called **annotation**. In this directory, are the following excel files located.
