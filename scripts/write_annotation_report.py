@@ -4,14 +4,25 @@ import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
+import sys
+from logger import custom_logger
+
+# Method for logger current states of the program.
+logger = custom_logger(__name__)
 
 CONFIG = None
+pd.options.mode.copy_on_write = True
 
 
 def load_config(cwd):
     global CONFIG
-    with open(cwd / 'config' / 'config.yaml', 'r') as file:
-        CONFIG = yaml.safe_load(file)
+    config_file = Path(cwd / 'config' / 'config.yaml')
+    if config_file.exists():
+        with open(config_file, 'r') as file:
+            CONFIG = yaml.safe_load(file)
+    else:
+        logger.error("No configuration file provided, closing application!")
+        sys.exit()
 
 
 def make_record_dict(fasta):
@@ -41,9 +52,10 @@ def add_region_segment(row):
     options = (cell_type, "LOC")
     query = row['Old name-like']
     prefix = [i for i in query.split("_") if i.startswith(options)][0]
+    short_name = prefix
     prefix = re.sub(r"[0-9-]", "", prefix)
     region, segment = prefix[0:3], prefix[3]
-    row["Region"], row["Segment"] = region, segment
+    row["Region"], row["Segment"], row["Short name"] = region, segment, short_name
     return row
 
 
@@ -149,6 +161,35 @@ def add_like_to_df(df):
     return output_df
 
 
+def orf_function(aa, segment):
+    end_codon = aa[-1] == "*" and aa.count("*") == 1
+    function_dict = {
+        "V": "F/ORF" if end_codon or not "*" in aa else "P",
+        "D": "PF/ORF",
+        "J": "PF/ORF"
+    }
+    function_type = function_dict.get(segment, "Unknown")
+    message = ""
+    if end_codon:
+        if segment not in function_dict:
+            message = "Segment not recognized."
+        else:
+            message = "STOP-CODON at position 116 (last 3' codon of germline CDR3-IMGT) may disappear during rearrangements"
+    return message, function_type
+
+
+def trim_sequence(sequence, strand):
+    sequence = Seq(sequence)
+    seq_length = len(sequence)
+    excess_aa = seq_length % 3
+    if strand == "-":
+        sequence = sequence.reverse_complement()
+    if excess_aa != 0:
+        sequence = sequence[:-excess_aa]
+    aa = sequence.translate()
+    return aa, sequence
+
+
 def add_orf(row):
     """
     Check if the sequence contains a * when translated to amino acids. 
@@ -163,16 +204,11 @@ def add_orf(row):
     Returns:
         row (Series): The row with the extra "Function" column.
     """
-    sequence, strand = row[['Old name-like seq', 'Strand']]
-    sequence = Seq(sequence)
-    seq_length = len(sequence)
-    excess_aa = seq_length % 3
-    if excess_aa != 0:
-        sequence = sequence[:-excess_aa]
-    if strand == "-":
-        sequence = sequence.reverse_complement()
-    aa = sequence.translate()
-    row["Function"] = "F/ORF" if "*" not in aa else "P"
+    sequence, strand, segment = row[['Old name-like seq', 'Strand', "Segment"]]
+    aa, sequence = trim_sequence(sequence, strand)
+    message, function_type = orf_function(aa, segment)
+    row["Function"] = function_type
+    row["Message"] = message
     return row
 
 
@@ -197,8 +233,7 @@ def filter_df(row):
         a extra column "Similar references" containing the list with similar 
         references.
     """
-    row['Specific Part'] = row['Old name-like'].apply(
-        lambda x: ' '.join(x.split('_')[2:]) if len(x.split('_')) > 2 else '')
+    row['Specific Part'] = row["Region"] + row["Segment"]
     specific_part_in_reference = row.apply(
         lambda x: x['Specific Part'] in x['Reference'], axis=1)
     query_subject_length_equal = row['Reference seq'].str.len(
@@ -211,8 +246,35 @@ def filter_df(row):
     all_references = ', '.join(
         set(row['Reference']) - set(best_row['Reference']))
     best_row['Similar references'] = all_references
-    best_row["Old name-like"] = best_row["Reference"] + "-like"
+    best_row["Old name-like"] = best_row["Reference"]
+    if int(best_row.Mismatches.iloc[0]) != 0:
+        best_row["Old name-like"] = best_row["Reference"] + "-like"
+        best_row["Short name"] = best_row["Short name"] + "-like"
     return best_row.squeeze()
+
+
+def add_reference_length(row, record):
+    reference = row["Reference"]
+    row["Library Length"] = len(record[reference].seq)
+    return row
+
+
+def run_like_and_length(df, record):
+    df = add_like_to_df(df)
+    df = df.apply(add_region_segment, axis=1)
+    df = df.apply(add_reference_length, axis=1, record=record)
+    length_mask = df[["Reference Length",	"Old name-like Length",
+                      "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
+    df = df[length_mask]
+    df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
+    return df
+
+
+def group_similar(df):
+    df = df.groupby(['Start coord', 'End coord']).apply(
+        filter_df)
+    df = df.reset_index(drop=True)
+    return df
 
 
 def annotation_long(df, annotation_folder):
@@ -226,10 +288,11 @@ def annotation_long(df, annotation_folder):
         df (DataFrame): An df containing BLAST results.
         annotation_folder (Path): Path to the annotation_report_long.xlsx file 
     """
+    logger.info("Generating annotation_report_long.xlsx!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
-             'Haplotype', 'Sample']]
+             'Haplotype', 'Sample', 'Short name', 'Message']]
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
@@ -245,53 +308,15 @@ def annotation(df, annotation_folder, file_name):
         annotation_folder (Path): Path to the annotation_report.xlsx file.
         file_name (str): Name of the excel file the df is written to. 
     """
+    logger.info(f"Generating {file_name}!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
              'Reference seq', 'Old name-like seq', 'Reference Length',
-             'Old name-like Length', "Library Length"]]
+             'Old name-like Length', 'Library Length',
+             'Short name', 'Message']]
     df.to_excel(annotation_folder / file_name, index=False)
-
-
-def rss(df, annotation_folder):
-    """
-    Generates a condensed df for the 
-    "RSS_report.xlsx" file, 
-    selecting only the specific columns needed for
-    "RSS_report.xlsx".
-
-    Args:
-        df (DataFrame): An df containing BLAST results.
-        annotation_folder (Path): Path to the annotation_report.xlsx file.
-    """
-    df = df[['Reference', 'Old name-like', 'Start coord',
-             'End coord', 'Strand', 'Path', 'Function', 'Region', 'Segment', 'Sample']]
-    df.to_excel(annotation_folder / 'RSS_report.xlsx', index=False)
-
-
-def add_reference_length(row, record):
-    reference = row["Reference"]
-    row["Library Length"] = len(record[reference].seq)
-    return row
-
-
-def run_like_and_orf(df, record):
-    df = add_like_to_df(df)
-    df = df.apply(add_orf, axis=1)
-    df = df.apply(add_region_segment, axis=1)
-    df = df.apply(add_reference_length, axis=1, record=record)
-    length_mask = df[["Reference Length",	"Old name-like Length",
-                      "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
-    df = df[length_mask]
-    df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
-    return df
-
-
-def group_similar(df):
-    df = df.groupby(['Start coord', 'End coord']).apply(filter_df)
-    df.reset_index(drop=True, inplace=True)
-    return df
 
 
 def write_annotation_reports(annotation_folder):
@@ -317,13 +342,13 @@ def write_annotation_reports(annotation_folder):
     df = pd.read_excel(annotation_folder / "blast_results.xlsx")
     df = add_values(df)
     df, ref_df = main_df(df)
-    df, ref_df = run_like_and_orf(df, record), run_like_and_orf(ref_df, record)
+    df, ref_df = run_like_and_length(
+        df, record), run_like_and_length(ref_df, record)
+    df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
     annotation_long(df, annotation_folder)
-    # df = group_similar(df)
     df, ref_df = group_similar(df), group_similar(ref_df)
     annotation(df, annotation_folder, 'annotation_report.xlsx')
     annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
-    rss(df, annotation_folder)
 
 
 if __name__ == '__main__':

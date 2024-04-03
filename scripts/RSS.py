@@ -1,10 +1,15 @@
 import re
+import sys
 import yaml
 import subprocess
 import pandas as pd
 from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
+from logger import custom_logger
+
+# Method for logger current states of the program.
+logger = custom_logger(__name__)
 
 # Global config settings set from config/config.yaml
 CONFIG = None
@@ -22,9 +27,14 @@ def load_config(cwd):
     """
     global CONFIG
     global OPTIONS
-    with open(cwd / 'config' / 'config.yaml', 'r') as file:
-        CONFIG = yaml.safe_load(file)
-        OPTIONS = set(CONFIG.get("RSS_LAYOUT", {}).keys())
+    config_file = Path(cwd / 'config' / 'config.yaml')
+    if config_file.exists():
+        with open(config_file, 'r') as file:
+            CONFIG = yaml.safe_load(file)
+            OPTIONS = set(CONFIG.get("RSS_LAYOUT", {}).keys())
+    else:
+        logger.error("No configuration file provided, closing application!")
+        sys.exit()
 
 
 def create_directory(location):
@@ -296,7 +306,8 @@ def run_meme(out, rss_file, rss_variant):
         subprocess.run(multi_command, shell=True, check=True,
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        subprocess.run(single_command, shell=True, stdout=subprocess.PIPE)
+        subprocess.run(single_command, shell=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def get_reference_mers(regex_string, rss_variant):
@@ -427,6 +438,23 @@ def make_reference_rss(ref_meme_directory):
     return ref_rss_dict
 
 
+def seperate_pattern(pattern):
+    seperated = list()
+    for part in pattern.split('['):
+        if ']' in part:
+            reg, rest = part.split(']', 1)
+            seperated.append(f'[{reg}]')
+            seperated.extend(rest)
+        else:
+            seperated.extend(part)
+    return seperated
+
+
+def rss_mismatch(rss, pattern):
+    pattern, rss = seperate_pattern(pattern), [*rss]
+    return [bool(re.match(x, i)) for x, i in zip(pattern, rss)].count(False)
+
+
 def check_ref_rss(row, ref_rss_dict, rss_variant):
     """
     Compares the heptamer and nonamers from the current row with the 
@@ -451,12 +479,12 @@ def check_ref_rss(row, ref_rss_dict, rss_variant):
     for i in ["heptamer", "nonamer"]:
         ref_seq = ref[i]
         query_seq = row[f"{rss_variant}_{i}"]
-        matches = re.findall(ref_seq, query_seq)
+        matches = rss_mismatch(query_seq, ref_seq)
         row[f"{rss_variant}_ref_{i}"] = ref_seq
-        if matches:
-            row[f"{rss_variant}_{i}_matched"] = True
-        else:
+        if matches > 1:
             row[f"{rss_variant}_{i}_matched"] = False
+        else:
+            row[f"{rss_variant}_{i}_matched"] = True
     return row
 
 
@@ -596,6 +624,31 @@ def create_all_RSS_meme_files(cwd, df):
     return base / meme_directories[0]
 
 
+def update_df(df, ref_rss_dict):
+    df = df.apply(lambda row: add_base_rss_parts(row), axis=1)
+    df = df.apply(
+        lambda row: apply_check_ref_rss(
+            row, ref_rss_dict), axis=1)
+    return df
+
+
+def create_rss_excel_file(cwd, df, filename):
+    logger.info(f"Generating {filename}_plus.xlsx!")
+    final_df = combine_df(df, pd.read_excel(
+        cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
+    final_df.to_excel(cwd / 'annotation' /
+                      f'{filename}_plus.xlsx', index=False)
+
+
+def check_if_exists(filename):
+    if Path(filename).exists():
+        return filename
+    else:
+        logger.error(
+            f"The {filename} file that is provided does not exist, closing application!")
+        sys.exit()
+
+
 def RSS_main():
     """
     Main function of the RSS creation script. It first sets 
@@ -619,18 +672,15 @@ def RSS_main():
     """
     cwd = Path.cwd()
     load_config(cwd)
-    df = pd.read_excel(cwd / 'annotation' / 'RSS_report.xlsx')
-    ref_meme_directory = create_all_RSS_meme_files(cwd, df)
-    df = df.apply(lambda row: add_base_rss_parts(row), axis=1)
+    df1 = pd.read_excel(check_if_exists(
+        cwd / 'annotation' / 'annotation_report.xlsx'))
+    df2 = pd.read_excel(check_if_exists(
+        cwd / 'annotation' / 'annotation_report_100%.xlsx'))
+    ref_meme_directory = create_all_RSS_meme_files(cwd, df1)
     ref_rss_dict = make_reference_rss(ref_meme_directory)
-    df = df.apply(
-        lambda row: apply_check_ref_rss(
-            row, ref_rss_dict), axis=1)
-    filename = "annotation_report"
-    final_df = combine_df(df, pd.read_excel(
-        cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
-    final_df.to_excel(cwd / 'annotation' /
-                      f'{filename}_plus.xlsx', index=False)
+    for df, filename in zip([df1, df2], ["annotation_report", "annotation_report_100%"]):
+        df = update_df(df, ref_rss_dict)
+        create_rss_excel_file(cwd, df, filename)
 
 
 if __name__ == '__main__':

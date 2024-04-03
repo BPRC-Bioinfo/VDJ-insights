@@ -1,23 +1,26 @@
 import re
+import sys
 import yaml
-import logging
 import subprocess
 import pandas as pd
 from Bio import SeqIO
 from pathlib import Path
-
+from logger import custom_logger
 CONFIG = None
 
-# Method for logging current states of the program.
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# Method for logger current states of the program.
+logger = custom_logger(__name__)
 
 
 def load_config(cwd):
     global CONFIG
-    with open(cwd / 'config' / 'config.yaml', 'r') as file:
-        CONFIG = yaml.safe_load(file)
+    config_file = Path(cwd / 'config' / 'config.yaml')
+    if config_file.exists():
+        with open(config_file, 'r') as file:
+            CONFIG = yaml.safe_load(file)
+    else:
+        logger.error("No configuration file provided, closing application!")
+        sys.exit()
 
 
 class MappingFiles:
@@ -66,24 +69,24 @@ def get_region_and_segment(name):
     """
     Takes in a name of a potential segment and find the region and
     segment name in that. The name must contain a part which start 
-    with either a "TR" or "LOC". If a part starts with TR the region 
-    and segment is returned otherwise return "LOC" and "-"
+    with the given cell type. If a part starts with the cell type the region 
+    and segment is returned otherwise it returns "other" and "-".
 
     Args:
         name (str): Potential name of a segment.
 
     Returns:
         str, str: Return either a region name, segment name as string 
-        or LOC and - as str.
+        or other and - as str.
     """
     cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
-    options = (cell_type, "LOC")
-    prefix = [i for i in name.split("_") if i.startswith(options)][0]
-    prefix = re.sub(r"[0-9]", "", prefix)
-    if prefix.startswith(cell_type):
-        return prefix[0:3], prefix[3]
+    prefix = [i for i in name.split("_") if i.startswith(cell_type)]
+    if prefix:
+        prefix = re.sub(r"[0-9]", "", prefix[0])
+        if prefix.startswith(cell_type):
+            return prefix[0:3], prefix[3]
     else:
-        return "LOC", "-"
+        return "other", "-"
 
 
 def parse_bed(file_path, accuracy, fasta, mapping_type):
@@ -121,15 +124,16 @@ def parse_bed(file_path, accuracy, fasta, mapping_type):
 def run_command(command):
     """
     Tries to run a certain command with subprocess, if this fails it 
-    throws a logging error saying failed with exit code.
+    throws a logger error saying failed with exit code.
 
     Args:
         command (str): A string containing the command.
     """
     try:
-        subprocess.run(command, shell=True)
+        subprocess.run(command, shell=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        logging.error(
+        logger.error(
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
@@ -251,15 +255,14 @@ def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type):
 def make_df(all_entries):
     """
     Make a pandas dataframe (df) based on the given list of entries. 
-    Duplicates based on a subset of ["name", "start", "stop"]
-    are removed. Also the index of the df is reset.
+    Also the index of the df is reset.
 
     Args:
         all_entries (list[list]): A nested list which contains all the 
         information from this bedfile.
 
     Returns:
-        _type_: _description_
+        pd.DataFrame: pandas dataframe containing all. 
     """
     headers = [
         "reference",
@@ -278,11 +281,10 @@ def make_df(all_entries):
 
     ]
     df = pd.DataFrame(all_entries, columns=headers)
-    unique_combinations = df.drop_duplicates(subset=["name", "start", "stop"])
-    return unique_combinations.reset_index(drop=True)
+    return df.reset_index(drop=True)
 
 
-def run(cwd, indir, outdir, rfasta, beddir, acc, mapping_type):
+def run(indir, outdir, rfasta, beddir, acc, mapping_type):
     """
     Loop over the "indir" directory which contains all
     the region of interest fasta files. Create the index directories,
@@ -317,10 +319,10 @@ def run(cwd, indir, outdir, rfasta, beddir, acc, mapping_type):
                 run_command(command)
         if files.bed.exists():
             entries = parse_bed(files.bed, acc, fasta, mapping_type)
-            logging.info(f"Parsed {len(entries)} entries from {files.bed}")
+            logger.info(f"Parsed {len(entries)} entries from {files.bed}")
             yield entries
         else:
-            logging.warning(f"Required file missing: {files.bed}")
+            logger.warning(f"Required file missing: {files.bed}")
             yield list()
 
 
@@ -334,7 +336,7 @@ def create_directory(location):
     Path(location).mkdir(parents=True, exist_ok=True)
 
 
-def mapping_main(mapping_type):
+def mapping_main(mapping_type, input_dir, library, start=100, stop=0):
     """
     Main function to run the mapping script. It takes a mapping type in 
     as an argument to determine which type script to run. It created a 
@@ -356,15 +358,14 @@ def mapping_main(mapping_type):
     """
     cwd = Path.cwd()
     load_config(cwd)
-    outdir = cwd / f"{mapping_type}_db"
-    indir = cwd / "region"
-    rfasta = cwd / "library" / "library.fasta"
-    start, stop = 100, 0
+    outdir = cwd / "mapping" / f"{mapping_type}_db"
+    indir = cwd / input_dir
+    rfasta = cwd / library
     all_entries = []
     for acc in range(start, stop - 1, -1):
-        beddir = cwd / mapping_type / f"{acc}%acc"
+        beddir = cwd / "mapping" / mapping_type / f"{acc}%acc"
         create_directory(beddir)
-        for current_entry in run(cwd, indir, outdir, rfasta, beddir, acc, mapping_type):
+        for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type):
             all_entries.extend(current_entry)
     df = make_df(all_entries)
     return df
