@@ -1,51 +1,13 @@
 import time
 import requests
 from bs4 import BeautifulSoup
-import logging
 import argparse
 from pathlib import Path
 from urllib.parse import urlencode
 from Bio import SeqIO
+from logger import custom_logger
 
-# Custom formatter for the logging module
-
-COLORS = {
-    'WARNING': '\033[93m',
-    'INFO': '\033[92m',
-    'DEBUG': '\033[94m',
-    'CRITICAL': '\033[91m',
-    'ERROR': '\033[91m',
-    'ENDC': '\033[0m',
-}
-
-
-class CustomFormatter(logging.Formatter):
-    def format(self, record):
-        levelname = record.levelname
-        message = logging.Formatter.format(self, record)
-        return f"{COLORS.get(levelname, '')}{message}{COLORS['ENDC']}"
-
-
-# Configure root logger
-logging.basicConfig(level=logging.DEBUG)
-
-# Get the root logger
-logger = logging.getLogger()
-
-# Create console handler with a higher log level
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-
-# Create formatter and add it to the handler
-formatter = CustomFormatter(
-    '%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-
-# Remove all handlers associated with the root logger
-logger.handlers = []
-
-# Add the custom handler to the root logger
-logger.addHandler(handler)
+logger = custom_logger(__name__)
 
 
 def make_dir(dir):
@@ -71,7 +33,7 @@ def cleanup(directory):
     for file in directory.glob("*.fasta"):
         Path(file).unlink()
     Path(directory).rmdir()
-    logging.info(
+    logger.info(
         f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
@@ -110,7 +72,7 @@ def create_library(directory: Path, simple_headers):
                 if simple_headers:
                     record.description = edit_header(record.description)
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
-    logging.info("Creating a library from generated files.")
+    logger.info("Creating a library from generated files.")
 
 
 def construct_url(segment, species, frame):
@@ -159,7 +121,7 @@ def scrape(response):
     for p in paragraphs:
         seq = p.text.strip()
         if ">" in seq:
-            logging.info(f"Succeeded to retrieve sequences from IMGT")
+            logger.info(f"Succeeded to retrieve sequences from IMGT")
             return seq
 
 
@@ -176,7 +138,7 @@ def write_sequence(name, directory, sequence):
         for a current VDJ segment.
     """
     file = directory / f"{name}.fasta"
-    logging.info(f"Writing sequences from {name} to {file.name}")
+    logger.info(f"Writing sequences from {name} to {file.name}")
     with open(file, 'w') as f:
         f.write(str(sequence) + "\n")
 
@@ -206,11 +168,11 @@ def fetch_sequence(segment, directory, species, frame):
         if sequence:
             write_sequence(segment, directory, sequence)
         else:
-            logging.warning(f"No sequences found for {segment} of {species}.")
+            logger.warning(f"No sequences found for {segment} of {species}.")
     else:
-        logging.warning(
+        logger.warning(
             f"Failed to fetch data for {segment} of {species}. Status code: {response.status_code}")
-    logging.info("Waiting 2 seconds to avoid overloading the IMGT server!")
+    logger.info("Waiting 2 seconds to avoid overloading the IMGT server!")
     time.sleep(2)
 
 
@@ -246,15 +208,15 @@ def scrape_IMGT(species, immune_type, directory, frame):
         ]
     }
     if not directory.exists():
-        logging.info(f"Folder {directory.name} does not exist, creating it!")
+        logger.info(f"Folder {directory.name} does not exist, creating it!")
         make_dir(directory)
     for segment in segments[immune_type]:
-        logging.info(
+        logger.info(
             f"Retrieving sequences from IMGT for the {segment} of {species}")
         if not Path(directory / f"{segment}.fasta").exists():
             fetch_sequence(segment, directory, species, frame)
         else:
-            logging.info(f"File {segment}.fasta already exists skipping!")
+            logger.info(f"File {segment}.fasta already exists skipping!")
             time.sleep(2)
 
 
@@ -370,7 +332,7 @@ def main():
     need to be removed. Lastly there is logged that the scrape is finished.
     """
     args = argparser_setup()
-    logging.info(
+    logger.info(
         f"Starting scrape for species: {args.species}, type: {args.type}")
 
     output_dir = Path(args.output) if args.output else Path.cwd(
@@ -384,7 +346,7 @@ def main():
     if args.cleanup:
         cleanup(output_dir)
 
-    logging.info("Scrape completed successfully.")
+    logger.info("Scrape completed successfully.")
 
 
 if __name__ == '__main__':

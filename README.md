@@ -253,7 +253,7 @@ annotation/
 This pipeline also creates individual plots and a interactive plot to showcase the results.
 
 ### Single plots
-Work in progress!
+![Logo](images/single.png)
 
 ### Interactive plot
 The interactive plot is automtically generated based on the results in the **annotation_report_plots.xlsx**.

@@ -6,9 +6,14 @@ from RSS import RSS_main
 from write_annotation_report import write_annotation_reports
 from pathlib import Path
 import pandas as pd
+import argparse
+from logger import custom_logger
+
+# Method for logger current states of the program.
+logger = custom_logger(__name__)
 
 
-def combine_df():
+def combine_df(mapping_tools, input_dir, library):
     """
     Calling the mapping script annotation.py. This script is called 
     with either "bowtie", "bowtie2" or "minimap2" as input value. 
@@ -22,11 +27,11 @@ def combine_df():
         unique_combinations (DataFrame): A df containing all the unique
         mapping entries from bowtie(2) and minimap2.
     """
-    minimap2_df = mapping_main("minimap2")
-    bowtie_df = mapping_main("bowtie")
-    bowtie2_df = mapping_main("bowtie2")
-    combined = pd.concat([minimap2_df, bowtie_df, bowtie2_df])
-    unique_combinations = combined.drop_duplicates(subset=["start", "stop"])
+    df = pd.DataFrame()
+    for tool in mapping_tools:
+        mapping_df = mapping_main(tool, input_dir, library)
+        df = pd.concat([df, mapping_df])
+    unique_combinations = df.drop_duplicates(subset=["start", "stop"])
     return unique_combinations.reset_index(drop=True)
 
 
@@ -42,7 +47,7 @@ def write_report(df, report):
     df.to_excel(report, index=False)
 
 
-def get_or_create(annotation_folder):
+def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     """
     Verifies if the report.xlsx is present.
     If present it returns the content of the file as a df. Otherwise
@@ -57,7 +62,8 @@ def get_or_create(annotation_folder):
     """
     report = annotation_folder / "report.xlsx"
     if not report.exists():
-        df = combine_df()
+        logger.info("The report.xlsx file does not exist! Creating it!")
+        df = combine_df(mapping_tool, input_dir, library)
         write_report(df, report)
         return df
     else:
@@ -73,6 +79,7 @@ def make_dir(dir):
     """
 
     Path(dir).mkdir(parents=True, exist_ok=True)
+    return dir
 
 
 def make_blast_db(cwd):
@@ -87,13 +94,13 @@ def make_blast_db(cwd):
     Returns:
         db (Path): Path of the blast db.
     """
-    db = cwd / "blast_db"
-    if not db.exists():
+    blast_db_path = cwd / "mapping" / "blast_db"
+    if not blast_db_path.exists():
         reference = cwd / "library" / "library.fasta"
-        make_dir(db)
-        command = f"makeblastdb -in {reference} -dbtype nucl -out {db}/blast_db"
+        make_dir(blast_db_path)
+        command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
         subprocess.run(command, shell=True)
-    return db
+    return blast_db_path
 
 
 def construct_blast_command(fasta_file_path, database_path, identity_cutoff, output_file_path, segment):
@@ -213,14 +220,68 @@ def aggregate_blast_results(dataframe, database_path):
     return aggregated_results
 
 
+def validate_directory(directory_path):
+    """Check if the specified directory exists."""
+    if not Path(directory_path).is_dir():
+        raise argparse.ArgumentTypeError(
+            f"The directory {directory_path} does not exist. Try a other directory!")
+    return directory_path
+
+
+def validate_file(file_path):
+    """Check if the specified file exists."""
+    if not Path(file_path).is_file():
+        raise argparse.ArgumentTypeError(
+            f"The file {file_path} does not exist. Try a other file please!")
+    return file_path
+
+
+def validate_input(input_path):
+    input_path = Path(input_path)
+    validate_directory(input_path)
+    if not any(entry.is_file() for entry in input_path.glob("*.fasta")):
+        raise argparse.ArgumentTypeError(
+            f"The directory {input_path} is empty or does not contain any fasta files!")
+    return input_path
+
+
+def argparser_setup():
+    parser = argparse.ArgumentParser(
+        description='A tool for finding non-novel and novel VDJ segments \
+            in a certain data, with a library of choice.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # Grouping arguments
+    required_group = parser.add_argument_group('Required Options')
+    required_group.add_argument('-i', '--input', required=True, type=validate_input,
+                                help='Directory containing the different \
+                                    regions in FASTA format, where VDJ segment can be found on.')
+    required_group.add_argument('-l', '--library', required=True, type=validate_file,
+                                help='Path to the library file. Expected to \
+                                    be in FASTA format.')
+
+    optional_group = parser.add_argument_group('Optional Options')
+    optional_group.add_argument('-o', '--output', type=make_dir,
+                                default='annotation',
+                                help='Output directory for the results.')
+    # Define allowed mappers
+    mapping_options = ['minimap2', 'bowtie', 'bowtie2']
+
+    optional_group.add_argument('-m', '--mapping-tool', nargs='*', choices=mapping_options, default=mapping_options,
+                                help='Mapping tool(s) to use. \
+                                    Choose from: minimap2, bowtie, bowtie2.\
+                                        Defaults to all.')
+    args = parser.parse_args()
+    return args
+
+
 def main():
     """
     Main function for this annotation.py script. 
     It first sets a cwd (current directory the user is in) object 
     based current location. Based on this cwd some 
     input and output directories and files are set. It fetches the 
-    needed blast db and the DataFrame (df). The "LOC" are filtered out because
-    they gave a distorted picture because the lengths are way larger.
+    needed blast db and the DataFrame (df). 
     Then it checks if the "blast_results.xlsx" is created. If this is not
     the case the needed df is made. Then the query cov is converted to numeric
     and checked if it is equal to 100%. The start and stop coordinates 
@@ -228,15 +289,16 @@ def main():
     This df is saved to "blast_results.xlsx".
     The write_annotation_report() function is called.  
     """
+    args = argparser_setup()
     cwd = Path.cwd()
-    annotation_folder = cwd / "annotation"
-    make_dir(annotation_folder)
+    annotation_folder = cwd / args.output
     db = make_blast_db(cwd)
-    df = get_or_create(annotation_folder)
-    filtered_df = df.query("region != 'LOC'")
+    df = get_or_create(annotation_folder, args.mapping_tool,
+                       args.input, args.library)
     blast_file: Path = annotation_folder / "blast_results.xlsx"
     if not blast_file.exists():
-        blast_results = aggregate_blast_results(filtered_df, db)
+        logger.info("The blast_results.xlsx file does not exist! Creating it!")
+        blast_results = aggregate_blast_results(df, db)
         blast_results['query cov'] = pd.to_numeric(
             blast_results['query cov'], errors='coerce')
         blast_results = blast_results.query("`query cov` == 100")
@@ -247,6 +309,9 @@ def main():
         blast_results = pd.read_excel(blast_file)
     write_annotation_reports(annotation_folder)
     RSS_main()
+    logger.info(
+        f"Annotation of files in {args.input} using {args.library} is complete! Check 'annotation' and 'RSS' for results. Mapping results are located in the 'mapping' directory."
+    )
 
 
 if __name__ == '__main__':
