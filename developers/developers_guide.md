@@ -7,6 +7,10 @@
   - [Authors](#authors)
   - [Introduction](#introduction)
   - [Packages](#packages)
+  - [Pipeline](#pipeline)
+  - [Scripts](#scripts)
+    - [region.py](#regionpy)
+    - [mapping.py](#mappingpy)
 
 ## Authors
 
@@ -51,3 +55,14 @@ I will list the different used packages and modules and which version i used. Ch
 | **seqkit**          | 2.8.0     |
 | **seqtk**           | 1.4       |
 | **unzip**           | 6.0       |
+
+## Pipeline
+For the pipeline, just like mentioned, most things can be change with the config file. But here are some examples of things that be changed in the **snakefile** itself. The main [config file](../Snakefile4#L6) can be changed. If changed please change it aswell in the following python scripts [region](../scripts/region.py), [mapping](../scripts/mapping.py), [RSS](../scripts/RSS.py) and [write_annotation_report](../scripts/write_annotation_report.py). You can add extra values in the config file, but make sure you add them in the [snakefile](../Snakefile4#L31) and others [scripts](../scripts/RSS.py#L125). The input directory can also changed if needed please rename every downloads in something else you like. Every command in the snakefile can also be altered to your liking. Please follow the requirements of the package. For the inhouse IMGT scrape and annotation tools please look at the **help rule (-h)**.
+
+## Scripts 
+
+### region.py
+The script extracts of specific regions from FASTA files using data defined in a config file. It includes functions to create necessary directories, parse FASTA files into dictionaries for efficient access, and load configurations that specify genomic regions of interest. It also handles the alignment data from SAM files to identify the best mapping coordinates for these regions. The final output is a set of region FASTA files, each containing the sequence of a specified region. This process is managed within a Snakemake.
+
+### mapping.py
+
