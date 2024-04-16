@@ -221,6 +221,7 @@ One of the most important parts of the pipeline is the finding of novel VDJ gene
 ```txt
 annotation/
 ├── annotation_report_100%.xlsx
+├── annotation_report_100%_plus.xlsx
 ├── annotation_report_long.xlsx
 ├── annotation_report_plus.xlsx
 ├── annotation_report.xlsx
@@ -230,7 +231,7 @@ annotation/
 - **report.xlsx**: In the report file are all the initial mapping results, to get a initial understanding of the amount of VDJ gene segments that are identified. This includes non-novel and novel segments.
 -  **blast_resutls.xlsx**: In the blast result are all the revaluated segments. This includes the deviation between found segment and the most similar. 
 -  **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the intial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the non novel segments. Lastly the long format is uncondesed version, where the similar sequences are not combined in one row.
--  **annotation_report_plus.xlsx**: Lastly the annotation report plus version contains validations columns based on the RSS types of the segments. This indicate the found RSS heptamer and nonamer for a given segment and the a RSS heptamer and nonamer that where used for comperison. The final report looks as follows.
+-  **annotation_report_plus.xlsx** and **annotation_report_100%_plus.xlsx**: Lastly the annotation report plus reports contain validations columns based on the RSS types of the segments. This indicate the found RSS heptamer and nonamer for a given segment and the a RSS heptamer and nonamer that where used for comperison. The final report conatins the flowwing columns.
 
 | Column                        | Explanation                                                                                                                                                                                                                                   |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -245,13 +246,14 @@ annotation/
 | **Region and Segments**       | Type of region and segment identified.                                                                                                                                                                                                        |
 | **Haplotype**                 | Haplotype (1 or 2) on which the segment is found.                                                                                                                                                                                             |
 | **Sample**                    | Name of the sample providing the genetic data.                                                                                                                                                                                                |
+| **Short name**                | Only the part of the segment that includes the region, segment and variant.                                                                                                                                                                   |
 | **RSS**                       | Each RSS spacer type includes six columns, with three dedicated to both the heptamer and nonamer segments. These columns represent the segment sequence, a reference sequence, and a boolean indicating if the segment matches the reference. |
 
 ## Plots 
 This pipeline also creates individual plots and a interactive plot to showcase the results.
 
 ### Single plots
-In the single plots infoinfo...
+Work in progress!
 
 ### Interactive plot
 The interactive plot is automtically generated based on the results in the **annotation_report_plots.xlsx**.
