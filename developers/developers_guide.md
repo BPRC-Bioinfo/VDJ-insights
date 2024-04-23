@@ -22,8 +22,8 @@
     - [Usage](#usage-1)
   - [VDJ display](#vdj-display)
     - [VDJ\_display.py](#vdj_displaypy)
-    - [reevaluate.py](#reevaluatepy)
-    - [order\_segments.py](#order_segmentspy)
+    - [reevaluate.py (BETA)](#reevaluatepy-beta)
+    - [order\_segments.py (BETA)](#order_segmentspy-beta)
     - [Usage](#usage-2)
 
 ## Authors
@@ -72,7 +72,11 @@ This list contains all the different used packages and modules and which version
 
 ## Pipeline
 
-For the pipeline, just like mentioned, most things can be changed with the config file. But here are some examples of things that be changed in the **snakefile** itself. The main [config file](../Snakefile4#L6) can be changed. If changed, please change it as well in the following python scripts [region](../scripts/region.py), [mapping](../scripts/mapping.py), [RSS](../scripts/RSS.py) and [write_annotation_report](../scripts/write_annotation_report.py). You can add extra values in the config file, but make sure you add them in the [snakefile](../Snakefile4#L31) and other [scripts](../scripts/RSS.py#L125). The input directory can also be changed if needed, please rename every download in something else you like. Every command in the snakefile can also be altered to your liking. Please follow the requirements of the package. For the inhouse IMGT scrape and annotation tools, please look at the **help rule (-h)**.
+For the pipeline, just like mentioned, most things can be changed with the config file. But here are some examples of things that be changed in the **snakefile** itself. The main [config file](../Snakefile4#L6) can be changed. If changed, please change it as well in the following python scripts [region](../scripts/region.py), [mapping](../scripts/mapping.py), [RSS](../scripts/RSS.py) and [write_annotation_report](../scripts/write_annotation_report.py). 
+
+You can add extra values in the config file, but make sure you add them in the [snakefile](../Snakefile4#L31) and other scripts like [this](../scripts/RSS.py#L125). The input directory can also be changed if needed, please rename every **download** in something else you like. Every command in the snakefile can also be altered to your liking. Please follow the requirements of the package. For the inhouse IMGT scrape and annotation tools, please look at the **help rule (-h)**.
+
+From previous runs it is know that sometimes the **kmer** and **window** needed to be added to achieve better results. These parameters can be added in the [command](../Snakefile4#L365).
 
 ## Custom scripts and tools
 
@@ -149,13 +153,15 @@ It first creates the needed directories with the [`create_directory`](../scripts
 
 We first run [`create_all_RSS_meme_files`](../scripts/RSS.py#L594). Here we create all the needed RSS extract the needed RSS for three different ["types"](../scripts/RSS.py#L619). For reference_RSS (Known), new_RSS (Novel) and combined_RSS (Known + Novel). Based on the segment and region the right values are retrieved from the config file. Using the [`calculate_position`](../scripts/RSS.py#L77) function. The start coord and end coord are adjusted to get the RSS coordinates. With [`write_fasta_file`](../scripts/RSS.py#L37) the RSS is saved into FASTA file. Each sequence file is named and organized according to its  region and segment (**TRAV.fasta**).
 
-Then it generates MEME motif files through the [`run_meme`](../scripts/RSS.py#L169) function. This function handles the execution of the MEME suite, a toolset for motif discovery, adjusting [command](../scripts/RSS.py#L301) parameters if the amount of RSSs in the input file is higher than one. After running the MEME suite we generated the sequence motifs and belonging text file `meme.txt`. From each RSS sequence motif regex pattern the heptamer and nonamer are extracted with the help of a [regex pattern](../scripts/RSS.py#L) (`\[[^\]]*\]|.`). It matches all substrings within square brackets and any single characters outside of brackets.
+Then it generates MEME motif files through the [`run_meme`](../scripts/RSS.py#L169) function. This function handles the execution of the MEME suite, a toolset for motif discovery, adjusting [command](../scripts/RSS.py#L301) parameters if the amount of RSSs in the input file is higher than one. After running the MEME suite we generated the sequence motifs and belonging text file `meme.txt`. From each RSS sequence motif regex pattern the heptamer and nonamer are extracted with the help of a [regex pattern](../scripts/RSS.py#L334) (`\[[^\]]*\]|.`). It matches all substrings within square brackets and any single characters outside of brackets.
 
 With the `make_reference_rss` we create a reference dictionary of RSS motifs. It processes the `meme.txt` output files to extract RSS regular expressions, for sequence validation. This dictionary is essential for comparing newly discovered RSS sequences against a reference.
 
-The script also integrates data validation features through the [`check_ref_rss`](../scripts/RSS.py#L286) function. This function compares newly generated RSS sequences against reference motifs to validate their accuracy, storing the results within the dataset for further review.
+When the reference RSS regex patterns are established, we use the earlier loaded datasets and extract the RSS just as before. Now we append the RSS to the dataset per entry in the dataset through the use of [`add_base_rss_parts`](../scripts/RSS.py#L254).
 
-In the final steps, `RSS.py` consolidates and prepares the processed data for reporting. The [`create_rss_excel_file`](../scripts/RSS.py#L346) function is pivotal in compiling the results into a formatted Excel file, making the data ready for presentation or further analysis.
+The script also integrates data validation features through the [`check_ref_rss`](../scripts/RSS.py#L286) function. This function compares newly generated RSS sequences against reference motifs to validate their accuracy, storing the results within the dataset. Every RSS is validated per position. When the amount of mismatches is greather than 1, we put in `False`, which means there is a likely change the RSS is not correct. Otherwise, we put it as `True`.
+
+In the final step data is processed data for exporting to Excel. The [`create_rss_excel_file`](../scripts/RSS.py#L346) function compiles the results. Then with [`combine_df`](../scripts/RSS.py#L491) the new RSS data is merged with the old dataset. The following columns are [merged](../scripts/RSS.py#L509). Finally the data is exported to a Excel file (`annotation_report_plus.xlsx` & `annotation_report_plus.xlsx`).
 
 ### Usage
 
@@ -171,9 +177,30 @@ Tool to nicely visualize VDJ segments on their haplotypes. Giving the ability to
 
 ### VDJ_display.py
 
-### reevaluate.py
+The `VDJ_display.py` script is essential for generating various VDJ segment plots. It starts by processing user input with the [`parse_arguments`](../scripts/VDJ_display.py#L422) function. Next the file paths are cleaned up by removing any extraneous separators.
 
-### order_segments.py
+
+The script uses the `PlotGenerator` class to handle everything from data loading to the final visualization output. Upon initialization, `PlotGenerator` sets up necessary configurations such as color schemes corresponding to different genomic segments and prepares the output directory for storing generated plots.
+
+Extra color schemes can be added by create a extra a dictionary in [`color_themes`](../scripts/) dictionary. Make sure you also add it in the [`choices`](../scripts/) in the `--color-theme`.
+
+Data processing begins with the `load_dataframe` function that parses data from provided Excel files into a single dataset. This dataset is then processed by unique regions through the [`process_region_data`](../scripts/VDJ_display.py) method.
+
+The [`process_region`](../scripts/VDJ_display.py) function checks for any entries with misclassified files, where segments appear in files where they logically shouldn't. Simultaneously, the `add_filter` function refines the segment names by removing unnecessary characters, making the data easier to manage for plotting.
+
+Depending on user settings, the script runs either [`run_seperate_haplotype`](../scripts/VDJ_display.py) for single haplotype visualizations or [`run_combined_haplotype`](../scripts/VDJ_display.py) for combined plots. The data is sorted by "Start coord" for plot creation. For combined configurations, `align_lists_by_matching` is used to synchronize two lists of genomic segments by inserting blanks to address mismatches.
+
+Footers are dynamically determined; for single plots, `Short names` are used directly, while for combined plots, the [`generate_footer_lists`](../scripts/VDJ_display.py) method creates two lists for each haplotype based on start coordinates—one where segment values match and another where they differ. This also uses the `Short names`.
+
+The `calculate_plot_size` function adjusts plot dimensions based on the number of segments. It return the **block size, block spacing, width per block, font size**. The plot structure is then created by the [`configure_plot`](../scripts/VDJ_display.py) function, which calls the functions to calculates the total width needed and sets up the plotting area with `initialize_plot`. The `add_segment_blocks` method creates two blocks using `create_dual_color_features`, differentiating 'V', 'D' and 'J' for the top block and 'Novel' and 'Known' for the bothem block.
+
+Legends are added through `add_legends`, which creates a legend for sample and haplotypes and other for the colored blocks. Additionally, an optional footer can be added to provide further details or context about the data being visualized with [`add_footer`](../scripts/).
+
+The `save_plot` method ensures each plot is saved in the designated directory. For combined plots, `combine_and_save_plots_vertically` merges the two plots into a single image by converting them to NumPy arrays, aligning them vertically, and then saving the unified plot.
+
+### reevaluate.py (BETA)
+
+### order_segments.py (BETA)
 
 ### Usage
 
