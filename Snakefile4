@@ -53,7 +53,7 @@ rule splitChromosomes:
         fa = "downloads/reference/chromosomes/reference_chr{all_chrs}.fasta",
         temp = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
     conda:
-        "envs/seqkit.yaml"
+        "envs/split.yaml"
     shell:
         """
         cat {input.report} | egrep '"chr_name":"{wildcards.all_chrs}"' | jq -r ".refseq_accession"  > {output.temp}
@@ -302,7 +302,7 @@ rule rejoinChrs:
     input:
         combineChrFragments
     output:
-        temp("{accession}_{machine}_chr{all_chrs}.bam"),
+        "{accession}_{machine}_chr{all_chrs}.bam",
     conda:
         "envs/samtools.yaml"
     threads: 
@@ -559,8 +559,10 @@ rule annotation:
         "annotation/annotation_report_plus.xlsx"
     conda:
         "envs/scripts.yaml"
-    script:
-        "scripts/annotation.py"
+    shell:
+        """
+        python script/annotation -i region/ -l library/library.fasta
+        """
 
 
 rule fetchAllInput:
