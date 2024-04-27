@@ -31,7 +31,9 @@ def combine_df(mapping_tools, input_dir, library):
     for tool in mapping_tools:
         mapping_df = mapping_main(tool, input_dir, library)
         df = pd.concat([df, mapping_df])
-    unique_combinations = df.drop_duplicates(subset=["start", "stop"])
+        df["haplotype"] = df["file"].str.extract(r'_([^_]+)\.')[0]
+    unique_combinations = df.drop_duplicates(
+        subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
 
 
@@ -160,13 +162,13 @@ def execute_blast_search(row, database_path, identity_cutoff) -> str:
     Returns:
         blast_result_path (str): Path to the temporary blast output file.
     """
-    header, sequence, start, stop, fasta_file_name, strand = row["name"], row[
-        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"]
+    header, sequence, start, stop, fasta_file_name, strand, haplotype = row["name"], row[
+        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"]
 
     # Create a temporary FASTA file
     with NTF(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
         # Including the FASTA file name in the header
-        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}\n"
+        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 

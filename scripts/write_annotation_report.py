@@ -26,12 +26,15 @@ def load_config(cwd):
 
 
 def make_record_dict(fasta):
-    record_dict = {}
     with open(fasta, 'r') as fasta_file:
-        for record in SeqIO.parse(fasta_file, "fasta"):
-            if record.id not in record_dict:
-                record_dict[record.id] = record
-    return record_dict
+        record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+        return record_dict
+
+
+def fetch_prefix(name):
+    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
+    prefix = [i for i in name.split("_") if i.startswith(cell_type)][0]
+    return prefix
 
 
 def add_region_segment(row):
@@ -51,10 +54,8 @@ def add_region_segment(row):
         row (series): Current row with the two extra columns 
         "Region" and "Segment".
     """
-    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
-    options = (cell_type, "LOC")
     query = row['Old name-like']
-    prefix = [i for i in query.split("_") if i.startswith(options)][0]
+    prefix = fetch_prefix(query)
     short_name = prefix
     prefix = re.sub(r"[0-9-]", "", prefix)
     region, segment = prefix[0:3], prefix[3]
@@ -99,9 +100,8 @@ def main_df(df):
         '-') & ~df['subject seq'].str.contains('-')
     df = df[mask]
     df['% identity'] = df['% identity'].astype(float)
-    df["haplotype"] = df["path"].str.extract(r'_([^_]+)\.')[0]
     reference_df = df.query("`% identity` == 100.000")
-    df = df.groupby(['start', 'stop']).filter(filter_group)
+    df = df.groupby(['start', 'stop', 'haplotype']).filter(filter_group)
     return df, reference_df
 
 
@@ -126,7 +126,8 @@ def add_values(df):
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     path_df = df['query'].str.split(':', expand=True)
-    df[['query', 'start', 'stop', 'strand', 'path']] = path_df[[0, 1, 2, 3, 4]]
+    df[['query', 'start', 'stop', 'strand', 'path',
+        'haplotype']] = path_df[[0, 1, 2, 3, 4, 5]]
     return df
 
 
@@ -148,7 +149,7 @@ def add_like_to_df(df):
         'start', 'stop',
         'subject seq', 'query seq',
         'strand', 'path', 'haplotype',
-        'query_seq_length', 'subject_seq_length',
+        'query_seq_length', 'subject_seq_length'
 
     ]]
     output_df.columns = [
@@ -250,9 +251,12 @@ def filter_df(row):
         set(row['Reference']) - set(best_row['Reference']))
     best_row['Similar references'] = all_references
     best_row["Old name-like"] = best_row["Reference"]
+    best_row["Short name"] = best_row["Reference"].apply(
+        fetch_prefix)
     if int(best_row.Mismatches.iloc[0]) != 0:
         best_row["Old name-like"] = best_row["Reference"] + "-like"
-        best_row["Short name"] = best_row["Short name"] + "-like"
+        best_row["Short name"] = best_row["Reference"].apply(
+            fetch_prefix) + "-like"
     return best_row.squeeze()
 
 
@@ -274,7 +278,7 @@ def run_like_and_length(df, record):
 
 
 def group_similar(df):
-    df = df.groupby(['Start coord', 'End coord']).apply(
+    df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(
         filter_df)
     df = df.reset_index(drop=True)
     return df
@@ -311,14 +315,16 @@ def annotation(df, annotation_folder, file_name):
         annotation_folder (Path): Path to the annotation_report.xlsx file.
         file_name (str): Name of the excel file the df is written to. 
     """
+    # Loose columns 'Reference seq', 'Old name-like seq', 'Reference Length',
+    # 'Old name-like Length', 'Library Length',
+
     logger.info(f"Generating {file_name}!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Reference seq', 'Old name-like seq', 'Reference Length',
-             'Old name-like Length', 'Library Length',
              'Short name', 'Message']]
+    df["Status"] = "Known" if "100%" in file_name else "Novel"
     df.to_excel(annotation_folder / file_name, index=False)
 
 
