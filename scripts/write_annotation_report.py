@@ -26,9 +26,12 @@ def load_config(cwd):
 
 
 def make_record_dict(fasta):
+    record_dict = {}
     with open(fasta, 'r') as fasta_file:
-        record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
-        return record_dict
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            if record.id not in record_dict:
+                record_dict[record.id] = record
+    return record_dict
 
 
 def fetch_prefix(name):

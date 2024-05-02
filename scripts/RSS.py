@@ -513,6 +513,9 @@ def combine_df(original_df, new_df):
         '23_heptamer', '23_ref_heptamer', '23_heptamer_matched',
         '23_nonamer', '23_ref_nonamer', '23_nonamer_matched',
     ]
+    for column in columns_to_merge:
+        if column not in original_df.columns:
+            original_df[column] = ''
     combined_df = pd.merge(new_df, original_df[columns_to_merge],
                            on=['Reference', 'Old name-like',
                                'Start coord', 'End coord'],

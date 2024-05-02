@@ -561,7 +561,7 @@ rule annotation:
         "envs/scripts.yaml"
     shell:
         """
-        python script/annotation -i region/ -l library/library.fasta
+        python scripts/annotation.py -i region/ -l library/library.fasta
         """
 
 
