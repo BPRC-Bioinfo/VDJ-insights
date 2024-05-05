@@ -22,36 +22,43 @@ rule all:
 
 rule downloadReference:
     output:
-        temp("downloads/reference/reference.zip"),
-        temp("downloads/reference/README.md"),
-        ref_report = "downloads/reference/reports/assembly_report.jsonl",
-        ref = "downloads/reference/genome/reference.fna",
-
+        temp("reference/reference.zip"),
+        temp("reference/README.md"),
+        ref_report = "reference/reports/assembly_report.jsonl",
+        ref = "reference/genome/reference.fna",
+    benchmark: 
+        "benchmarks/downloadReference.txt"
+    log:
+        "logs/downloadReference.log"
     params:
         reference_code = config["SPECIES"]["genome"],
-        prefix = "downloads/reference/ncbi_dataset/data"
+        prefix = "reference/ncbi_dataset/data"
     conda:
         "envs/NCBI.yaml"
     shell:
         """
-        mkdir -p downloads/reference/genome
-        cd downloads/reference
+        mkdir -p reference/genome
+        cd reference
         datasets download genome accession {params.reference_code} --include genome --filename reference.zip
-        cd ../../
+        cd ../
         datasets summary genome accession {params.reference_code} --report sequence --as-json-lines > {output.ref_report}
-        unzip downloads/reference/reference.zip -d downloads/reference/
+        unzip reference/reference.zip -d reference/
         mv {params.prefix}/{params.reference_code}/* {output.ref}
-        rm -r downloads/reference/ncbi*
+        rm -r reference/ncbi*
         """
 
 
 rule splitChromosomes:
     input:
-        fa = "downloads/reference/genome/reference.fna",
-        report = ancient("downloads/reference/reports/assembly_report.jsonl")
+        fa = "reference/genome/reference.fna",
+        report = ancient("reference/reports/assembly_report.jsonl")
     output:
-        fa = "downloads/reference/chromosomes/reference_chr{all_chrs}.fasta",
-        temp = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
+        fa = "reference/chromosomes/reference_chr{all_chrs}.fasta",
+        temp = "reference/chromosomes/reference_chr{all_chrs}.txt"
+    benchmark: 
+        "benchmarks/splitChromosomes_{all_chrs}.txt"
+    log:
+        "logs/splitChromosomes_{all_chrs}.log"
     conda:
         "envs/split.yaml"
     shell:
@@ -63,9 +70,13 @@ rule splitChromosomes:
 # Making new reference file.
 rule newReferenceFile:
     input:
-        expand("downloads/reference/chromosomes/reference_chr{all_chrs}.fasta", all_chrs=config["ALL_CHROMOSOMES"])
+        expand("reference/chromosomes/reference_chr{all_chrs}.fasta", all_chrs=config["ALL_CHROMOSOMES"])
     output:
-        "downloads/reference/genome/reference_new_ref.fasta"
+        "reference/genome/reference_new_ref.fasta"
+    benchmark: 
+        "benchmarks/newReferenceFile.txt"
+    log:
+        "logs/newReferenceFile.log"
     shell:
         """
         cat {input} > {output}
@@ -77,6 +88,10 @@ checkpoint split_fastq:
         fastq="downloads/{accession}_{machine}.fastq.gz"
     output:
         temp(directory("split_files/{accession}_{machine}"))
+    benchmark: 
+        "benchmarks/split_fastq_{accession}_{machine}.txt"
+    log:
+        "logs/split_fastq_{accession}_{machine}.log"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -105,6 +120,10 @@ rule seqkit:
         getSplitFastqFiles
     output:
         "results_{accession}.txt",
+    benchmark: 
+        "benchmarks/seqkit_{accession}.txt"
+    log:
+        "logs/seqkit_{accession}.log"
     shell:
         """
         cat {input} > {output}
@@ -115,6 +134,10 @@ rule rawStats:
         "downloads/{accession}_{machine}.fastq.gz"
     output:
         "QC/raw/{accession}_{machine}.stats"
+    benchmark: 
+        "benchmarks/rawStats_{accession}_{machine}.txt"
+    log:
+        "logs/rawStats_{accession}_{machine}.log"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -125,11 +148,13 @@ rule rawStats:
 ## Remove duplicate reads and filter reads
 rule removeDuplicateReads:
     input:
-        "split_files/{accession}_{machine}/{accession}_{machine}.part_{i}.fastq.gz"
+        ancient("split_files/{accession}_{machine}/{accession}_{machine}.part_{i}.fastq.gz")
     output:
         temp("filtered/no_duplicate_{accession}_{machine}.part_{i}.fastq.gz")
+    benchmark: 
+        "benchmarks/removeDuplicateReads_{accession}_{machine}_part_{i}.txt"
     log:
-        "logs/seqkit/duplicates/log_{accession}_{machine}_duplicates.part_{i}.log"
+        "logs/removeDuplicateReads_{accession}_{machine}_part_{i}.log"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -140,11 +165,13 @@ rule removeDuplicateReads:
 
 rule filteredReads:
     input:
-        "filtered/no_duplicate_{accession}_{machine}.part_{i}.fastq.gz"
+        ancient("filtered/no_duplicate_{accession}_{machine}.part_{i}.fastq.gz")
     output:
         temp("filtered/filtered_{accession}_{machine}.part_{i}.fastq.gz")
+    benchmark: 
+        "benchmarks/filteredReads_{accession}_{machine}_part_{i}.txt"
     log:
-        "logs/seqkit/filterd/log_{accession}_{machine}_filterd.part_{i}.log"
+        "logs/filteredReads_{accession}_{machine}_part_{i}.log"
     conda:
         "envs/seqkit.yaml"
     shell:
@@ -167,6 +194,10 @@ rule processedStats:
         getProcessedStatsFiles
     output:
         "processed_{accession}.txt"
+    benchmark: 
+        "benchmarks/processedStats_{accession}.txt"
+    log:
+        "logs/processedStats_{accession}.log"
     shell:
         """
         cat {input} > {output}
@@ -189,6 +220,10 @@ rule combineFastQ:
         ancient(lambda wildcards: all_fastq_files(wildcards))
     output:
         temp("combined/{accession}_{machine}.combined.fastq.gz")
+    benchmark: 
+        "benchmarks/combineFastQ_{accession}_{machine}.txt"
+    log:
+        "logs/combineFastQ_{accession}_{machine}.log"
     shell:
         """
         cat {input} > {output}
@@ -199,6 +234,10 @@ rule seqkitFiltered:
         ancient("combined/{accession}_{machine}.combined.fastq.gz")
     output:
         "QC/filtered/filtered_{accession}_{machine}.stats"
+    benchmark: 
+        "benchmarks/seqkitFiltered_{accession}_{machine}.txt"
+    log:
+        "logs/seqkitFiltered_{accession}_{machine}.log"
     conda:
         "envs/seqkit.yaml"
     threads:
@@ -212,13 +251,13 @@ rule seqkitFiltered:
 rule minimap2:
     input:
         read = ancient("combined/{accession}_{machine}.combined.fastq.gz"),
-        reference = ancient("downloads/reference/genome/reference_new_ref.fasta"),
+        reference = ancient("reference/genome/reference_new_ref.fasta"),
     output:
         temp("alignments/{accession}_{machine}.sam")
-    log:
-        "logs/minimap2/log_{accession}_{machine}_alignment.log"
     benchmark:
-        "benchmarks/minimap2/benchmark_{accession}_{machine}_alignment.txt"
+        "benchmarks/minimap2_{accession}_{machine}_alignment.txt"
+    log:
+        "logs/minimap2_{accession}_{machine}_alignment.log"
     threads: 
         24
     params:
@@ -240,8 +279,10 @@ rule extractMappedReads:
         ancient("alignments/{accession}_{machine}.sam")
     output:
         temp("alignments/extracted_{accession}_{machine}.bam")
+    benchmark: 
+        "benchmarks/extractMappedReads_{accession}_{machine}.txt"
     log:
-        "logs/samtools/log_{accession}_{machine}_alignment.log",
+        "logs/extractMappedReads_{accession}_{machine}.log"
     conda:
         "envs/samtools.yaml"
     threads:
@@ -257,8 +298,10 @@ rule sortIndexBam:
     output:
         sorted_bam = temp("alignments/sorted_{accession}_{machine}.bam"),
         index_bam = temp("alignments/sorted_{accession}_{machine}.bam.bai"),
+    benchmark: 
+        "benchmarks/sortIndexBam_{accession}_{machine}.txt"
     log:
-        "logs/samtools/sort_index_log_{accession}_{machine}.log"
+        "logs/sortIndexBam_{accession}_{machine}.log"
     conda:
         "envs/samtools.yaml"
     threads:
@@ -274,15 +317,17 @@ checkpoint separateChrs:
     input:
         bam = ancient("alignments/sorted_{accession}_{machine}.bam"),
         index_bam = "alignments/sorted_{accession}_{machine}.bam.bai",
-        reference = "downloads/reference/chromosomes/reference_chr{all_chrs}.txt"
+        reference = "reference/chromosomes/reference_chr{all_chrs}.txt"
     output:
         directory("chromosomes/{accession}_{machine}_{all_chrs}")
+    benchmark: 
+        "benchmarks/separateChrs_{accession}_{machine}_{all_chrs}.txt"
+    log:
+        "logs/separateChrs_{accession}_{machine}_{all_chrs}.log"
     conda:
         "envs/samtools.yaml"
     threads: 
         8
-    benchmark:
-        "benchmarks/05_{accession}_{machine}_chr{all_chrs}.time"
     shell:
         """
         mkdir -p {output}
@@ -303,6 +348,10 @@ rule rejoinChrs:
         combineChrFragments
     output:
         "{accession}_{machine}_chr{all_chrs}.bam",
+    benchmark: 
+        "benchmarks/rejoinChrs_{accession}_{machine}_{all_chrs}.txt"
+    log:
+        "logs/rejoinChrs_{accession}_{machine}_{all_chrs}.log"
     conda:
         "envs/samtools.yaml"
     threads: 
@@ -319,12 +368,14 @@ rule chrFastq:
         bam = ancient("{accession}_{machine}_chr{all_chrs}.bam"),
     output:
         "converted/chr{all_chrs}_{accession}_{machine}.fastq.gz",
+    benchmark: 
+        "benchmarks/chrFastq_{accession}_{machine}_{all_chrs}.txt"
+    log:
+        "logs/chrFastq_{accession}_{machine}_{all_chrs}.log"
     conda:
         "envs/samtools.yaml"
     threads: 
         8
-    benchmark:
-        "benchmarks/06_{accession}_{machine}_chr{all_chrs}_fastq.time"
     shell:
         """
         # Extract fastq
@@ -336,6 +387,10 @@ rule allChromosomes:
         expand("{accession}_{machine}_chr{all_chrs}.bam", accession=ACCESSION, machine=MACHINE, all_chrs=config["ALL_CHROMOSOMES"])
     output:
         temp("final/allchromosomes.txt")
+    benchmark:
+        "benchmarks/allChromosomes.txt"
+    log:
+        "logs/allChromosomes.log"
     shell:
         """
         echo {input} | tr " " "\n" > {output}
@@ -352,14 +407,14 @@ rule hifiasmUlChromosomeAssembly:
     output:
         "assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap1.p_ctg.gfa", 
         "assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap2.p_ctg.gfa", 
+    benchmark: 
+        "benchmarks/hifiasmUlChromosomeAssembly_{accession}_{assembly_chrs}.txt"
+    log:
+        "logs/hifiasmUlChromosomeAssembly_{accession}_{assembly_chrs}.log"
     conda:
         "envs/hifiasm.yaml"
-    log:
-        "logs/assembly/hifiasm/log_hifiasmUL_chr{assembly_chrs}_{accession}.log"
     threads:
         24
-    benchmark:
-        "benchmarks/assembly_hifiasm_{accession}_chr{assembly_chrs}_hifiasmUL.time"
     shell:
         """
         hifiasm -o assembly/hifiasm/chr{wildcards.assembly_chrs}/{wildcards.accession}_chr{wildcards.assembly_chrs}_hifiasmUL -t {threads} --ul {input.nanopore}  {input.pacbio} 2> {log}
@@ -371,15 +426,16 @@ rule gfaToFasta:
         ancient("assembly/hifiasm/chr{assembly_chrs}/{accession}_chr{assembly_chrs}_hifiasmUL.bp.hap{haplo}.p_ctg.gfa")
     output:
         "converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta"
+    benchmark:
+        "benchmarks/gfaToFasta_{accession}_{assembly_chrs}_{haplo}.txt"
+    log:
+        "logs/gfaToFasta_{accession}_{assembly_chrs}_{haplo}.log"
     conda:
         "envs/gfatools.yaml"
     shell:
         """
         gfatools gfa2fa {input} > {output}       
         """
-
-## improve contigs
-
 
 # Quast
 rule quastAssemblyStatistics:
@@ -388,6 +444,10 @@ rule quastAssemblyStatistics:
         hap2 = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap2.fasta")
     output:
         directory("quast/hifiasm/chr{assembly_chrs}_{accession}")
+    benchmark:
+        "benchmarks/quastAssemblyStatistics_{accession}_{assembly_chrs}.txt"
+    log:
+        "logs/quastAssemblyStatistics_{accession}_{assembly_chrs}.log"
     conda:
         "envs/quast.yaml"
     shell:
@@ -401,12 +461,14 @@ rule BUSCO:
         ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta")
     output:
         directory("BUSCO/{accession}/chr{assembly_chrs}_{accession}_hap{haplo}")
+    benchmark: 
+        "benchmarks/BUSCO_{accession}_{assembly_chrs}_{haplo}.txt"
+    log:
+        "logs/BUSCO_{accession}_{assembly_chrs}_{haplo}.log"
     params:
         dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
-    log:
-        "logs/BUSCO/log_busco_chr{assembly_chrs}_{accession}_hap{haplo}.log"
     shell:
         """
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
@@ -415,15 +477,17 @@ rule BUSCO:
 # BUSCO reference
 rule BUSCOReference:
     input:
-        ancient("downloads/reference/chromosomes/reference_chr{assembly_chrs}.fasta")
+        ancient("reference/chromosomes/reference_chr{assembly_chrs}.fasta")
     output:
         directory("BUSCO/reference/chr{assembly_chrs}")
+    benchmark: 
+        "benchmarks/BUSCOReference_{assembly_chrs}.txt"
+    log:
+        "logs/BUSCOReference_{assembly_chrs}.log"
     params:
         dataset = config["BUSCO_DATASET"]
     conda:
         "envs/busco.yaml"
-    log:
-        "logs/BUSCO/log_busco_reference_chr{assembly_chrs}.log"
     shell:
         """
         busco -i {input} -l {params.dataset} -o {output} -m genome 2> {log}
@@ -437,13 +501,19 @@ rule inspector:
         contig = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta")
     output:
         directory("inspector/chr{assembly_chrs}_{accession}_hap{haplo}")
+    benchmark: 
+        "benchmarks/inspector_{accession}_{assembly_chrs}_{haplo}.txt"
+    log:
+        "logs/inspector_{accession}_{assembly_chrs}_{haplo}.log"
     params:
         data_type = "mixed" 
     conda:
         "envs/inspector.yaml"
+    threads:
+        12
     shell:
         """
-        inspector.py -c {input.contig} -r {input.pacbio} {input.nanopore} -o {output} --datatype {params.data_type}
+        inspector.py -t {threads} -c {input.contig} -r {input.pacbio} {input.nanopore} -o {output} --datatype {params.data_type}
         """
 
 
@@ -451,9 +521,12 @@ rule inspector:
 rule downloadFlankingGenes:
     output:
         "flanking/{fgene}/ncbi_dataset/data/gene.fna"
+    benchmark: 
+        "benchmarks/downloadFlankingGenes_{fgene}.txt"
+    log:
+        "logs/downloadFlankingGenes_{fgene}.log"
     conda:
         "envs/NCBI.yaml"
-    
     params:
         species_name = config["SPECIES"]["name"]
     shell:
@@ -471,6 +544,10 @@ rule combineFlankingGenes:
         ancient(expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING))
     output:
         "flanking/all_flanking_genes.fna"
+    benchmark: 
+        "benchmarks/combineFlankingGenes.txt"
+    log:
+        "logs/combineFlankingGenes.log"
     shell:
         """
         > {output}
@@ -485,16 +562,19 @@ rule combineFlankingGenes:
 rule flankingByChromosomes:
     input:
         flanking = ancient("flanking/all_flanking_genes.fna")
-    params:
-        chrs_id = "flanking/chr{assembly_chrs}_{accession}_flanking_genes_id.txt" 
     output:
         "flanking/chr{assembly_chrs}_{accession}_flanking_genes.fna"
+    benchmark: 
+        "benchmarks/flankingByChromosomes_{assembly_chrs}_{accession}.txt"
+    log:
+        "logs/flankingByChromosomes_{assembly_chrs}_{accession}.log"
+    params:
+        chrs_id = "flanking/chr{assembly_chrs}_{accession}_flanking_genes_id.txt" 
     conda:
         "envs/seqtk.yaml"
     shell:
         """
-        chromosome_number=$(echo "{wildcards.assembly_chrs}" | egrep -o "[0-9]")
-        cat {input} | egrep "chromosome=$chromosome_number" | tr -d ">" > {params.chrs_id}
+        cat {input} | egrep "{wildcards.assembly_chrs}" | tr -d ">" > {params.chrs_id}
         seqtk subseq {input} {params.chrs_id} > {output}
         """
 
@@ -505,13 +585,17 @@ rule mapFlankingGenes:
         flanking_genes = ancient("flanking/chr{assembly_chrs}_{accession}_flanking_genes.fna")
     output:
         sam_file = temp("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam"),
+    benchmark: 
+        "benchmarks/mapFlankingGenes_{accession}_{assembly_chrs}_{haplo}.txt"
+    log:
+        "logs/mapFlankingGenes_{accession}_{assembly_chrs}_{haplo}.log"
     conda:
         "envs/minimap2.yaml"
     threads:
         6
     shell:
         """
-        minimap2 -ax splice -t {threads} {input.reads} {input.flanking_genes} > {output.sam_file}
+        minimap2 -ax asm5 --secondary=no -t {threads} {input.reads} {input.flanking_genes} > {output.sam_file}
         """
 
 
@@ -521,6 +605,10 @@ rule regionFiles:
         ancient("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam")
     output:
         temp(touch("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.txt"))
+    benchmark: 
+        "benchmarks/regionFiles_{accession}_{assembly_chrs}_{haplo}.txt"
+    log:
+        "logs/regionFiles_{accession}_{assembly_chrs}_{haplo}.log"
     conda:
         "envs/scripts.yaml"
     script:
@@ -532,6 +620,10 @@ rule combineRegion:
         expand("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.txt", assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], accession=ACCESSION, haplo=config["HAPLOTYPES"])
     output:
         temp("annotation/all_regions.txt")
+    benchmark: 
+        "benchmarks/combineRegion.txt"
+    log:
+        "logs/combineRegion.log"
     shell:
         """
         echo {input} | tr " " "\n" > {output}
@@ -540,6 +632,10 @@ rule combineRegion:
 rule getLibrary:
     output:
         "library/library.fasta"
+    benchmark: 
+        "benchmarks/getLibrary.txt"
+    log:
+        "logs/getLibrary.log"
     params:
         species = config["SPECIES"]["name"],
         cell_type = config["SPECIES"]["cell"],
@@ -557,6 +653,10 @@ rule annotation:
         ancient("library/library.fasta")
     output:
         "annotation/annotation_report_plus.xlsx"
+    benchmark: 
+        "benchmarks/annotation.txt"
+    log:
+        "logs/annotation.log"
     conda:
         "envs/scripts.yaml"
     shell:
@@ -576,4 +676,9 @@ rule fetchAllInput:
         ancient("inspector/chr{assembly_chrs}_{accession}_hap{haplo}"),
     output:
         touch("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt")
+    benchmark: 
+        "benchmarks/fetchAllInput_{accession}_{machine}_{assembly_chrs}_{haplo}.txt"
+    log:
+        "logs/fetchAllInput_{accession}_{machine}_{assembly_chrs}_{haplo}.log"
+
 

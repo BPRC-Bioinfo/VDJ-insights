@@ -248,16 +248,11 @@ region/*
 # Libraries files
 library/*
 
-# Segment mapping files
-segments_mapping/*
-bowtie2/*
-bowtie2_db/*
-bowtie/*
-bowtie_db/*
-minimap2/*
+# Reference files
+reference/*
 
-alignments_excel/*
-blast_db/*
+# Segment mapping files
+mapping/*
 
 # RSS files
 *RSS/*
@@ -277,4 +272,3 @@ final/*
 
 temp/*
 
-mapping/*
