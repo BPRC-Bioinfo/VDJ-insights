@@ -3,8 +3,7 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
+  - python==3.11.5
   - mamba
-  - singularity=3.8.6
-  - snakemake
-  - questionary
+  - snakemake==7.32.4
   - jq
