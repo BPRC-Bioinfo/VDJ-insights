@@ -1,4 +1,0 @@
-ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/005/SRR8137615/SRR8137615_subreads.fastq.gz
-ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/006/SRR8137616/SRR8137616_subreads.fastq.gz
-ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/004/SRR8137614/SRR8137614_subreads.fastq.gz
-ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR813/007/SRR8137617/SRR8137617_subreads.fastq.gz
