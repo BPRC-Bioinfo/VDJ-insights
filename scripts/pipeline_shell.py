@@ -1,0 +1,359 @@
+import argparse
+import re
+import shutil
+import sys
+import zipfile
+from time import sleep
+from Bio import SeqIO
+from pathlib import Path
+import subprocess
+from logger import custom_logger
+import yaml
+
+# Method for logging the current states of the program.
+logger = custom_logger(__name__)
+
+CONFIG = {}
+
+
+def load_config(config_file):
+    if config_file.exists():
+        with open(config_file, 'r') as file:
+            return yaml.safe_load(file)
+    else:
+        logger.error("No configuration file provided, closing application!")
+        sys.exit()
+
+
+def validate_read_files(file_path):
+    data_path = Path(file_path)
+    validate_files(file_path)
+    if data_path.suffixes != ['.fastq', '.gz']:
+        logger.error(
+            f"Invalid file type for {file_path}. Must be a '.fastq.gz' file.")
+        raise argparse.ArgumentTypeError(
+            f"The file {file_path} must be a '.fastq.gz' file.")
+    logger.info(f"Validated read file: {file_path}")
+    return data_path
+
+
+def validate_files(file_path):
+    data_path = Path(file_path)
+    if not data_path.is_file():
+        logger.error(f"File does not exist or is a directory: {file_path}")
+        raise argparse.ArgumentTypeError(
+            f"The file {file_path} does not exist or is a directory.")
+    logger.info(f"Validated file: {file_path}")
+    return data_path
+
+
+def validate_reference(value):
+    fasta_extensions = {".fasta", ".fna"}
+    if Path(value).suffix in fasta_extensions:
+        validate_files(value)
+        logger.info(f"Validated reference genome file: {value}")
+        return value
+
+    accession_patterns = [
+        r"^[A-Z]{1,2}\d{5,6}$",
+        r"^[A-Z]{2}_\d{6,}\.\d+$",
+        r"^[A-Z]{3}_\d{9}\.\d+$",
+        r"^[A-Z]{2}\d{6,}\.\d+$",
+    ]
+    if any(re.match(pattern, value) for pattern in accession_patterns):
+        logger.info(f"Validated reference genome accession: {value}")
+        return value
+
+    logger.error(
+        f"Invalid reference genome input: '{value}'. Must be a .fasta or .fna file, or a valid accession code.")
+    raise argparse.ArgumentTypeError(
+        f"Invalid reference genome input: '{value}'. Must be a .fasta or .fna file, or a valid accession code.")
+
+
+def validate_flanking_genes(value):
+    flanking_genes = [gene.strip().upper() if gene.strip() !=
+                      '-' else '' for gene in value.split(',')]
+    if len(flanking_genes) % 2 == 1:
+        logger.error(
+            f"The specified flanking genes: {flanking_genes} should be even numbers.")
+        raise argparse.ArgumentTypeError(
+            f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
+    logger.info(f"Validated flanking genes: {flanking_genes}")
+    return flanking_genes
+
+
+def validate_chromosome(value):
+    chromosomes = [chromosome.strip() for chromosome in value.split(',')]
+    valid_chromosomes = set(map(str, range(1, 23))) | {"X", "Y"}
+
+    if all(chromosome in valid_chromosomes for chromosome in chromosomes):
+        logger.info(f"Validated chromosomes: {chromosomes}")
+        return chromosomes
+    else:
+        logger.error(
+            f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        raise argparse.ArgumentTypeError(
+            f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+
+
+def argparser_setup():
+    parser = argparse.ArgumentParser(description="Process sequencing data.")
+
+    reads_group = parser.add_argument_group(
+        'reads', 'Arguments related to read files')
+    reads_group.add_argument('-ont', '--nanopore', required=True, type=validate_read_files,
+                             help='Path to the Oxford Nanopore Technologies reads file.')
+    reads_group.add_argument('-pb', '--pacbio', required=True, type=validate_read_files,
+                             help='Path to the Pacific Biosciences reads file.')
+
+    reference_group = parser.add_argument_group(
+        'reference', 'Arguments related to the reference genome')
+    reference_group.add_argument('-ref', '--reference', type=validate_reference, required=False,
+                                 help='Path to the reference genome file if one is already present (optional).')
+
+    analysis_group = parser.add_argument_group(
+        'analysis', 'Arguments related to analysis settings')
+    analysis_group.add_argument('-s', '--species', type=str.capitalize, required=True,
+                                help='Species name, e.g., Homo sapiens.')
+    analysis_group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
+                                help=('Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. '
+                                      'Add them as pairs. If flanking sequence is the start of a chromosome, '
+                                      'start with a - and then the other flanking gene. If it ends with a chromosome, '
+                                      'put the flanking gene first and then a -.'))
+    analysis_group.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
+                                help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome,
+                                required='--default' not in sys.argv,
+                                help='List of chromosomes where TR or IG is located.')
+    analysis_group.add_argument('--default', action='store_true',
+                                help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
+
+    args = parser.parse_args()
+
+    if args.default and (args.flanking_genes or args.chromosomes):
+        parser.error(
+            "--default cannot be used with -f/--flanking-genes or -c/--chromosomes")
+
+    return args
+
+
+def make_dir(dir):
+    Path(dir).mkdir(parents=True, exist_ok=True)
+    logger.info(f"Created directory: {dir}")
+
+
+def split_chromosomes(cwd, fasta_path):
+    global CONFIG
+    output_dir = cwd / 'reference' / 'chromosomes'
+    genome_dir = cwd / 'reference' / 'genome'
+    new_genome_file = genome_dir / 'new_reference.fasta'
+    if not new_genome_file.is_file():
+        [make_dir(i) for i in [output_dir, genome_dir]]
+        files = {}
+        files["all"] = new_genome_file.open('a')
+        for record in SeqIO.parse(fasta_path, 'fasta'):
+            splitted = record.description.split(' ')
+            try:
+                chromosome, chromosome_number = next(
+                    (
+                        (f"reference_chr{splitted[i+1].rstrip(',')}",
+                         splitted[i+1])
+                        for i, x in enumerate(splitted)
+                        if x == "chromosome"
+                    )
+                )
+                if chromosome not in files:
+                    CONFIG.setdefault('ALL_CHROMOSOMES', []
+                                      ).append(chromosome_number)
+                    file_path = output_dir / f"{chromosome}.fasta"
+                    files[chromosome] = file_path.open('a')
+                SeqIO.write(record, files[chromosome], 'fasta')
+                SeqIO.write(record, files['all'], 'fasta')
+            except StopIteration:
+                logger.warning(
+                    f"No 'chromosome' found in the description: {record.description}")
+            except IndexError:
+                logger.warning(f"IndexError for record: {record.description}")
+
+        for file in files.values():
+            file.close()
+        logger.info(f"Files have been written to: {output_dir}")
+
+
+def rename_files(cwd: Path, file: Path, read_type: str):
+    moved_dir = cwd / 'downloads'
+    make_dir(moved_dir)
+
+    conversion = {"ONT": "ont", "NANOPORE": "ont",
+                  "PACBIO": "pacbio", "PB": "pacbio"}
+
+    stripped_extensions = file.with_suffix('').with_suffix('')
+    sample = stripped_extensions.stem.split('_')[0].upper()
+
+    new_sample_name = sample if sample not in conversion else "SAMPLE"
+    new_file = moved_dir / f"{new_sample_name}_{read_type}.fastq.gz"
+
+    logger.info(f"Renamed file {file} to {new_file}")
+    return sample, new_file
+
+
+def filter_and_move_files(cwd: Path, nanopore_file: Path, pacbio_file: Path):
+    ont_sample, ont_file = rename_files(cwd, nanopore_file, 'ont')
+    pb_sample, pb_file = rename_files(cwd, pacbio_file, 'pacbio')
+
+    if ont_sample != pb_sample:
+        ont_file = ont_file.with_name(f"SAMPLE_ont.fastq.gz")
+        pb_file = pb_file.with_name(f"SAMPLE_pacbio.fastq.gz")
+
+    shutil.move(nanopore_file, ont_file)
+    shutil.move(pacbio_file, pb_file)
+    logger.info(
+        f"Moved {nanopore_file} to {ont_file} and {pacbio_file} to {pb_file}")
+
+
+def unzip_file(file_path, dir):
+    extract_to_path = Path(dir)
+    try:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to_path)
+        logger.info(f'Extracted {file_path} to {extract_to_path}')
+    except Exception as e:
+        logger.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
+
+
+def download_flanking_genes(gene, dir: Path, species):
+    """
+    Downloads and extracts flanking gene sequences for the specified gene and species.
+    """
+    dir = Path(dir)
+    output_zip = dir / f"{gene}.zip"
+    output_fna = dir / f"{gene}.fna"
+    if not output_fna.is_file():
+        try:
+            command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+            result = subprocess.run(
+                command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            unzip_file(output_zip, dir)
+            ncbi_fna_path = dir / "ncbi_dataset" / "data" / "gene.fna"
+            ncbi_fna_path.rename(output_fna)
+            output_zip.unlink()
+            readme_path = dir / "README.md"
+            if readme_path.exists():
+                readme_path.unlink()
+            shutil.rmtree(dir / "ncbi_dataset")
+            sleep(2)
+            logger.info(f"Downloaded and processed flanking genes for {gene}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error occurred while running command: {e}")
+            logger.error(e.stdout.decode())
+            logger.error(e.stderr.decode())
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+
+
+def download_reference_genome(genome_code, reference_dir: Path):
+    reference_dir = Path(reference_dir)
+    make_dir(reference_dir)
+    output_zip = reference_dir / f"{genome_code}.zip"
+    output_fna = reference_dir / f"reference.fna"
+    if not output_fna.is_file():
+        try:
+            command = f'datasets download genome accession {genome_code} --include genome --filename {output_zip}'
+            logger.info(f"Running command: {command}")
+            result = subprocess.run(
+                command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            unzip_file(output_zip, reference_dir)
+            ncbi_fna_path = (reference_dir / "ncbi_dataset" /
+                             "data" / genome_code).glob('*.fna')
+            ncbi_fna_path = list(ncbi_fna_path)[0]
+            ncbi_fna_path.rename(output_fna)
+            output_zip.unlink()
+            readme_path = reference_dir / "README.md"
+            if readme_path.exists():
+                readme_path.unlink()
+            shutil.rmtree(reference_dir / "ncbi_dataset")
+            logger.info(f"Downloaded the reference genome: {genome_code}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error occurred while running command: {e}")
+            logger.error(e.stdout.decode())
+            logger.error(e.stderr.decode())
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+    return output_fna
+
+
+def deep_merge(d1, d2):
+    """
+    Recursively merges d2 into d1
+    """
+    for key, value in d2.items():
+        if key in d1:
+            if isinstance(d1[key], dict) and isinstance(value, dict):
+                deep_merge(d1[key], value)
+            else:
+                d1[key] = value
+        else:
+            d1[key] = value
+
+
+def loop_flanking_genes(cwd, args):
+    receptor_chromosomes = set()
+    default_setting_file = cwd / '_config' / 'species.yaml'
+    flanking_genes_dir = cwd / "flanking_genes"
+    make_dir(flanking_genes_dir)
+    default_dict = load_config(default_setting_file)
+    species_key = args.species.replace(' ', '_')
+    species_dict = default_dict.get(
+        species_key, default_dict.get('default', {}))
+    flanking_genes = species_dict.get(
+        args.receptor_type, {}).get('FLANKING_GENES', [])
+    args.flanking_genes = flanking_genes
+    for gene in args.flanking_genes:
+        download_flanking_genes(gene, flanking_genes_dir, args.species)
+        gene_file = flanking_genes_dir / f"{gene}.fna"
+        records = SeqIO.to_dict(SeqIO.parse(gene_file, 'fasta'))
+        first_key = next(iter(records))
+        first_record = records[first_key]
+        chromosome_number = ''.join(
+            filter(str.isdigit, first_record.description.split()[-1]))
+        receptor_chromosomes.add(chromosome_number)
+    args.chromosomes = list(receptor_chromosomes)
+
+
+def create_config(cwd, args):
+    global CONFIG
+    CONFIG.setdefault("HAPLOTYPES", [1, 2])
+    CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
+    CONFIG.setdefault("ASSEMBLY_CHROMOSOMES", args.chromosomes)
+    CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
+    CONFIG.setdefault('SPECIES', {
+        'name': args.species,
+        'genome': args.reference,
+        'cell': args.receptor_type
+    })
+    rss_config = load_config(cwd / '_config' / 'rss.yaml')
+    deep_merge(CONFIG, rss_config.get(args.receptor_type, {}))
+    print(CONFIG)
+
+
+def main():
+    cwd = Path.cwd()
+    args = argparser_setup()
+    logger.info("Starting main process")
+    # filter_and_move_files(cwd, args.nanopore, args.pacbio)
+    if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
+        fasta_path = cwd / args.reference
+        split_chromosomes(cwd, fasta_path)
+    else:
+        genome_dir = cwd / 'reference' / 'genome'
+        genome = download_reference_genome(args.reference, genome_dir)
+        split_chromosomes(cwd, genome)
+    if args.default:
+        cwd = Path.cwd()
+        loop_flanking_genes(cwd, args)
+    create_config(cwd, args)
+    logger.info("Main process completed")
+
+
+if __name__ == '__main__':
+    main()
