@@ -121,6 +121,8 @@ def argparser_setup():
                                 'TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
     analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome,
                                 required='--default' not in sys.argv, help='List of chromosomes where TR or IG is located.')
+    analysis_group.add_argument('-t', '--threads', type=int,
+                                required=False, default=8, help='List of chromosomes where TR or IG is located.')
     analysis_group.add_argument('--default', action='store_true',
                                 help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
 
@@ -176,8 +178,11 @@ def process_record(record, output_dir, files):
         if chromosome not in files:
             CONFIG.setdefault('ALL_CHROMOSOMES', []).append(chromosome_number)
             file_path = output_dir / f"{chromosome}.fasta"
+            file_path_txt = output_dir / f"{chromosome}.txt"
             files[chromosome] = file_path.open('a')
+            files[f"{chromosome}_txt"] = file_path_txt.open('a')
         SeqIO.write(record, files[chromosome], 'fasta')
+        files[f"{chromosome}_txt"].write(f"{record.id}\n")
         SeqIO.write(record, files['all'], 'fasta')
     except (StopIteration, IndexError) as e:
         logger.warning(
@@ -387,16 +392,16 @@ def create_config(cwd: Path, args):
 
 def initialize_config(args):
     global CONFIG
-    CONFIG.setdefault("HAPLOTYPES", [1, 2])
-    CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
-    CONFIG.setdefault("ASSEMBLY_CHROMOSOMES", sorted(
-        args.chromosomes, key=lambda x: key_sort(x)))
-    CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
     CONFIG.setdefault('SPECIES', {
         'name': args.species,
         'genome': args.reference,
         'cell': args.receptor_type
     })
+    CONFIG.setdefault("ASSEMBLY_CHROMOSOMES", sorted(
+        args.chromosomes, key=lambda x: key_sort(x)))
+    CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
+    CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
+    CONFIG.setdefault("HAPLOTYPES", [1, 2])
 
 
 def save_config_to_file(file_name):
@@ -405,10 +410,30 @@ def save_config_to_file(file_name):
         yaml.dump(CONFIG, f, default_flow_style=False)
 
 
+def run_snakemake(args, snakefile="Snakefile"):
+    try:
+        result = subprocess.run(
+            f"snakemake -s {snakefile} --cores {args.threads} --use-conda -prn",
+            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+        logger.info("Snakemake check ran successfully.")
+        logger.info("Running the complete pipeline.")
+        subprocess.run(
+            f"snakemake -s {snakefile} --cores {args.threads} --use-conda -pr",
+            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Snakemake failed with return code {e.returncode}.")
+        logger.error(f"Snakemake output: {e.stdout.decode()}")
+        logger.error(f"Application is shutting down.")
+        sys.exit(e.returncode)
+
+
 def main():
     cwd = Path.cwd()
     args = argparser_setup()
     logger.info("Starting main process")
+    # filter_and_move_files(cwd, args.nanopore, args.pacbio)
     if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
         fasta_path = cwd / args.reference
         split_chromosomes(cwd, fasta_path)
@@ -420,6 +445,7 @@ def main():
         cwd = Path.cwd()
         loop_flanking_genes(cwd, args)
     create_config(cwd, args)
+    run_snakemake(args)
     logger.info("Main process completed")
 
 
