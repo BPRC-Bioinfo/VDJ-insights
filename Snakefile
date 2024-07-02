@@ -8,7 +8,6 @@ configfile: 'config/config.yaml'
 # Setup. Loading Accession, machine, flanking.
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
-FLANKING = [gene for chromosomes in config["FLANKING"].values() for region in chromosomes.values() for gene in region.values() if gene]
 
 
 wildcard_constraints:
@@ -20,67 +19,6 @@ rule all:
     input:
         expand("final/all_outputs_{accession}_{machine}_chr{assembly_chrs}_hap{haplo}.txt", accession=ACCESSION, machine=MACHINE, assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], haplo=config["HAPLOTYPES"]),
 
-rule downloadReference:
-    output:
-        temp("reference/reference.zip"),
-        temp("reference/README.md"),
-        ref_report = "reference/reports/assembly_report.jsonl",
-        ref = "reference/genome/reference.fna",
-    benchmark: 
-        "benchmarks/downloadReference.txt"
-    log:
-        "logs/downloadReference.log"
-    params:
-        reference_code = config["SPECIES"]["genome"],
-        prefix = "reference/ncbi_dataset/data"
-    conda:
-        "envs/NCBI.yaml"
-    shell:
-        """
-        mkdir -p reference/genome
-        cd reference
-        datasets download genome accession {params.reference_code} --include genome --filename reference.zip
-        cd ../
-        datasets summary genome accession {params.reference_code} --report sequence --as-json-lines > {output.ref_report}
-        unzip reference/reference.zip -d reference/
-        mv {params.prefix}/{params.reference_code}/* {output.ref}
-        rm -r reference/ncbi*
-        """
-
-
-rule splitChromosomes:
-    input:
-        fa = ancient("reference/genome/reference.fna"),
-        report = ancient("reference/reports/assembly_report.jsonl")
-    output:
-        fa = "reference/chromosomes/reference_chr{all_chrs}.fasta",
-        temp = "reference/chromosomes/reference_chr{all_chrs}.txt"
-    benchmark: 
-        "benchmarks/splitChromosomes_{all_chrs}.txt"
-    log:
-        "logs/splitChromosomes_{all_chrs}.log"
-    conda:
-        "envs/split.yaml"
-    shell:
-        """
-        cat {input.report} | egrep '"chr_name":"{wildcards.all_chrs}"' | jq -r ".refseq_accession"  > {output.temp}
-        seqkit grep -f {output.temp} {input.fa} | sed "s/>/>chr{wildcards.all_chrs}_/g" > {output.fa}
-        """
-
-# Making new reference file.
-rule newReferenceFile:
-    input:
-        expand("reference/chromosomes/reference_chr{all_chrs}.fasta", all_chrs=config["ALL_CHROMOSOMES"])
-    output:
-        "reference/genome/reference_new_ref.fasta"
-    benchmark: 
-        "benchmarks/newReferenceFile.txt"
-    log:
-        "logs/newReferenceFile.log"
-    shell:
-        """
-        cat {input} > {output}
-        """
 
 # Checkpoint for dynamically splitting the FASTQ file
 checkpoint split_fastq:
@@ -251,7 +189,7 @@ rule seqkitFiltered:
 rule minimap2:
     input:
         read = ancient("combined/{accession}_{machine}.combined.fastq.gz"),
-        reference = ancient("reference/genome/reference_new_ref.fasta"),
+        reference = ancient("reference/genome/new_reference.fasta"),
     output:
         temp("alignments/{accession}_{machine}.sam")
     benchmark:
@@ -316,8 +254,8 @@ rule sortIndexBam:
 checkpoint separateChrs:
     input:
         bam = ancient("alignments/sorted_{accession}_{machine}.bam"),
-        index_bam = "alignments/sorted_{accession}_{machine}.bam.bai",
-        reference = "reference/chromosomes/reference_chr{all_chrs}.txt"
+        index_bam = ancient("alignments/sorted_{accession}_{machine}.bam.bai"),
+        reference = ancient("reference/chromosomes/reference_chr{all_chrs}.txt")
     output:
         directory("chromosomes/{accession}_{machine}_{all_chrs}")
     benchmark: 
@@ -437,6 +375,15 @@ rule gfaToFasta:
         gfatools gfa2fa {input} > {output}       
         """
 
+rule allAssemblies:
+    input:
+        ancient(expand("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta", assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], accession=ACCESSION, haplo=config["HAPLOTYPES"]))
+    output:
+        "converted/gfatofasta/check.txt"
+    shell:
+        """
+        echo {input} | tr " " "\n" > {output} 
+        """
 # Quast
 rule quastAssemblyStatistics:
     input:
@@ -517,118 +464,6 @@ rule inspector:
         """
 
 
-# Flanking genes
-rule downloadFlankingGenes:
-    output:
-        "flanking/{fgene}/ncbi_dataset/data/gene.fna"
-    benchmark: 
-        "benchmarks/downloadFlankingGenes_{fgene}.txt"
-    log:
-        "logs/downloadFlankingGenes_{fgene}.log"
-    conda:
-        "envs/NCBI.yaml"
-    params:
-        species_name = config["SPECIES"]["name"]
-    shell:
-        """
-        mkdir -p flanking/{wildcards.fgene}
-        cd flanking/{wildcards.fgene}
-        datasets download gene symbol {wildcards.fgene} --taxon "{params.species_name}" --include gene --filename {wildcards.fgene}.zip
-        unzip {wildcards.fgene}.zip
-        """
-
-
-
-rule combineFlankingGenes:
-    input:
-        ancient(expand("flanking/{fgene}/ncbi_dataset/data/gene.fna", fgene=FLANKING))
-    output:
-        "flanking/all_flanking_genes.fna"
-    benchmark: 
-        "benchmarks/combineFlankingGenes.txt"
-    log:
-        "logs/combineFlankingGenes.log"
-    shell:
-        """
-        > {output}
-        for file in {input}; do
-            header=$(head -1 "$file" | egrep "^>" | awk '{{print $2":" $5":"$NF}}' | tr -d '[]')
-            sequence=$(cat "$file" | egrep -v "^>")
-            echo -e ">$header\n$sequence" >> {output}
-        done
-        """
-
-
-rule flankingByChromosomes:
-    input:
-        flanking = ancient("flanking/all_flanking_genes.fna")
-    output:
-        "flanking/chr{assembly_chrs}_{accession}_flanking_genes.fna"
-    benchmark: 
-        "benchmarks/flankingByChromosomes_{assembly_chrs}_{accession}.txt"
-    log:
-        "logs/flankingByChromosomes_{assembly_chrs}_{accession}.log"
-    params:
-        chrs_id = "flanking/chr{assembly_chrs}_{accession}_flanking_genes_id.txt" 
-    conda:
-        "envs/seqtk.yaml"
-    shell:
-        """
-        cat {input} | egrep "{wildcards.assembly_chrs}" | tr -d ">" > {params.chrs_id}
-        seqtk subseq {input} {params.chrs_id} > {output}
-        """
-
-
-rule mapFlankingGenes:
-    input:
-        reads = ancient("converted/gfatofasta/chr{assembly_chrs}_{accession}_hap{haplo}.fasta"),
-        flanking_genes = ancient("flanking/chr{assembly_chrs}_{accession}_flanking_genes.fna")
-    output:
-        sam_file = temp("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam"),
-    benchmark: 
-        "benchmarks/mapFlankingGenes_{accession}_{assembly_chrs}_{haplo}.txt"
-    log:
-        "logs/mapFlankingGenes_{accession}_{assembly_chrs}_{haplo}.log"
-    conda:
-        "envs/minimap2.yaml"
-    threads:
-        6
-    shell:
-        """
-        minimap2 -ax asm5 --secondary=no -t {threads} {input.reads} {input.flanking_genes} > {output.sam_file}
-        """
-
-
-## Generate regions
-rule regionFiles:
-    input:
-        ancient("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.sam")
-    output:
-        temp(touch("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.txt"))
-    benchmark: 
-        "benchmarks/regionFiles_{accession}_{assembly_chrs}_{haplo}.txt"
-    log:
-        "logs/regionFiles_{accession}_{assembly_chrs}_{haplo}.log"
-    conda:
-        "envs/scripts.yaml"
-    script:
-        "scripts/region.py" 
-
-
-rule combineRegion:
-    input:
-        expand("flank_alignment/chr{assembly_chrs}_{accession}_hap{haplo}_aligned.txt", assembly_chrs=config["ASSEMBLY_CHROMOSOMES"], accession=ACCESSION, haplo=config["HAPLOTYPES"])
-    output:
-        temp("annotation/all_regions.txt")
-    benchmark: 
-        "benchmarks/combineRegion.txt"
-    log:
-        "logs/combineRegion.log"
-    shell:
-        """
-        echo {input} | tr " " "\n" > {output}
-        """
-
 rule getLibrary:
     output:
         "library/library.fasta"
@@ -649,19 +484,23 @@ rule getLibrary:
 
 rule annotation:
     input:
-        ancient("annotation/all_regions.txt"),
-        ancient("library/library.fasta")
+        ancient("library/library.fasta"),
+        "converted/gfatofasta/check.txt"
     output:
         "annotation/annotation_report_plus.xlsx"
     benchmark: 
         "benchmarks/annotation.txt"
     log:
         "logs/annotation.log"
+    params:
+        species = config["SPECIES"]["name"],
+        cell_type = config["SPECIES"]["cell"],
+        flanking_genes = ",".join(config["FLANKING_GENES"])
     conda:
         "envs/scripts.yaml"
     shell:
         """
-        python scripts/annotation.py -i region/ -l library/library.fasta
+        python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -t {params.cell_type} -f "{params.flanking_genes}"
         """
 
 
