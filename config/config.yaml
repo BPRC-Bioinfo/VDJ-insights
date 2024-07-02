@@ -1,115 +1,103 @@
 ALL_CHROMOSOMES:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-  - 7
-  - 8
-  - 9
-  - 10
-  - 11
-  - 12
-  - 13
-  - 14
-  - 15
-  - 16
-  - 17
-  - 18
-  - 19
-  - 20
-  - "X"
-  - "Y"
-
-HAPLOTYPES: 
-  - 1
-  - 2
-
-BUSCO_DATASET:
-  primates_odb10
-
-ASSEMBLY_CHROMOSOMES: 
-  - 3
-  - 7
-
-SPECIES:
-  name:
-    "macaca mulatta"
-  genome:
-    GCF_003339765.1
-  cell:
-    TR
-
-FLANKING:
-  chr7:
-    alpha-delta:
-      start: SALL2
-      end: DAD1
-  chr3:
-    beta:
-      start: MGAM2
-      end: TRPV6
-    gamma:
-      start: VPS41
-      end: EPDR1
-
+- 1a
+- '2'
+- '3'
+- '4'
+- '5'
+- '6'
+- 7b
+- '8'
+- '9'
+- '10'
+- '11'
+- '12'
+- '13'
+- '14'
+- '15'
+- '16'
+- '17'
+- '18'
+- '19'
+- '20'
+- '21'
+- 22a
+- '23'
+- '24'
+- '25'
+- X
+ASSEMBLY_CHROMOSOMES:
+- '13'
+- '17'
+- 22a
+BUSCO_DATASET: primates_odb10
+FLANKING_GENES:
+- SALL2
+- DAD1
+- MGAM2
+- EPHB6
+- EPDR1
+- VPS41
+HAPLOTYPES:
+- 1
+- 2
 RSS_LAYOUT:
-  TRAV:
-    "23":
-      "+": end_plus
-      "-": start_minus
   TRAJ:
-    "12":
-      "+": start_minus
-      "-": end_plus
-  TRBV:
-    "23":
-      "+": end_plus
-      "-": start_minus
+    '12':
+      +: start_minus
+      '-': end_plus
+  TRAV:
+    '23':
+      +: end_plus
+      '-': start_minus
   TRBD:
-    "12":
-      "+": start_minus
-      "-": end_plus
-    "23":
-      "+": end_plus
-      "-": start_minus
+    '12':
+      +: start_minus
+      '-': end_plus
+    '23':
+      +: end_plus
+      '-': start_minus
   TRBJ:
-    "12":
-      "+": start_minus
-      "-": end_plus
-  TRGV:
-    "23":
-      "+": end_plus
-      "-": start_minus
-  TRGJ:
-    "12":
-      "+": start_minus
-      "-": end_plus
-  TRDV:
-    "23":
-      "+": end_plus
-      "-": start_minus
+    '12':
+      +: start_minus
+      '-': end_plus
+  TRBV:
+    '23':
+      +: end_plus
+      '-': start_minus
   TRDD:
-    "12":
-      "+": start_minus
-      "-": end_plus
-    "23":
-      "+": end_plus
-      "-": start_minus
+    '12':
+      +: start_minus
+      '-': end_plus
+    '23':
+      +: end_plus
+      '-': start_minus
   TRDJ:
-    "12":
-      "+": start_minus
-      "-": end_plus
-
+    '12':
+      +: start_minus
+      '-': end_plus
+  TRDV:
+    '23':
+      +: end_plus
+      '-': start_minus
+  TRGJ:
+    '12':
+      +: start_minus
+      '-': end_plus
+  TRGV:
+    '23':
+      +: end_plus
+      '-': start_minus
 RSS_LENGTH:
-  "12": 28
-  "23": 39
-
+  '12': 28
+  '23': 39
 RSS_MERS:
-  "12": 
-    - 9
-    - 7
-  "23": 
-    - 7
-    - 9
+  '12':
+  - 9
+  - 7
+  '23':
+  - 7
+  - 9
+SPECIES:
+  cell: TR
+  genome: GCF_006542625.1
+  name: Nomascus leucogenys

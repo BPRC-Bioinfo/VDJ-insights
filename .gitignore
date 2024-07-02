@@ -241,6 +241,7 @@ busco_downloads/*
 # Flanking genes files
 flanking/*
 flank_alignment/*
+flanking_genes/*
 
 # Region files
 region/*
@@ -272,3 +273,5 @@ final/*
 
 temp/*
 
+# User config file(s)
+_config/*

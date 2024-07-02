@@ -50,7 +50,7 @@ rule downloadReference:
 
 rule splitChromosomes:
     input:
-        fa = "reference/genome/reference.fna",
+        fa = ancient("reference/genome/reference.fna"),
         report = ancient("reference/reports/assembly_report.jsonl")
     output:
         fa = "reference/chromosomes/reference_chr{all_chrs}.fasta",
