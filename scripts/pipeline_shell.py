@@ -122,7 +122,7 @@ def argparser_setup():
     analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome,
                                 required='--default' not in sys.argv, help='List of chromosomes where TR or IG is located.')
     analysis_group.add_argument('-t', '--threads', type=int,
-                                required=False, default=8, help='List of chromosomes where TR or IG is located.')
+                                required=False, default=8, help='Amount of threads to run the analysis.')
     analysis_group.add_argument('--default', action='store_true',
                                 help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
 
