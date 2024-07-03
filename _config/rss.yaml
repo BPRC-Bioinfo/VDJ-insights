@@ -1,0 +1,114 @@
+TR:
+  RSS_LAYOUT:
+    TRAV:
+      "23":
+        "+": end_plus
+        "-": start_minus
+    TRAJ:
+      "12":
+        "+": start_minus
+        "-": end_plus
+    TRBV:
+      "23":
+        "+": end_plus
+        "-": start_minus
+    TRBD:
+      "12":
+        "+": start_minus
+        "-": end_plus
+      "23":
+        "+": end_plus
+        "-": start_minus
+    TRBJ:
+      "12":
+        "+": start_minus
+        "-": end_plus
+    TRGV:
+      "23":
+        "+": end_plus
+        "-": start_minus
+    TRGJ:
+      "12":
+        "+": start_minus
+        "-": end_plus
+    TRDV:
+      "23":
+        "+": end_plus
+        "-": start_minus
+    TRDD:
+      "12":
+        "+": start_minus
+        "-": end_plus
+      "23":
+        "+": end_plus
+        "-": start_minus
+    TRDJ:
+      "12":
+        "+": start_minus
+        "-": end_plus
+
+  RSS_LENGTH:
+    "12": 28
+    "23": 39
+
+  RSS_MERS:
+    "12": 
+      - 9
+      - 7
+    "23": 
+      - 7
+      - 9
+IG:
+  RSS_LAYOUT:
+  IGHV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  IGHD:
+    "12":
+      "+": start_minus
+      "-": end_plus
+    "13":
+      "+": end_plus
+      "-": start_minus
+  IGHJ:
+    "24":
+      "+": start_minus
+      "-": end_plus
+  IGKV:
+    "13":
+      "+": end_plus
+      "-": start_minus
+  IGKJ:
+    "24":
+      "+": start_minus
+      "-": end_plus
+  IGLV:
+    "23":
+      "+": end_plus
+      "-": start_minus
+  IGLJ:
+    "12":
+      "+": start_minus
+      "-": end_plus
+
+RSS_LENGTH:
+  "12": 28
+  "13": 28
+  "23": 39
+  "24": 39
+
+RSS_MERS:
+  "12":
+    - 9
+    - 7
+  "13":
+    - 7
+    - 9
+  "23":
+    - 7
+    - 9
+  "24":
+    - 9
+    - 7 
+

@@ -1,0 +1,30 @@
+default:
+  TR:
+    FLANKING_GENES:
+      - SALL2
+      - DAD1
+      - MGAM2
+      - EPHB6
+      - EPDR1
+      - VPS41
+    
+Macaca_mulatta:
+  TR:
+    FLANKING_GENES:
+      - SALL2
+      - DAD1
+      - MGAM2
+      - EPHB6
+      - EPDR1
+      - VPS41
+
+Homo_sapiens:
+  TR:
+    FLANKING_GENES:
+      - SALL2
+      - DAD1
+      - MGAM2
+      - EPHB6
+      - EPDR1
+      - VPS41
+    
