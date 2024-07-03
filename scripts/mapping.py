@@ -6,6 +6,22 @@ import pandas as pd
 from Bio import SeqIO
 from pathlib import Path
 from logger import custom_logger
+
+"""
+Used python packages:
+    1. yaml
+    2. pandas
+    3. openpyxl
+    4. biopython
+
+Used CLI packages:
+    1. minimap2
+    2. bowtie2
+    3. bowtie
+    4. samtools
+    5. bedtools
+"""
+
 CONFIG = None
 
 # Method for logger current states of the program.
@@ -65,7 +81,7 @@ def get_sequence(line, fasta):
     return str(specific_sequence[int(start): int(stop)])
 
 
-def get_region_and_segment(name):
+def get_region_and_segment(name, cell_type):
     """
     Takes in a name of a potential segment and find the region and
     segment name in that. The name must contain a part which start 
@@ -79,7 +95,6 @@ def get_region_and_segment(name):
         str, str: Return either a region name, segment name as string 
         or other and - as str.
     """
-    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
     prefix = [i for i in name.split("_") if i.startswith(cell_type)]
     if prefix:
         prefix = re.sub(r"[0-9]", "", prefix[0])
@@ -89,14 +104,14 @@ def get_region_and_segment(name):
         return "other", "-"
 
 
-def parse_bed(file_path, accuracy, fasta, mapping_type):
+def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
     """
 
     Reads the content of a bed file and loops over the content line by 
     line to get all the necessary information such as the sequence, 
     the used score/accuracy from 1 to 100, bed_file path it self, 
-    the mapping type this can either be "bowtie" or "bowtie2" or "minimap2", region, 
-    segment and the path of the fasta file.
+    the mapping type this can either be "bowtie" or "bowtie2" or "minimap2", 
+    region, segment and the path of the fasta file.
     It returns a list with all the different found entries of the bedfile
 
     Args:
@@ -114,7 +129,7 @@ def parse_bed(file_path, accuracy, fasta, mapping_type):
     with open(file_path, "r") as file:
         for line in file:
             line = line.strip().split("\t")
-            region, segment = get_region_and_segment(line[3])
+            region, segment = get_region_and_segment(line[3], cell_type)
             line.extend([get_sequence(line, fasta),
                         accuracy, str(file_path), mapping_type, region, segment, fasta])
             entries.append(line)
@@ -137,7 +152,7 @@ def run_command(command):
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
-def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file):
+def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     """
     Configures the bowtie2 command.
     It adjusts some parameters based on a given acc.
@@ -158,22 +173,23 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file):
     Returns:
         str: A constructed bowtie2 command.
     """
-    threads = 20
     N = 1 if acc < 50 else 0
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min \
+        {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
-def make_bowtie_command(acc, bowtie_db, rfasta, sam_file):
+def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
     """
     Configures the bowtie command.
     It adjust some parameters based on the given "acc".
-    - v: These are the amount of mismatches, 3 if acc <= 33, 2 in acc <= 66 and 1 < 100.
-    In the end the bowtie command is constructed and returned with the right parameters, 
-    bowtie_db and files
+    - v: These are the amount of mismatches, 3 if acc <= 33, 2 in acc 
+    <= 66 and 1 < 100.
+    In the end the bowtie command is constructed and returned with the 
+    right parameters, bowtie_db and files.
 
 
     Args:
@@ -186,13 +202,13 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file):
     Returns:
         str: A constructed bowtie command.
     """
-    threads = 20
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x \
+        {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
-def make_minimap2_command(acc, ffile, rfasta, sam_file):
+def make_minimap2_command(acc, ffile, rfasta, sam_file, threads):
     """
     Constructs the minimap2 command. Based on the accuracy (acc) / 
     score, fasta file (ffile), reference fasta file (rfasta) and sam file.
@@ -206,12 +222,11 @@ def make_minimap2_command(acc, ffile, rfasta, sam_file):
     Returns:
         command (str): Constructed minimap2 command.
     """
-    threads = 20
     command = f"minimap2 -a -m {acc} -t {threads} {ffile} {rfasta} > {sam_file}"
     return command
 
 
-def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type):
+def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, threads):
     """
     Creates all the necessary commands needed for a certain 
     accuracy/score combined with the fasta_file 
@@ -233,13 +248,13 @@ def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type):
     """
     if mapping_type == "bowtie2":
         bowtie_command = make_bowtie2_command(
-            acc, files.bowtie_db, rfasta, files.sam)
+            acc, files.bowtie_db, rfasta, files.sam, threads)
     elif mapping_type == "minimap2":
         bowtie_command = make_minimap2_command(
-            acc, fasta_file, rfasta, files.sam)
+            acc, fasta_file, rfasta, files.sam, threads)
     else:
         bowtie_command = make_bowtie_command(
-            acc, files.bowtie_db, rfasta, files.sam)
+            acc, files.bowtie_db, rfasta, files.sam, threads)
     commands = [
         f"{mapping_type}-build {fasta_file} {files.bowtie_db}",
         bowtie_command,
@@ -284,7 +299,7 @@ def make_df(all_entries):
     return df.reset_index(drop=True)
 
 
-def run(indir, outdir, rfasta, beddir, acc, mapping_type):
+def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
     """
     Loop over the "indir" directory which contains all
     the region of interest fasta files. Create the index directories,
@@ -315,10 +330,10 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type):
             create_directory(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
-            for command in all_commands(files, fasta, rfasta, acc, mapping_type):
+            for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads):
                 run_command(command)
         if files.bed.exists():
-            entries = parse_bed(files.bed, acc, fasta, mapping_type)
+            entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
             logger.info(f"Parsed {len(entries)} entries from {files.bed}")
             yield entries
         else:
@@ -336,7 +351,7 @@ def create_directory(location):
     Path(location).mkdir(parents=True, exist_ok=True)
 
 
-def mapping_main(mapping_type, input_dir, library, start=100, stop=0):
+def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=0):
     """
     Main function to run the mapping script. It takes a mapping type in 
     as an argument to determine which type script to run. It created a 
@@ -365,7 +380,7 @@ def mapping_main(mapping_type, input_dir, library, start=100, stop=0):
     for acc in range(start, stop - 1, -1):
         beddir = cwd / "mapping" / mapping_type / f"{acc}%acc"
         create_directory(beddir)
-        for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type):
+        for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
             all_entries.extend(current_entry)
     df = make_df(all_entries)
     return df

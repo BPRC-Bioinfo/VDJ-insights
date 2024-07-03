@@ -176,7 +176,8 @@ def process_record(record, output_dir, files):
     try:
         chromosome, chromosome_number = extract_chromosome_info(splitted)
         if chromosome not in files:
-            CONFIG.setdefault('ALL_CHROMOSOMES', []).append(chromosome_number)
+            CONFIG.setdefault('ALL_CHROMOSOMES', []).append(
+                chromosome_number.rstrip(","))
             file_path = output_dir / f"{chromosome}.fasta"
             file_path_txt = output_dir / f"{chromosome}.txt"
             files[chromosome] = file_path.open('a')
@@ -212,7 +213,7 @@ def rename_files(cwd: Path, file: Path, read_type: str):
 
 
 def get_new_file_path(file, read_type, moved_dir):
-    conversion = {"ONT": "ont", "NANOPORE": "ont",
+    conversion = {"ONT": "nanopore", "NANOPORE": "nanopore",
                   "PACBIO": "pacbio", "PB": "pacbio"}
     stripped_extensions = file.with_suffix('').with_suffix('')
     sample = stripped_extensions.stem.split('_')[0].upper()
@@ -221,7 +222,7 @@ def get_new_file_path(file, read_type, moved_dir):
 
 
 def filter_and_move_files(cwd: Path, nanopore_file: Path, pacbio_file: Path):
-    ont_sample, ont_file = rename_files(cwd, nanopore_file, 'ont')
+    ont_sample, ont_file = rename_files(cwd, nanopore_file, 'nanopore')
     pb_sample, pb_file = rename_files(cwd, pacbio_file, 'pacbio')
     move_files(nanopore_file, pacbio_file, ont_file,
                pb_file, ont_sample, pb_sample)
@@ -417,11 +418,11 @@ def run_snakemake(args, snakefile="Snakefile"):
             shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
         )
         logger.info("Snakemake check ran successfully.")
-        logger.info("Running the complete pipeline.")
-        subprocess.run(
-            f"snakemake -s {snakefile} --cores {args.threads} --use-conda -pr",
-            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-        )
+        # logger.info("Running the complete pipeline.")
+        # subprocess.run(
+        #     f"snakemake -s {snakefile} --cores {args.threads} --use-conda -pr",
+        #     shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        # )
     except subprocess.CalledProcessError as e:
         logger.error(f"Snakemake failed with return code {e.returncode}.")
         logger.error(f"Snakemake output: {e.stdout.decode()}")
@@ -433,7 +434,7 @@ def main():
     cwd = Path.cwd()
     args = argparser_setup()
     logger.info("Starting main process")
-    # filter_and_move_files(cwd, args.nanopore, args.pacbio)
+    filter_and_move_files(cwd, args.nanopore, args.pacbio)
     if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
         fasta_path = cwd / args.reference
         split_chromosomes(cwd, fasta_path)

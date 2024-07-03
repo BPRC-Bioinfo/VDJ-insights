@@ -498,9 +498,11 @@ rule annotation:
         flanking_genes = ",".join(config["FLANKING_GENES"])
     conda:
         "envs/scripts.yaml"
+    threads:
+        24
     shell:
         """
-        python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -t {params.cell_type} -f "{params.flanking_genes}"
+        python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -r {params.cell_type} -f "{params.flanking_genes}" -t {threads}
         """
 
 

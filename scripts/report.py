@@ -7,6 +7,21 @@ from Bio import SeqIO
 import sys
 from logger import custom_logger
 
+"""
+Used python packages:
+    1. yaml
+    2. pandas
+    3. openpyxl
+    4. biopython
+
+Used CLI packages:
+    1. minimap2
+    2. bowtie2
+    3. bowtie
+    4. samtools
+    5. bedtools
+"""
+
 # Method for logger current states of the program.
 logger = custom_logger(__name__)
 
@@ -34,13 +49,12 @@ def make_record_dict(fasta):
     return record_dict
 
 
-def fetch_prefix(name):
-    cell_type = CONFIG.get("SPECIES", {}).get("cell", "TR")
+def fetch_prefix(name, cell_type):
     prefix = [i for i in name.split("_") if i.startswith(cell_type)][0]
     return prefix
 
 
-def add_region_segment(row):
+def add_region_segment(row, cell_type):
     """
     Determines based on the potential name of the segment what the 
     segment and the region is. It first brakes the name based on the "_" 
@@ -58,7 +72,7 @@ def add_region_segment(row):
         "Region" and "Segment".
     """
     query = row['Old name-like']
-    prefix = fetch_prefix(query)
+    prefix = fetch_prefix(query, cell_type)
     short_name = prefix
     prefix = re.sub(r"[0-9-]", "", prefix)
     region, segment = prefix[0:3], prefix[3]
@@ -219,7 +233,7 @@ def add_orf(row):
     return row
 
 
-def filter_df(row):
+def filter_df(row, cell_type):
     """
     Filters the BLAST row/section to identify the best reference and creates 
     a list of leftover similar references. First the Specific Part,
@@ -234,6 +248,7 @@ def filter_df(row):
 
     Args:
         row (pd.Series): The current section that is being filtered.
+        cell_type (str): The cell type to fetch the prefix.
 
     Returns:
         best_row: the BLAST df with now the best reference chosen and 
@@ -255,11 +270,11 @@ def filter_df(row):
     best_row['Similar references'] = all_references
     best_row["Old name-like"] = best_row["Reference"]
     best_row["Short name"] = best_row["Reference"].apply(
-        fetch_prefix)
+        lambda ref: fetch_prefix(ref, cell_type))
     if int(best_row.Mismatches.iloc[0]) != 0:
         best_row["Old name-like"] = best_row["Reference"] + "-like"
         best_row["Short name"] = best_row["Reference"].apply(
-            fetch_prefix) + "-like"
+            lambda ref: fetch_prefix(ref, cell_type)) + "-like"
     return best_row.squeeze()
 
 
@@ -269,20 +284,20 @@ def add_reference_length(row, record):
     return row
 
 
-def run_like_and_length(df, record):
+def run_like_and_length(df, record, cell_type):
     df = add_like_to_df(df)
-    df = df.apply(add_region_segment, axis=1)
+    df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
-    length_mask = df[["Reference Length",	"Old name-like Length",
+    length_mask = df[["Reference Length", "Old name-like Length",
                       "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
     df = df[length_mask]
     df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
     return df
 
 
-def group_similar(df):
+def group_similar(df, cell_type):
     df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(
-        filter_df)
+        lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
     return df
 
@@ -326,39 +341,23 @@ def annotation(df, annotation_folder, file_name):
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Short name', 'Message']]
+             'Short name', 'Message', 'Old name-like seq']]
     df["Status"] = "Known" if "100%" in file_name else "Novel"
     df.to_excel(annotation_folder / file_name, index=False)
 
 
-def write_annotation_reports(annotation_folder):
-    """
-    Main function for generating reports from BLAST results. 
-    It reads the initial BLAST DataFrame (df), processes it through various filtering 
-    and data manipulation steps, and generates multiple Excel reports.
-
-    Reads the initial BLAST results from 'blast_results.xlsx'. 
-    Modify columns in the df. Filters the df to retain only 
-    the best rows based on specific criteria. In the end get 
-    different subsets of the df and saves them into various Excel files,
-    which include annotated long report, a standard annotation report, 
-    and an RSS report.
-
-
-    Args:
-        annotation_folder (Path): Path of the initial annotation folder.
-    """
+def report_main(annotation_folder, blast_file, cell_type):
     cwd = Path.cwd()
     load_config(cwd)
     record = make_record_dict(cwd / "library" / "library.fasta")
-    df = pd.read_excel(annotation_folder / "blast_results.xlsx")
+    df = pd.read_excel(blast_file)
     df = add_values(df)
     df, ref_df = main_df(df)
-    df, ref_df = run_like_and_length(
-        df, record), run_like_and_length(ref_df, record)
+    df = run_like_and_length(df, record, cell_type)
+    ref_df = run_like_and_length(ref_df, record, cell_type)
     df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
     annotation_long(df, annotation_folder)
-    df, ref_df = group_similar(df), group_similar(ref_df)
+    df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
     annotation(df, annotation_folder, 'annotation_report.xlsx')
     annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
 
@@ -366,4 +365,4 @@ def write_annotation_reports(annotation_folder):
 if __name__ == '__main__':
     cwd = Path.cwd()
     annotation_folder = cwd / "annotation"
-    write_annotation_reports(annotation_folder)
+    report_main(annotation_folder)

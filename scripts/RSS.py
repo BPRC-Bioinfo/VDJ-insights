@@ -7,7 +7,21 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 from logger import custom_logger
+"""
+Used CLI packages:
+    1. yaml
+    2. pandas
+    3. openpyxl
+    4. biopython
+    5. meme 
+    6. imagemagick
 
+Used python packages:
+    1. yaml
+    2. pandas
+    3. openpyxl
+    4. biopython
+"""
 # Method for logger current states of the program.
 logger = custom_logger(__name__)
 
@@ -277,7 +291,8 @@ def add_base_rss_parts(row):
     """
     region, segment = row["Region"], row["Segment"]
     full = region + segment
-    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
+    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], \
+        row["23_nonamer"] = "", "", "", ""
     rss_variants = CONFIG['RSS_LAYOUT'].get(full, {}).keys()
     for rss_variant in rss_variants:
         rss_sequence = fetch_sequence(row, segment, rss_variant)
@@ -464,7 +479,6 @@ def check_ref_rss(row, ref_rss_dict, rss_variant):
     based on the rss variant and if the i is equal to a heptamer or
     nonamer, the right columns is filled in.
 
-
     Args:
         row (Series): Current row of the df. 
         ref_rss_dict (dict): Directory that contains all the reference RSS 
@@ -474,17 +488,20 @@ def check_ref_rss(row, ref_rss_dict, rss_variant):
     Returns:
         Series: Current row with the filled in matched column.
     """
-    region, segment = row[["Region", "Segment"]]
-    ref = ref_rss_dict[f"{region}{segment}_{rss_variant}"]
-    for i in ["heptamer", "nonamer"]:
-        ref_seq = ref[i]
-        query_seq = row[f"{rss_variant}_{i}"]
-        matches = rss_mismatch(query_seq, ref_seq)
-        row[f"{rss_variant}_ref_{i}"] = ref_seq
-        if matches > 1:
-            row[f"{rss_variant}_{i}_matched"] = False
+    region_segment_key = f"{row['Region']}{row['Segment']}_{rss_variant}"
+    ref_rss = ref_rss_dict.get(region_segment_key, "")
+
+    for motif in ["heptamer", "nonamer"]:
+        ref_seq = ref_rss.get(motif, "") if ref_rss else ""
+        query_seq = row.get(f"{rss_variant}_{motif}", "")
+
+        if ref_seq:
+            matches = rss_mismatch(query_seq, ref_seq)
+            row[f"{rss_variant}_ref_{motif}"] = ref_seq
+            row[f"{rss_variant}_{motif}_matched"] = matches <= 1
         else:
-            row[f"{rss_variant}_{i}_matched"] = True
+            row[f"{rss_variant}_{motif}_matched"] = True
+
     return row
 
 
