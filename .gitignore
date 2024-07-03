@@ -275,3 +275,6 @@ temp/*
 
 # User config file(s)
 config/*
+
+# HTML files
+source/html/*
