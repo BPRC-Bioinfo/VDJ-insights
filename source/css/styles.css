@@ -1,0 +1,220 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    background-color: #ffffff;
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    height: 100vh; /* Full height */
+    overflow: hidden; /* Prevent scrolling */
+}
+
+.container {
+    padding: 20px;
+    background-color: #ffffff;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 1s ease-in-out;
+    overflow-y: auto; /* Allow scrolling within container */
+}
+
+/* Main content styling */
+.main-content {
+    flex: 1;
+    /* margin-left: 250px; Adjust for sidebar width */
+    transition: margin-left 0.3s ease; /* Smooth transition */
+    overflow-y: auto; /* Allow scrolling */
+}
+
+.main-content.shifted {
+    margin-left: 80px; /* Adjust for minimized sidebar width */
+}
+
+/* Flexbox for header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header .report-title {
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.header .report-date {
+    font-size: 1em;
+    color: #7f8c8d;
+}
+
+/* Flexbox for main content */
+.report-main-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Styling for headings */
+.report-title, .report-heading {
+    color: #2c3e50;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.report-title {
+    font-size: 2.5em;
+    border-bottom: 2px solid #2c3e50;
+    padding-bottom: 0.2em;
+}
+
+.report-heading {
+    font-size: 2em;
+    margin-top: 1.5em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #34495e;
+}
+
+/* Styling for paragraphs */
+.report-intro {
+    margin-bottom: 1em;
+    line-height: 1.8;
+    text-align: justify;
+    color: #333;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+/* Styling for lists */
+.report-list {
+    line-height: 1.8;
+    margin-bottom: 1.5em;
+    padding-left: 1.5em;
+    color: #333;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.report-list li {
+    margin-bottom: 0.5em;
+}
+
+/* Styling for tables */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5em;
+    background-color: #ffffff;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.report-table th, .report-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.report-table th {
+    background-color: #34495e;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.report-table td {
+    background-color: #ffffff;
+    color: #333;
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Styling for status messages */
+.success {
+    color: #27ae60;
+    font-weight: bold;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.warning {
+    color: #f39c12;
+    font-weight: bold;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.error {
+    color: #e74c3c;
+    font-weight: bold;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+/* Button styling */
+.report-button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 1em;
+    animation: fadeInUp 0.5s ease-in-out;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.report-button:hover {
+    background-color: #2980b9;
+}
+
+/* Keyframes for animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    body {
+        margin: 20px;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    .report-title {
+        font-size: 2em;
+    }
+
+    .report-heading {
+        font-size: 1.75em;
+    }
+
+    .report-main-content table, .report-main-content th, .report-main-content td {
+        font-size: 0.9em;
+    }
+
+    .report-button {
+        font-size: 0.9em;
+        padding: 8px 16px;
+    }
+}
