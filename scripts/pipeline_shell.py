@@ -221,21 +221,34 @@ def get_new_file_path(file, read_type, moved_dir):
     return moved_dir / f"{new_sample_name}_{read_type}.fastq.gz"
 
 
-def filter_and_move_files(cwd: Path, nanopore_file: Path, pacbio_file: Path):
-    ont_sample, ont_file = rename_files(cwd, nanopore_file, 'nanopore')
-    pb_sample, pb_file = rename_files(cwd, pacbio_file, 'pacbio')
-    move_files(nanopore_file, pacbio_file, ont_file,
-               pb_file, ont_sample, pb_sample)
+def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: Path):
+    global CONFIG
+    ont_sample, moved_nanopore = rename_files(
+        cwd, original_nanopore, 'nanopore')
+    pb_sample, moved_pacbio = rename_files(cwd, original_pacbio, 'pacbio')
+    CONFIG.setdefault('DATA', {
+        'ORIGINAL': {
+            'pacbio': str(original_pacbio),
+            'nanopore': str(original_nanopore)
+        },
+        'MOVED': {
+            'nanopore': str(moved_nanopore),
+            'pacbio': str(moved_pacbio)
+        }
+    })
+    if not moved_nanopore.is_file() and not moved_pacbio.is_file():
+        move_files(original_nanopore, original_pacbio, moved_nanopore,
+                   moved_pacbio, ont_sample, pb_sample)
 
 
-def move_files(nanopore_file, pacbio_file, ont_file, pb_file, ont_sample, pb_sample):
+def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio, ont_sample, pb_sample):
     if ont_sample != pb_sample:
-        ont_file = ont_file.with_name(f"SAMPLE_ont.fastq.gz")
-        pb_file = pb_file.with_name(f"SAMPLE_pacbio.fastq.gz")
-    shutil.move(nanopore_file, ont_file)
-    shutil.move(pacbio_file, pb_file)
+        moved_nanopore = moved_nanopore.with_name(f"SAMPLE_ont.fastq.gz")
+        moved_pacbio = moved_pacbio.with_name(f"SAMPLE_pacbio.fastq.gz")
+    shutil.move(original_nanopore, moved_nanopore)
+    shutil.move(original_pacbio, moved_pacbio)
     logger.info(
-        f"Moved {nanopore_file} to {ont_file} and {pacbio_file} to {pb_file}")
+        f"Moved {original_nanopore} to {moved_nanopore} and {original_pacbio} to {moved_pacbio}")
 
 
 def unzip_file(file_path, dir):
@@ -418,16 +431,25 @@ def run_snakemake(args, snakefile="Snakefile"):
             shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
         )
         logger.info("Snakemake check ran successfully.")
-        # logger.info("Running the complete pipeline.")
-        # subprocess.run(
-        #     f"snakemake -s {snakefile} --cores {args.threads} --use-conda -pr",
-        #     shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-        # )
+        logger.info("Running the complete pipeline.")
+        subprocess.run(
+            f"snakemake -s {snakefile} --cores {args.threads} --use-conda -pr",
+            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        )
     except subprocess.CalledProcessError as e:
         logger.error(f"Snakemake failed with return code {e.returncode}.")
         logger.error(f"Snakemake output: {e.stdout.decode()}")
         logger.error(f"Application is shutting down.")
         sys.exit(e.returncode)
+
+
+def cleanup():
+    pacbio_original = CONFIG['DATA']['ORIGINAL'].get('pacbio')
+    nanopore_original = CONFIG['DATA']['ORIGINAL'].get('nanopore')
+    nanopore_moved = CONFIG['DATA']['MOVED'].get('nanopore')
+    pacbio_moved = CONFIG['DATA']['MOVED'].get('pacbio')
+    shutil.move(nanopore_moved, nanopore_original)
+    shutil.move(pacbio_moved, pacbio_original)
 
 
 def main():
@@ -447,6 +469,7 @@ def main():
         loop_flanking_genes(cwd, args)
     create_config(cwd, args)
     run_snakemake(args)
+    cleanup()
     logger.info("Main process completed")
 
 
