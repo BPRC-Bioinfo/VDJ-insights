@@ -38,7 +38,7 @@ checkpoint split_fastq:
         mkdir -p {output}
 
         #run seqkit split2       
-        seqkit split2 -s 1000000 -O {output} {input.fastq} 
+        seqkit split2 -s 1000000 -O {output} {input.fastq} 2> {log}
         """
 
 
@@ -64,7 +64,7 @@ rule seqkit:
         "logs/seqkit_{accession}.log"
     shell:
         """
-        cat {input} > {output}
+        cat {input} > {output} 2> {log}
         """
 
 rule rawStats:
@@ -80,7 +80,7 @@ rule rawStats:
         "envs/seqkit.yaml"
     shell:
         """
-        seqkit stat {input} > {output}
+        seqkit stat {input} > {output} 2> {log}
         """
 
 ## Remove duplicate reads and filter reads
@@ -138,7 +138,7 @@ rule processedStats:
         "logs/processedStats_{accession}.log"
     shell:
         """
-        cat {input} > {output}
+        cat {input} > {output} 2> {log}
         """
 
 
@@ -164,7 +164,7 @@ rule combineFastQ:
         "logs/combineFastQ_{accession}_{machine}.log"
     shell:
         """
-        cat {input} > {output}
+        cat {input} > {output} 2> {log}
         """
 
 rule seqkitFiltered:
@@ -182,7 +182,7 @@ rule seqkitFiltered:
         10
     shell:
         """
-        seqkit stats {input} -a -j {threads} -o {output}
+        seqkit stats {input} -a -j {threads} -o {output} 2> {log}
         """
 
 ## Mapping, sorting, indexing
@@ -297,7 +297,7 @@ rule rejoinChrs:
     shell:
         """
         ulimit -Sn 4096
-        samtools merge -@ {threads} -o {output} {input} 
+        samtools merge -@ {threads} -o {output} {input} 2> {log}
         """
 
 
@@ -317,7 +317,7 @@ rule chrFastq:
     shell:
         """
         # Extract fastq
-        samtools fastq -@ {threads} -0 {output} {input.bam}
+        samtools fastq -@ {threads} -0 {output} {input.bam} 2> {log}
         """
 
 rule allChromosomes:
@@ -372,7 +372,7 @@ rule gfaToFasta:
         "envs/gfatools.yaml"
     shell:
         """
-        gfatools gfa2fa {input} > {output}       
+        gfatools gfa2fa {input} > {output} 2> log{}      
         """
 
 rule allAssemblies:
@@ -399,7 +399,7 @@ rule quastAssemblyStatistics:
         "envs/quast.yaml"
     shell:
         """
-        quast.py {input.hap1} {input.hap2} -o {output}
+        quast.py {input.hap1} {input.hap2} -o {output} 2> {log}
         """
 
 # BUSCO
@@ -460,7 +460,7 @@ rule inspector:
         12
     shell:
         """
-        inspector.py -t {threads} -c {input.contig} -r {input.pacbio} {input.nanopore} -o {output} --datatype {params.data_type}
+        inspector.py -t {threads} -c {input.contig} -r {input.pacbio} {input.nanopore} -o {output} --datatype {params.data_type} 2> {log}
         """
 
 
@@ -478,7 +478,7 @@ rule getLibrary:
         "envs/IMGT.yaml"
     shell:
         """
-        python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup --simple-headers
+        python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup --simple-headers 2> {log}
         """
 
 
@@ -502,7 +502,7 @@ rule annotation:
         24
     shell:
         """
-        python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -r {params.cell_type} -f "{params.flanking_genes}" -t {threads}
+        python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -r {params.cell_type} -f "{params.flanking_genes}" -t {threads} 2> {log}
         """
 
 
