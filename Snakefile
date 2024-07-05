@@ -271,7 +271,7 @@ checkpoint separateChrs:
         mkdir -p {output}
         for i in $(cat {input.reference}); do
             # Extract individual chrs
-            samtools view -b {input.bam} "chr"{wildcards.all_chrs}"_"$i > {output}/$i".bam"
+            samtools view -b {input.bam} $i > {output}/$i".bam"
         done
         """
 
@@ -285,7 +285,7 @@ rule rejoinChrs:
     input:
         combineChrFragments
     output:
-        "{accession}_{machine}_chr{all_chrs}.bam",
+        "merged/{accession}_{machine}_chr{all_chrs}.bam",
     benchmark: 
         "benchmarks/rejoinChrs_{accession}_{machine}_{all_chrs}.txt"
     log:
@@ -303,7 +303,7 @@ rule rejoinChrs:
 
 rule chrFastq:
     input:
-        bam = ancient("{accession}_{machine}_chr{all_chrs}.bam"),
+        bam = ancient("merged/{accession}_{machine}_chr{all_chrs}.bam"),
     output:
         "converted/chr{all_chrs}_{accession}_{machine}.fastq.gz",
     benchmark: 
@@ -322,7 +322,7 @@ rule chrFastq:
 
 rule allChromosomes:
     input:
-        expand("{accession}_{machine}_chr{all_chrs}.bam", accession=ACCESSION, machine=MACHINE, all_chrs=config["ALL_CHROMOSOMES"])
+        expand("merged/{accession}_{machine}_chr{all_chrs}.bam", accession=ACCESSION, machine=MACHINE, all_chrs=config["ALL_CHROMOSOMES"])
     output:
         temp("final/allchromosomes.txt")
     benchmark:
@@ -372,7 +372,7 @@ rule gfaToFasta:
         "envs/gfatools.yaml"
     shell:
         """
-        gfatools gfa2fa {input} > {output} 2> log{}      
+        gfatools gfa2fa {input} > {output} 2> {log}      
         """
 
 rule allAssemblies:
