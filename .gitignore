@@ -214,6 +214,8 @@ chromosomes/*
 #Chromosome folder
 chrom_folder/*
 
+# Merged chromosome folder
+merged/*
 # Combined folder
 combined/*
 
@@ -254,7 +256,7 @@ reference/*
 
 # Segment mapping files
 mapping/*
-
+mapped_genes/*
 # RSS files
 *RSS/*
 

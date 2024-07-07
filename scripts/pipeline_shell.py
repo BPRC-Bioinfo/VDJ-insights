@@ -440,6 +440,7 @@ def run_snakemake(args, snakefile="Snakefile"):
         logger.error(f"Snakemake failed with return code {e.returncode}.")
         logger.error(f"Snakemake output: {e.stdout.decode()}")
         logger.error(f"Application is shutting down.")
+        cleanup()
         sys.exit(e.returncode)
 
 

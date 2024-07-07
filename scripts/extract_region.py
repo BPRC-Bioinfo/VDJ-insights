@@ -49,7 +49,7 @@ def load_config(cwd):
     """
     try:
         with open(cwd / "config" / "config.yaml") as f:
-            config = yaml.safe_load(f)["FLANKING"]
+            config = yaml.safe_load(f)
             logger.info("Config file loaded successfully")
             return config
     except Exception as e:
