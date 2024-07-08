@@ -1,0 +1,238 @@
+/* Sidebar styling */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background: #0063a5;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    transition: width 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.sidebar.minimized {
+    width: 80px;
+    /* Width when minimized */
+}
+
+.sidebar-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px;
+    transition: padding 0.3s ease;
+    color: #fff;
+    background-color: #fff;
+    border-radius: 8px;
+    margin: 10px;
+}
+
+/* Toggle button styling */
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #0063a5;
+    font-size: 1.5em;
+    cursor: pointer;
+    margin-right: 10px;
+    /* Adjust spacing between button and logo */
+    padding: 10px;
+    transition: background 0.3s ease, padding 0.3s ease;
+}
+
+/* Base styles for logo */
+.logo {
+    max-width: 80%;
+    height: auto;
+    display: block;
+    padding: 10px;
+    box-sizing: border-box;
+    transition: opacity 0.3s ease, max-width 0.3s ease;
+}
+
+.sidebar.minimized .logo {
+    max-width: 0;
+    opacity: 0;
+}
+
+/* Responsive behavior for logos */
+@media (max-width: 768px) {
+    .logo {
+        max-width: 60%;
+        /* Adjust max width for smaller screens */
+        padding: 5px;
+        /* Adjust padding for smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        display: none;
+        /* Hide the logo for very small screens */
+    }
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+}
+
+.sidebar-header h2 {
+    margin-left: 10px;
+    white-space: nowrap;
+    /* Prevent text wrapping */
+    transition: opacity 0.3s ease;
+    /* Smooth transition */
+}
+
+.sidebar.minimized .sidebar-header h2 {
+    visibility: hidden;
+    /* Hide header text when minimized */
+}
+
+.sidebar-content {
+    flex: 1;
+    padding: 10px 0;
+    overflow-y: auto;
+}
+
+.sidebar-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-content ul li {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    /* Align items to the start */
+    padding: 10px 15px;
+    padding-left: 20px;
+    transition: padding 0.3s ease;
+    position: relative;
+    height: 50px;
+    /* Smooth transition and standard height */
+}
+
+.sidebar.minimized .sidebar-content ul li {
+    padding: 5px;
+    /* Adjust padding when minimized */
+}
+
+.sidebar-content ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    /* Align items to the start */
+    transition: all 0.3s ease;
+    width: 100%;
+    /* Make anchor element cover the entire width */
+}
+
+.sidebar.minimized .sidebar-content ul li a {
+    justify-content: center;
+    /* Center icons when minimized */
+}
+
+.sidebar-content ul li a i {
+    font-size: 1.2em;
+    color: #fff;
+    margin-right: 10px;
+    /* Ensure spacing between icon and text */
+    /* No transition for font size */
+}
+
+.sidebar-content ul li a span {
+    display: inline-block;
+    transition: opacity 0.3s ease, width 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar.minimized .sidebar-content ul li a span {
+    display: none;
+    opacity: 0;
+    width: 0;
+    visibility: hidden;
+    margin-left: -9999px;
+    /* Hide text when minimized */
+}
+
+.sidebar-content ul li:hover::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #044167;
+    z-index: -1;
+    /* Ensure the hover background is behind the text */
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 200px;
+        transition: width 0.3s ease;
+    }
+
+    .sidebar.minimized {
+        width: 70px;
+    }
+
+    .sidebar-content ul li {
+        padding: 8px 10px;
+    }
+
+    .sidebar-content ul li a {
+        font-size: 1em;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 180px;
+        transition: width 0.3s ease;
+    }
+
+    .sidebar.minimized {
+        width: 60px;
+    }
+
+    .sidebar-content ul li {
+        padding: 6px 8px;
+    }
+
+    .sidebar-content ul li a {
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 150px;
+        transition: width 0.3s ease;
+    }
+
+    .sidebar.minimized {
+        width: 50px;
+    }
+
+    .sidebar-content ul li {
+        padding: 4px 6px;
+    }
+
+    .sidebar-content ul li a {
+        font-size: 0.8em;
+    }
+}

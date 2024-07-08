@@ -1,0 +1,133 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+}
+
+/* Container for sidebar and main content */
+.container {
+    display: flex;
+    width: 100%;
+}
+
+/* Main content styling */
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    width: calc(100% - 250px);
+    transition: margin-left 0.8s ease; /* Sync duration with sidebar */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+.main-content.full-width {
+    margin-left: 0;
+    width: 100%;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.header .title {
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin: 0;
+    margin-left: 10px;
+}
+
+.header .toggle-btn {
+    margin-right: auto;
+}
+
+.content {
+    text-align: center;
+}
+
+.content p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+/* Card grid layout */
+.card-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 300px;
+    text-align: center;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.card h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.card p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    color: #ffffff;
+    background-color: #3498db;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #2980b9;
+}
+
+/* Keyframes for animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 200px;
+    }
+
+    .card {
+        width: 100%;
+    }
+
+    .toggle-btn {
+        font-size: 2em; /* Make the button larger on smaller screens */
+    }
+}

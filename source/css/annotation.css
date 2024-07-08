@@ -1,0 +1,128 @@
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: center;
+    /* Center horizontally */
+    align-items: center;
+    /* Center vertically */
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    /* Added rounded corners */
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 800px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.close {
+    align-self: flex-end;
+    /* Position close button to the top right */
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+@keyframes slideIn {
+    from {
+        top: -300px;
+        opacity: 0;
+    }
+
+    to {
+        top: 0;
+        opacity: 1;
+    }
+}
+
+.modal-form {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    /* Added margin-top for spacing */
+}
+
+.modal-form label {
+    flex: 1 1 25%;
+    /* 4 columns */
+    margin-bottom: 10px;
+}
+
+.modal-form button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    margin-top: 10px;
+    align-self: flex-end;
+    /* Align button to the bottom right */
+    width: auto;
+    /* Adjust button width */
+}
+
+.modal-form button:hover {
+    background-color: #2980b9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Improved table styling */
+.table-container {
+    overflow: auto;
+    max-width: 100%;
+    margin-top: 20px;
+}
+
+/* Button styling */
+.show-more-btn {
+    background-color: #ff5733;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 1em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.show-more-btn:hover {
+    background-color: #c44123;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.show-more-btn:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+.expandable-section {
+    display: none;
+}
+
+.expandable-section.active {
+    display: block;
+}

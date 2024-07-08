@@ -280,3 +280,4 @@ config/*
 
 # HTML files
 source/html/*
+source/images/*

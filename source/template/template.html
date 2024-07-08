@@ -48,21 +48,7 @@
                 </table>
             </div>
         </div>
-        <button class="report-button" id="download-pdf">Save as PDF</button>
     </div>
-
     <script src="../js/loadSidebar.js"></script>
-    <script>
-        document.getElementById('download-pdf').addEventListener('click', function () {
-            var element = document.getElementById('content-to-pdf');
-            html2pdf().from(element).set({
-                margin: 0.5,
-                filename: 'IMGT_Scrape_Report.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            }).save();
-        });
-    </script>
 </body>
 </html>
