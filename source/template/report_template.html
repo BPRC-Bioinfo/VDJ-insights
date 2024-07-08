@@ -47,7 +47,9 @@
 
                     <div class="config-block">
                         <h3 class="config-subheading">BUSCO Dataset</h3>
-                        <p class="config-text">{{ config.BUSCO_DATASET }}</p>
+                        <ul class="config-list">
+                            <li class="config-item">{{ config.BUSCO_DATASET }}</li>
+                        </ul>
                     </div>
 
                     <div class="config-block">
@@ -61,28 +63,24 @@
 
                     <div class="config-block">
                         <h3 class="config-subheading">Species</h3>
-                        <p class="config-text"><strong>Name:</strong> {{ config.SPECIES.name }}</p>
-                        <p class="config-text"><strong>Genome:</strong> {{ config.SPECIES.genome }}</p>
-                        <p class="config-text"><strong>Cell:</strong> {{ config.SPECIES.cell }}</p>
+                        <ul class="config-list">
+                            <li class="config-item"><strong>Name:</strong> {{ config.SPECIES.name }}</li>
+                            <li class="config-item"><strong>Genome:</strong> {{ config.SPECIES.genome }}</li>
+                            <li class="config-item"><strong>Cell:</strong> {{ config.SPECIES.cell }}</li>
+                        </ul>
                     </div>
 
                     <div class="config-block">
-                        <h3 class="config-subheading">Flanking Regions</h3>
+                        <h3 class="config-subheading">Flanking Genes</h3>
                         <ul class="config-list">
-                            {% for chromosome, regions in config.FLANKING.items() %}
-                            <li class="config-item"><strong>{{ chromosome }}</strong>
-                                <ul class="config-sublist">
-                                    {% for region, bounds in regions.items() %}
-                                    <li class="config-subitem">{{ region }}: start = {{ bounds.start }}, end = {{ bounds.end }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </li>
+                            {% for gene in config.FLANKING_GENES %}
+                            <li class="config-item">{{ gene }}</li>
                             {% endfor %}
                         </ul>
                     </div>
 
                     <div class="config-block">
-                        <h3 class="config-subheading">RSS Layout</h3>
+                        <h3 class="config-subheading">RSS Extraction</h3>
                         <ul class="config-list">
                             {% for gene, rss_types in config.RSS_LAYOUT.items() %}
                             <li class="config-item"><strong>{{ gene }}</strong>
@@ -102,7 +100,7 @@
                     </div>
 
                     <div class="config-block">
-                        <h3 class="config-subheading">RSS Lengths</h3>
+                        <h3 class="config-subheading">RSS Heptamer and nonamer lengths</h3>
                         <ul class="config-list">
                             {% for length, value in config.RSS_LENGTH.items() %}
                             <li class="config-item">{{ length }}: {{ value }}</li>
@@ -111,7 +109,7 @@
                     </div>
 
                     <div class="config-block">
-                        <h3 class="config-subheading">RSS Mers</h3>
+                        <h3 class="config-subheading">RSS Heptamer and nonamer</h3>
                         <ul class="config-list">
                             {% for length, mers in config.RSS_MERS.items() %}
                             <li class="config-item">{{ length }}
