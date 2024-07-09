@@ -281,3 +281,7 @@ config/*
 # HTML files
 source/html/*
 source/images/*
+!/source/html/sidebar.html
+!/source/html/index.html
+
+

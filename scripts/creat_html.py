@@ -138,10 +138,10 @@ def parse_region_files(region_dir: Path) -> list:
     for fasta_file in region_dir.glob("*.fasta"):
         file_info = {}
         parts = fasta_file.stem.split('_')
-        if len(parts) == 3:
+        if len(parts) == 4:
             file_info['sample_name'] = parts[0]
-            file_info['region_name'] = parts[1]
-            file_info['haplotype'] = parts[2]
+            file_info['region_name'] = "/".join(parts[1:3])
+            file_info['haplotype'] = parts[-1]
         length = sum(len(record.seq)
                      for record in SeqIO.parse(fasta_file, "fasta"))
         file_info['length'] = length
@@ -275,7 +275,7 @@ def load_BUSCO_files(busco_dir: Path) -> dict:
     return busco_files
 
 
-def main():
+def html_main():
     cwd = Path.cwd()
     make_dir(cwd / IMAGE_DIR)
     load_config(cwd)
@@ -307,4 +307,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    html_main()

@@ -48,8 +48,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const tdElements = table.querySelectorAll('td');
 
             thElements.forEach(th => {
-                const header = th.innerText;
+                const header = th.innerText.trim();
                 const cellIndex = Array.from(th.parentElement.children).indexOf(th);
+                console.log(`Processing column: ${header}, index: ${cellIndex}`);
+
                 if (selectedColumns.includes(header)) {
                     th.style.display = "";
                     table.querySelectorAll('tr').forEach(tr => {
