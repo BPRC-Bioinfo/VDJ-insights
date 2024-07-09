@@ -10,6 +10,9 @@ import subprocess
 from logger import custom_logger
 import yaml
 from creat_html import html_main
+from annotation import main as annotation_main
+from annotation import validate_file, validate_input
+
 
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
@@ -97,22 +100,23 @@ def validate_chromosome(value):
             f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
 
 
-def argparser_setup():
-    parser = argparse.ArgumentParser(description="Process sequencing data.")
+def setup_pipeline_args(subparsers):
+    parser_pipeline = subparsers.add_parser(
+        'pipeline', help='Run the pipeline for sequencing data processing.')
 
-    reads_group = parser.add_argument_group(
+    reads_group = parser_pipeline.add_argument_group(
         'reads', 'Arguments related to read files')
     reads_group.add_argument('-ont', '--nanopore', required=True, type=validate_read_files,
                              help='Path to the Oxford Nanopore Technologies reads file.')
     reads_group.add_argument('-pb', '--pacbio', required=True, type=validate_read_files,
                              help='Path to the Pacific Biosciences reads file.')
 
-    reference_group = parser.add_argument_group(
+    reference_group = parser_pipeline.add_argument_group(
         'reference', 'Arguments related to the reference genome')
     reference_group.add_argument('-ref', '--reference', type=validate_reference, required=False,
                                  help='Path to the reference genome file if one is already present (optional).')
 
-    analysis_group = parser.add_argument_group(
+    analysis_group = parser_pipeline.add_argument_group(
         'analysis', 'Arguments related to analysis settings')
     analysis_group.add_argument('-s', '--species', type=str.capitalize,
                                 required=True, help='Species name, e.g., Homo sapiens.')
@@ -127,13 +131,62 @@ def argparser_setup():
     analysis_group.add_argument('--default', action='store_true',
                                 help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
 
-    args = parser.parse_args()
+    parser_pipeline.set_defaults(func=run_pipeline)
 
-    if args.default and (args.flanking_genes or args.chromosomes):
-        parser.error(
-            "--default cannot be used with -f/--flanking-genes or -c/--chromosomes")
 
-    return args
+def setup_annotation_args(subparsers):
+    parser_annotation = subparsers.add_parser(
+        'annotation', help='Run the annotation tool for VDJ segment analysis.')
+
+    # Recreate arguments from annotation.py's argparser_setup
+    parser_annotation.add_argument('-l', '--library', required=True, type=validate_file,
+                                   help='Path to the library file. Expected to be in FASTA format.')
+    parser_annotation.add_argument(
+        '-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
+        help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
+    data_choice.add_argument('-i', '--input', type=validate_input,
+                             help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
+    data_choice.add_argument('-a', '--assembly', type=validate_input,
+                             help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
+    parser_annotation.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
+                                   help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
+    parser_annotation.add_argument('-s', '--species', type=str,
+                                   help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
+    parser_annotation.add_argument('-o', '--output', type=str,
+                                   default='annotation',
+                                   help='Output directory for the results.')
+    mapping_options = ['minimap2', 'bowtie', 'bowtie2']
+    parser_annotation.add_argument('-m', '--mapping-tool', nargs='*',
+                                   choices=mapping_options, default=mapping_options,
+                                   help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
+    parser_annotation.add_argument('-t', '--threads', type=int,
+                                   required=False, default=8, help='Amount of threads to run the analysis.')
+    parser_annotation.set_defaults(func=annotation_main)
+
+
+def run_pipeline(args):
+    cwd = Path.cwd()
+    final_output = cwd / 'annotation' / 'annotation_report_plus.xlsx'
+    if not final_output.is_file():
+        logger.info("Starting main process")
+        filter_and_move_files(cwd, args.nanopore, args.pacbio)
+        if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
+            fasta_path = cwd / args.reference
+            split_chromosomes(cwd, fasta_path)
+        else:
+            genome_dir = cwd / 'reference' / 'genome'
+            genome = download_reference_genome(args.reference, genome_dir)
+            split_chromosomes(cwd, genome)
+        if args.default:
+            cwd = Path.cwd()
+            loop_flanking_genes(cwd, args)
+        create_config(cwd, args)
+        run_snakemake(args)
+        cleanup()
+    logger.info('Creating HTML file!')
+    html_main()
+    logger.info("Main process completed")
 
 
 def make_dir(dir):
@@ -455,28 +508,19 @@ def cleanup():
 
 
 def main():
-    cwd = Path.cwd()
-    args = argparser_setup()
-    final_output = cwd / 'annotation' / 'annotation_report_plus.xlsx'
-    if not final_output.is_file():
-        logger.info("Starting main process")
-        filter_and_move_files(cwd, args.nanopore, args.pacbio)
-        if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
-            fasta_path = cwd / args.reference
-            split_chromosomes(cwd, fasta_path)
-        else:
-            genome_dir = cwd / 'reference' / 'genome'
-            genome = download_reference_genome(args.reference, genome_dir)
-            split_chromosomes(cwd, genome)
-        if args.default:
-            cwd = Path.cwd()
-            loop_flanking_genes(cwd, args)
-        create_config(cwd, args)
-        run_snakemake(args)
-        cleanup()
-    logger.info('Creating HTML file!')
-    html_main()
-    logger.info("Main process completed")
+    parser = argparse.ArgumentParser(
+        description="Tool for sequencing data processing and VDJ annotation")
+    subparsers = parser.add_subparsers(
+        dest="command", help="Available commands")
+
+    setup_pipeline_args(subparsers)
+    setup_annotation_args(subparsers)
+
+    args = parser.parse_args()
+    if args.command:
+        args.func(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':

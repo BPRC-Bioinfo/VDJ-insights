@@ -110,8 +110,7 @@ def validate_input(input_path):
     validate_directory(input_path)
     if not any(entry.is_file() for ext in ["*.fasta", "*.fa", "*.fna"] for entry in input_path.glob(ext)):
         raise argparse.ArgumentTypeError(
-            f"The directory {input_path} is empty or does not contain any fasta files!"
-        )
+            f"The directory {input_path} is empty or does not contain any fasta files!")
     return input_path
 
 
@@ -132,12 +131,21 @@ def validate_flanking_genes(value):
     return flanking_genes
 
 
-def argparser_setup():
+def argparser_setup(include_help=True):
+    """
+    Set up the argument parser for the annotation tool.
+
+    Args:
+        include_help (bool): Whether to include the help argument. Defaults to True.
+    Returns:
+        ArgumentParser: Configured argument parser.
+    """
     parser = argparse.ArgumentParser(
         description='A tool for finding known and novel VDJ segments in certain data, with a library of choice.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        add_help=include_help  # Control whether to add the help argument
+    )
 
-    # General required options
     required_group = parser.add_argument_group('Required Options')
     required_group.add_argument('-l', '--library', required=True, type=validate_file,
                                 help='Path to the library file. Expected to be in FASTA format.')
@@ -145,7 +153,6 @@ def argparser_setup():
         '-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
         help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
 
-    # Group for selecting between regions or assembly
     regions_or_assembly_group = parser.add_argument_group('Data Source Options',
                                                           'Select the data source: regions or assembly. These options are mutually exclusive.')
     data_choice = regions_or_assembly_group.add_mutually_exclusive_group(
@@ -155,7 +162,6 @@ def argparser_setup():
     data_choice.add_argument('-a', '--assembly', type=validate_input,
                              help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
 
-    # Conditional options for assembly
     assembly_options = parser.add_argument_group('Assembly-Specific Options',
                                                  'These options are required if -a/--assembly is chosen:')
     assembly_options.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
@@ -163,7 +169,6 @@ def argparser_setup():
     assembly_options.add_argument('-s', '--species', type=str,
                                   help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
 
-    # Optional options
     optional_group = parser.add_argument_group('Optional Options')
     optional_group.add_argument('-o', '--output', type=str,
                                 default='annotation',
@@ -175,24 +180,10 @@ def argparser_setup():
 
     optional_group.add_argument('-t', '--threads', type=int,
                                 required=False, default=8, help='Amount of threads to run the analysis.')
-    args = parser.parse_args()
-
-    # Validation logic for conditional usage of arguments
-    if args.assembly:
-        if not args.flanking_genes or not args.species:
-            parser.error(
-                '-a/--assembly requires -f/--flanking-genes and -s/--species.')
-        args.species = args.species.capitalize()
-
-    if args.input and (args.flanking_genes or args.species):
-        parser.error(
-            '-r/--regions cannot be used with -f/--flanking-genes or -s/--species.')
-    args.input = "region"
-
-    return args
+    return parser
 
 
-def main():
+def main(args=None):
     """
     Main function for this annotation.py script. 
     It first sets a cwd (current directory the user is in) object 
@@ -206,7 +197,22 @@ def main():
     This df is saved to "blast_results.xlsx".
     The write_annotation_report() function is called.  
     """
-    args = argparser_setup()
+    update_args = argparser_setup()
+    if args is None:
+        args = update_args.parse_args()
+    elif isinstance(args, list):
+        args = update_args.parse_args(args)
+    elif not isinstance(args, argparse.Namespace):
+        raise ValueError("Invalid arguments passed to the main function")
+    if args.assembly:
+        if not args.flanking_genes or not args.species:
+            update_args.error(
+                '-a/--assembly requires -f/--flanking-genes and -s/--species.')
+        args.species = args.species.capitalize() if args.species else None
+
+    if args.input and (args.flanking_genes or args.species):
+        update_args.error(
+            '-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
     cwd = Path.cwd()
     annotation_folder = cwd / args.output
     make_dir(annotation_folder)
@@ -215,16 +221,13 @@ def main():
         region_main(args.flanking_genes, args.assembly)
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool,
                        args.input, args.library, args.threads)
-    blast_file: Path = annotation_folder / "blast_results.xlsx"
+    blast_file = annotation_folder / "blast_results.xlsx"
     if not blast_file.exists():
         blast_main(df, blast_file)
     report_main(annotation_folder, blast_file, args.receptor_type)
     RSS_main()
     logger.info(
-        f"Annotation of files in {args.output} using {args.library} is complete!"
-        " Check 'annotation' and 'RSS' for results."
-        " Mapping results are located in the 'mapping' directory."
-    )
+        f"Annotation process completed. Results are available in {args.output}.")
 
 
 if __name__ == '__main__':
