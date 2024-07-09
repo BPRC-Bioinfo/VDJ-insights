@@ -1,4 +1,4 @@
-name: tcr_macaque
+name:pipeline 
 channels:
   - bioconda
   - conda-forge
@@ -6,4 +6,8 @@ dependencies:
   - python==3.11.5
   - mamba
   - snakemake==7.32.4
-  - jq
+  - ncbi-datasets-cli
+  - biopython
+  - pyyaml
+  - jinja2
+
