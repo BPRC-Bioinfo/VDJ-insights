@@ -10,4 +10,5 @@ dependencies:
   - biopython
   - pyyaml
   - jinja2
+  - pandas
 
