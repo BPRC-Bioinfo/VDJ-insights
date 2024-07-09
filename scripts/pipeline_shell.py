@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 from logger import custom_logger
 import yaml
+from creat_html import html_main
 
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
@@ -456,21 +457,25 @@ def cleanup():
 def main():
     cwd = Path.cwd()
     args = argparser_setup()
-    logger.info("Starting main process")
-    filter_and_move_files(cwd, args.nanopore, args.pacbio)
-    if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
-        fasta_path = cwd / args.reference
-        split_chromosomes(cwd, fasta_path)
-    else:
-        genome_dir = cwd / 'reference' / 'genome'
-        genome = download_reference_genome(args.reference, genome_dir)
-        split_chromosomes(cwd, genome)
-    if args.default:
-        cwd = Path.cwd()
-        loop_flanking_genes(cwd, args)
-    create_config(cwd, args)
-    run_snakemake(args)
-    cleanup()
+    final_output = cwd / 'annotation' / 'annotation_report_plus.xlsx'
+    if not final_output.is_file():
+        logger.info("Starting main process")
+        filter_and_move_files(cwd, args.nanopore, args.pacbio)
+        if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
+            fasta_path = cwd / args.reference
+            split_chromosomes(cwd, fasta_path)
+        else:
+            genome_dir = cwd / 'reference' / 'genome'
+            genome = download_reference_genome(args.reference, genome_dir)
+            split_chromosomes(cwd, genome)
+        if args.default:
+            cwd = Path.cwd()
+            loop_flanking_genes(cwd, args)
+        create_config(cwd, args)
+        run_snakemake(args)
+        cleanup()
+    logger.info('Creating HTML file!')
+    html_main()
     logger.info("Main process completed")
 
 
