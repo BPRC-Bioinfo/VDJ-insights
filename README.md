@@ -14,6 +14,8 @@
     - [Environment Setup](#environment-setup)
     - [Getting Started](#getting-started)
     - [Detailed Flag Descriptions](#detailed-flag-descriptions)
+    - [Required:](#required)
+    - [Optional:](#optional)
     - [Important Notes](#important-notes)
   - [Configuration settings](#configuration-settings)
     - [Basic configuration options](#basic-configuration-options)
@@ -43,7 +45,7 @@ The assembly phase leverages a hybrid approach meaning it utilizes the strengths
 
 Specific genomic regions are then isolated using predefined flanking genes, these can be specified by the user or a default can be used (Default is for primates only because it is based on humans). 
 
-The pipeline extends its functionality to annotation, comparing assembled region sequences against a comprehensive library of validated VDJ segments sourced from the IMGT database or a pre-existing library in **`library/library.fasta`**. Outputs include detailed Excel reports on identified sequences, supplemented with an interactive plotting feature for enhanced data visualization and analysis, but also static plots showing the different haplotypes of the regions showcasing the order of the segements. Lastly it generates a easy the navigate HTML report containing al the results.
+The pipeline extends its functionality to annotation, comparing assembled region sequences against a comprehensive library of validated VDJ segments sourced from the IMGT database or a pre-existing library in **`library/library.fasta`**. Outputs include detailed Excel reports on identified sequences, supplemented with an interactive plotting feature for enhanced data visualization and analysis, but also static plots showing the different haplotypes of the regions showcasing the order of the segements. Lastly it generates a easy to navigate HTML report containing al the generated results.
 
 ## Installation
 
@@ -86,28 +88,29 @@ conda activate pipeline
 If not created earlier run:
 
 ``` bash
-conda env create -f pipeline.yaml
+conda env create -f pipeline.yaml --name pipeline
 ```
 You are now ready to run the pipeline. Execute the pipeline with the following command:
 
 ``` bash
-python scripts/pipeline_shell.py -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fastq.gz> -ref <reference_genome> -r <run_mode> -s <species_name> --default -t <threads>
+python scripts/pipeline_shell.py -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fastq.gz> -ref <reference_genome> -r <receptor_type> -s <species_name> -t <threads> --default
 ```
 
 Replace the placeholder values with your actual data.
 
 ### Detailed Flag Descriptions
 
+### Required:
 - `-ont <nanopore_data.fastq.gz>`, `--nanopore <nanopore_data.fastq.gz>`: This flag specifies the path to the Oxford Nanopore Technologies (ONT) reads file. The file must be in `.fastq.gz` format.
   
 - `-pb <pacbio_data.fastq.gz>`, `--pacbio <pacbio_data.fastq.gz>`: This flag specifies the path to the Pacific Biosciences (PacBio) reads file. The file must be in `.fastq.gz` format.
   
 - `-ref <reference_genome>`, `--reference <reference_genome>`: This optional flag specifies the path to the reference genome file if it is already available. The file can be a `.fasta` or `.fna` file or a valid accession code.
   
-- `-r <run_mode>`, `--receptor-type <run_mode>`: This required flag specifies the type of receptor to analyze. The options are `TR` for T-cell receptor or `IG` for Immunoglobulin.
+- `-r <receptor_type>`, `--receptor-type <receptor_type>`: This required flag specifies the type of receptor to analyze. The options are `TR` for T-cell receptor or `IG` for Immunoglobulin.
   
 - `-s <species_name>`, `--species <species_name>`: This required flag specifies the scientific name of the species, e.g., "Homo sapiens".
-  
+### Optional:
 - `-f <flanking_genes>`, `--flanking-genes <flanking_genes>`: This flag specifies a comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. The genes should be added as pairs.
   
 - `-c <chromosomes>`, `--chromosomes <chromosomes>`: This flag specifies a list of chromosomes where TR or IG is located. All values must be integers between 1-22, or 'X', 'Y'.
@@ -119,15 +122,12 @@ Replace the placeholder values with your actual data.
 ### Important Notes
 
 - Ensure that the paths to the input files are correct and accessible.
-- The script includes validation for the input files and parameters to ensure they meet the required criteria.
 - If using the `--default` flag, do not specify `-f/--flanking-genes` or `-c/--chromosomes` as they are mutually exclusive with `--default`.
-
-This command runs the pipeline using the default settings.
 
 
 ## Configuration settings
 
-The **config.yaml** file, located within the **config** directory, serves as the central place for customizing the pipeline's operation. This config file is generate automatically. This YAML file contains various parameters to tailor the analysis based on your given input. Although it is automatically generated it is recommended to see what is contains.
+The **config.yaml** file, located within the **config** directory, serves as a overview of the configuration settings that the pipeline uses. This config file is generate automatically and contains various parameters to tailor the analysis based on your given input. Although it is automatically generated, it is recommended to see what it contains.
 
 ### Basic configuration options
 
