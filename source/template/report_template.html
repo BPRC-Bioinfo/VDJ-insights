@@ -18,13 +18,36 @@
         <div id="content-to-pdf" class="container">
             <div class="header">
                 <h1 class="report-title">Full Report</h1>
-                <p class="report-date"><strong>Date and Time:</strong> {{ date_time }}</p>
+                <div class="header-info">
+                    <p class="report-date"><strong>Date and Time:</strong> {{ date_time }}</p>
+                    <p class="report-date"><strong>Mode: {{ mode }}</strong></p>
+                </div>
             </div>
 
             <div class="config-file">
                 <h2 class="report-heading">Configuration Details</h2>
                 
+                
                 <div class="config-dashboard">
+                    {% if config.DATA is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Data</h3>
+                            <ul class="config-list">
+                                {% if config.DATA.assembly is defined %} 
+                                    <li class="config-item"><strong>Assembly input:</strong> {{ config.DATA.assembly }}</li>
+                                    <li class="config-item"><strong>Library:</strong> {{ config.DATA.library }}</li>
+                                {% else %}
+                                    <strong>Nanopore:</strong>
+                                    <li class="config-item">{{ config.DATA.ORIGINAL.nanopore }}</li>
+                                    <li class="config-item">{{ config.DATA.MOVED.nanopore }}</li>
+                                    <strong>Pacbio:</strong>
+                                    <li class="config-item"> {{ config.DATA.ORIGINAL.pacbio }}</li>
+                                    <li class="config-item"> {{ config.DATA.MOVED.pacbio }}</li>
+                                {% endif %} 
+                            </ul>
+                        </div>
+                    {% endif %}
+
                     {% if config.ALL_CHROMOSOMES is defined %}
                         <div class="config-block">
                             <h3 class="config-subheading">Chromosomes</h3>
@@ -72,7 +95,9 @@
                             <h3 class="config-subheading">Species</h3>
                             <ul class="config-list">
                                 <li class="config-item"><strong>Name:</strong> {{ config.SPECIES.name }}</li>
-                                <li class="config-item"><strong>Genome:</strong> {{ config.SPECIES.genome }}</li>
+                                {% if config.SPECIES.genome is defined %}
+                                    <li class="config-item"><strong>Genome:</strong> {{ config.SPECIES.genome }}</li>
+                                {% endif %}
                                 <li class="config-item"><strong>Cell:</strong> {{ config.SPECIES.cell }}</li>
                             </ul>
                         </div>

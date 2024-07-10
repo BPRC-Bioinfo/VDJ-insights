@@ -162,31 +162,40 @@ def setup_annotation_args(subparsers):
                                    help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
     parser_annotation.add_argument('-t', '--threads', type=int,
                                    required=False, default=8, help='Amount of threads to run the analysis.')
-    parser_annotation.set_defaults(func=annotation_main)
+    parser_annotation.set_defaults(func=run_annotation)
 
 
 def run_pipeline(args):
     cwd = Path.cwd()
     final_output = cwd / 'annotation' / 'annotation_report_plus.xlsx'
+    logger.info("Starting main process")
+    filter_and_move_files(cwd, args.nanopore, args.pacbio)
+    if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
+        fasta_path = cwd / args.reference
+        split_chromosomes(cwd, fasta_path)
+    else:
+        genome_dir = cwd / 'reference' / 'genome'
+        genome = download_reference_genome(args.reference, genome_dir)
+        split_chromosomes(cwd, genome)
+    if args.default:
+        cwd = Path.cwd()
+        loop_flanking_genes(cwd, args)
+    create_config(cwd, args)
     if not final_output.is_file():
-        logger.info("Starting main process")
-        filter_and_move_files(cwd, args.nanopore, args.pacbio)
-        if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
-            fasta_path = cwd / args.reference
-            split_chromosomes(cwd, fasta_path)
-        else:
-            genome_dir = cwd / 'reference' / 'genome'
-            genome = download_reference_genome(args.reference, genome_dir)
-            split_chromosomes(cwd, genome)
-        if args.default:
-            cwd = Path.cwd()
-            loop_flanking_genes(cwd, args)
-        create_config(cwd, args)
         run_snakemake(args)
-        cleanup()
+    cleanup()
     logger.info('Creating HTML file!')
-    html_main()
+    html_main('Pipeline')
     logger.info("Main process completed")
+
+
+def run_annotation(args):
+    cwd = Path.cwd()
+    logger.info('Running the annotation program')
+    create_config(cwd, args)
+    annotation_main(args)
+    logger.info('Creating HTML file!')
+    html_main('Annotation')
 
 
 def make_dir(dir):
@@ -462,14 +471,20 @@ def initialize_config(args):
     global CONFIG
     CONFIG.setdefault('SPECIES', {
         'name': args.species,
-        'genome': args.reference,
         'cell': args.receptor_type
     })
-    CONFIG.setdefault("ASSEMBLY_CHROMOSOMES", sorted(
-        args.chromosomes, key=lambda x: key_sort(x)))
-    CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
-    CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
-    CONFIG.setdefault("HAPLOTYPES", [1, 2])
+    if hasattr(args, 'reference') and args.reference is not None:
+        CONFIG['SPECIES']['genome'] = args.reference
+        CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
+        CONFIG.setdefault("HAPLOTYPES", [1, 2])
+    if hasattr(args, 'chromosomes') and args.chromosomes is not None:
+        CONFIG.setdefault("ASSEMBLY_CHROMOSOMES", sorted(
+            args.chromosomes, key=lambda x: key_sort(x)))
+    if hasattr(args, 'flanking_genes') and args.flanking_genes is not None:
+        CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
+    if hasattr(args, 'assembly') and args.assembly is not None:
+        CONFIG.setdefault('DATA', {})['library'] = str(args.library)
+        CONFIG.setdefault('DATA', {})['assembly'] = str(args.assembly)
 
 
 def save_config_to_file(file_name):
@@ -505,6 +520,7 @@ def cleanup():
     pacbio_moved = CONFIG['DATA']['MOVED'].get('pacbio')
     shutil.move(nanopore_moved, nanopore_original)
     shutil.move(pacbio_moved, pacbio_original)
+    Path('downloads').rmdir()
 
 
 def main():

@@ -285,7 +285,7 @@ def load_BUSCO_files(busco_dir: Path) -> dict:
     return data
 
 
-def html_main():
+def html_main(mode):
     cwd = Path.cwd()
     make_dir(cwd / IMAGE_DIR)
     load_config(cwd)
@@ -310,7 +310,8 @@ def html_main():
         'annotation_summary_100_plus': annotation_summary_100_plus,
         'annotation_summary_plus': annotation_summary_plus,
         'annotation_data_100_plus': annotation_data_100_plus,
-        'annotation_data_plus': annotation_data_plus
+        'annotation_data_plus': annotation_data_plus,
+        'mode': mode
     }
 
     parse_config_to_html(cwd, data)
