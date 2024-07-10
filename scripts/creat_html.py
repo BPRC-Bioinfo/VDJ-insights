@@ -62,18 +62,19 @@ def parse_qc_files(qc_dir: Path) -> dict:
         dict: Parsed QC data.
     """
     data = {}
-    for subfolder in qc_dir.iterdir():
-        if subfolder.is_dir():
-            subfolder_data = []
-            for file in subfolder.glob("*.stats"):
-                with open(file, 'r') as f:
-                    lines = f.readlines()
-                    header = lines[0].strip().split()
-                    values = lines[1].strip().split()
-                    file_data = dict(zip(header, values))
-                    file_data['file'] = str(file.relative_to(qc_dir))
-                    subfolder_data.append(file_data)
-            data[subfolder.name] = subfolder_data
+    if qc_dir.is_dir():
+        for subfolder in qc_dir.iterdir():
+            if subfolder.is_dir():
+                subfolder_data = []
+                for file in subfolder.glob("*.stats"):
+                    with open(file, 'r') as f:
+                        lines = f.readlines()
+                        header = lines[0].strip().split()
+                        values = lines[1].strip().split()
+                        file_data = dict(zip(header, values))
+                        file_data['file'] = str(file.relative_to(qc_dir))
+                        subfolder_data.append(file_data)
+                data[subfolder.name] = subfolder_data
     return data
 
 
@@ -88,25 +89,26 @@ def parse_quast_data(quast_dir: Path) -> dict:
         dict: Parsed QUAST data.
     """
     data = {}
-    for subfolder in sorted(quast_dir.iterdir(), reverse=True):
-        if subfolder.is_dir():
-            subfolder_data = {'reports': [],
-                              'pdfs': [], 'transposed_report': None}
-            for report in subfolder.glob("**/report.*"):
-                subfolder_data['reports'].append(
-                    str(report.relative_to(quast_dir.parent)))
-            basic_stats_dir = subfolder / 'basic_stats'
-            moved_location = IMAGE_DIR / subfolder.name
-            if basic_stats_dir.exists():
-                move_dir(basic_stats_dir, moved_location)
-                for pdf in moved_location.glob("*.pdf"):
-                    subfolder_data['pdfs'].append(
-                        str(Path('..', *pdf.parts[1:])))
-            transposed_report_file = subfolder / 'transposed_report.tsv'
-            if transposed_report_file.exists():
-                subfolder_data['transposed_report'] = parse_transposed_report(
-                    transposed_report_file)
-            data[subfolder.name.split("_")[0]] = subfolder_data
+    if quast_dir.is_dir():
+        for subfolder in sorted(quast_dir.iterdir(), reverse=True):
+            if subfolder.is_dir():
+                subfolder_data = {'reports': [],
+                                  'pdfs': [], 'transposed_report': None}
+                for report in subfolder.glob("**/report.*"):
+                    subfolder_data['reports'].append(
+                        str(report.relative_to(quast_dir.parent)))
+                basic_stats_dir = subfolder / 'basic_stats'
+                moved_location = IMAGE_DIR / subfolder.name
+                if basic_stats_dir.exists():
+                    move_dir(basic_stats_dir, moved_location)
+                    for pdf in moved_location.glob("*.pdf"):
+                        subfolder_data['pdfs'].append(
+                            str(Path('..', *pdf.parts[1:])))
+                transposed_report_file = subfolder / 'transposed_report.tsv'
+                if transposed_report_file.exists():
+                    subfolder_data['transposed_report'] = parse_transposed_report(
+                        transposed_report_file)
+                data[subfolder.name.split("_")[0]] = subfolder_data
     return data
 
 
@@ -135,18 +137,19 @@ def parse_region_files(region_dir: Path) -> list:
         list: Parsed region data.
     """
     data = []
-    for fasta_file in region_dir.glob("*.fasta"):
-        file_info = {}
-        parts = fasta_file.stem.split('_')
-        if len(parts) == 4:
-            file_info['sample_name'] = parts[0]
-            file_info['region_name'] = "/".join(parts[1:3])
-            file_info['haplotype'] = parts[-1]
-        length = sum(len(record.seq)
-                     for record in SeqIO.parse(fasta_file, "fasta"))
-        file_info['length'] = length
-        file_info['file'] = str(fasta_file.relative_to(region_dir))
-        data.append(file_info)
+    if region_dir.is_dir():
+        for fasta_file in region_dir.glob("*.fasta"):
+            file_info = {}
+            parts = fasta_file.stem.split('_')
+            if len(parts) == 4:
+                file_info['sample_name'] = parts[0]
+                file_info['region_name'] = "/".join(parts[1:3])
+                file_info['haplotype'] = parts[-1]
+            length = sum(len(record.seq)
+                         for record in SeqIO.parse(fasta_file, "fasta"))
+            file_info['length'] = length
+            file_info['file'] = str(fasta_file.relative_to(region_dir))
+            data.append(file_info)
     return data
 
 
@@ -161,23 +164,24 @@ def parse_rss_meme_data(rss_dir: Path) -> dict:
         dict: Parsed RSS meme data.
     """
     data = {}
-    for main_folder in rss_dir.glob('*_meme'):
-        if main_folder.is_dir():
-            data[main_folder.name] = {}
-            for subfolder in sorted(main_folder.iterdir()):
-                if subfolder.is_dir():
-                    type_key = subfolder.name[:3]
-                    if type_key not in data[main_folder.name]:
-                        data[main_folder.name][type_key] = []
-                    logo_file = subfolder / 'logo1.png'
-                    if logo_file.exists():
-                        destination = IMAGE_DIR / main_folder.name / subfolder.name
-                        make_dir(destination)
-                        shutil.copy(logo_file, destination / 'logo1.png')
-                        data[main_folder.name][type_key].append({
-                            'folder': subfolder.name,
-                            'logo': str(Path('..', *destination.parts[1:]) / 'logo1.png')
-                        })
+    if rss_dir.is_dir():
+        for main_folder in rss_dir.glob('*_meme'):
+            if main_folder.is_dir():
+                data[main_folder.name] = {}
+                for subfolder in sorted(main_folder.iterdir()):
+                    if subfolder.is_dir():
+                        type_key = subfolder.name[:3]
+                        if type_key not in data[main_folder.name]:
+                            data[main_folder.name][type_key] = []
+                        logo_file = subfolder / 'logo1.png'
+                        if logo_file.exists():
+                            destination = IMAGE_DIR / main_folder.name / subfolder.name
+                            make_dir(destination)
+                            shutil.copy(logo_file, destination / 'logo1.png')
+                            data[main_folder.name][type_key].append({
+                                'folder': subfolder.name,
+                                'logo': str(Path('..', *destination.parts[1:]) / 'logo1.png')
+                            })
     return data
 
 
@@ -191,10 +195,15 @@ def summarize_annotation_data(file_path: Path) -> tuple:
     Returns:
         tuple: Summary data and detailed annotation data.
     """
-    df = pd.read_excel(file_path)
-    summary = df.groupby(['Region', 'Haplotype', 'Function',
-                         'Segment']).size().reset_index(name='Count')
-    return summary.to_dict(orient='records'), df.to_dict(orient='records')
+    if file_path.is_file():
+        df = pd.read_excel(file_path)
+        summary = df.groupby(['Region', 'Haplotype', 'Function',
+                              'Segment']).size().reset_index(name='Count')
+        annotation = df.to_dict(orient='records')
+        annotation_summary = summary.to_dict(orient='records')
+    else:
+        annotation, annotation_summary = [], []
+    return annotation_summary, annotation
 
 
 def parse_config_to_html(cwd: Path, data: dict):
@@ -253,26 +262,27 @@ def load_BUSCO_files(busco_dir: Path) -> dict:
     Returns:
         dict: Extracted BUSCO metrics for each chromosome and haplotype.
     """
-    busco_files = {}
-    for subdirc in busco_dir.glob('*'):
-        for chromosome in subdirc.glob('*'):
-            file_structure = chromosome.stem.split("_")
-            number = file_structure[0]
-            haplotype = file_structure[2] if len(
-                file_structure) > 2 and file_structure[2] else "reference"
-            busco_file = next(chromosome.glob("*.json"))
-            with open(busco_file, 'r') as js:
-                content = json.load(js)
-                results = content.get('results', {})
-                metrics = {
-                    'Single BUSCOs': results.get('Single copy BUSCOs', 'N/A'),
-                    'Fragmented BUSCOs': results.get('Fragmented BUSCOs', 'N/A'),
-                    'Missing BUSCOs': results.get('Missing BUSCOs', 'N/A'),
-                    'Duplicates BUSCOs': results.get('Multi copy BUSCOs', 'N/A')
-                }
-                busco_files.setdefault(
-                    number, {}).setdefault(haplotype, metrics)
-    return busco_files
+    data = {}
+    if busco_dir.is_dir():
+        for subdirc in busco_dir.glob('*'):
+            for chromosome in subdirc.glob('*'):
+                file_structure = chromosome.stem.split("_")
+                number = file_structure[0]
+                haplotype = file_structure[2] if len(
+                    file_structure) > 2 and file_structure[2] else "reference"
+                busco_file = next(chromosome.glob("*.json"))
+                with open(busco_file, 'r') as js:
+                    content = json.load(js)
+                    results = content.get('results', {})
+                    metrics = {
+                        'Single BUSCOs': results.get('Single copy BUSCOs', 'N/A'),
+                        'Fragmented BUSCOs': results.get('Fragmented BUSCOs', 'N/A'),
+                        'Missing BUSCOs': results.get('Missing BUSCOs', 'N/A'),
+                        'Duplicates BUSCOs': results.get('Multi copy BUSCOs', 'N/A')
+                    }
+                    data.setdefault(
+                        number, {}).setdefault(haplotype, metrics)
+    return data
 
 
 def html_main():
