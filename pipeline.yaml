@@ -3,9 +3,9 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - python==3.11.5
+  - python
   - mamba
-  - snakemake==7.32.4
+  - snakemake
   - ncbi-datasets-cli
   - jinja2
   - minimap2
