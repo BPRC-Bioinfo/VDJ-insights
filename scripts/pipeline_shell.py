@@ -52,7 +52,7 @@ def validate_files(file_path):
 
 
 def validate_reference(value):
-    fasta_extensions = {".fasta", ".fna"}
+    fasta_extensions = {".fasta", ".fna", ".fa"}
     if Path(value).suffix in fasta_extensions:
         validate_files(value)
         logger.info(f"Validated reference genome file: {value}")
@@ -527,16 +527,17 @@ def main():
     parser = argparse.ArgumentParser(
         description="Tool for sequencing data processing and VDJ annotation")
     subparsers = parser.add_subparsers(
-        dest="command", help="Available commands")
+        dest='command', help='Available commands', required=True)
 
     setup_pipeline_args(subparsers)
     setup_annotation_args(subparsers)
 
     args = parser.parse_args()
-    if args.command:
-        args.func(args)
-    else:
+
+    if not args.command:
         parser.print_help()
+    else:
+        args.func(args)
 
 
 if __name__ == '__main__':
