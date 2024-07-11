@@ -220,7 +220,7 @@ def main(args=None):
         extract_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool,
-                       args.input, args.library, args.threads)
+                       args.output, args.library, args.threads)
     blast_file = annotation_folder / "blast_results.xlsx"
     if not blast_file.exists():
         blast_main(df, blast_file)
