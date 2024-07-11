@@ -198,6 +198,7 @@ def main(args=None):
     The write_annotation_report() function is called.  
     """
     update_args = argparser_setup()
+    region_dir = "region"
     if args is None:
         args = update_args.parse_args()
     elif isinstance(args, list):
@@ -213,6 +214,8 @@ def main(args=None):
     if args.input and (args.flanking_genes or args.species):
         update_args.error(
             '-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
+    if args.input:
+        region_dir = args.input
     cwd = Path.cwd()
     annotation_folder = cwd / args.output
     make_dir(annotation_folder)
@@ -220,7 +223,7 @@ def main(args=None):
         extract_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool,
-                       args.output, args.library, args.threads)
+                       region_dir, args.library, args.threads)
     blast_file = annotation_folder / "blast_results.xlsx"
     if not blast_file.exists():
         blast_main(df, blast_file)
