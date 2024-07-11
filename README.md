@@ -73,6 +73,10 @@ VDJ-AAAP requires a specific environment to run . You can install all necessary 
 ``` bash
 conda env create -f pipeline.yaml --name pipeline
 ```
+If this does not work use mamba instead.
+``` bash
+mamba env create -f pipeline.yaml --name pipeline
+```
 **--name pipeline**, can be replaced with the name of your choosing.
 
 
@@ -93,12 +97,6 @@ To run the VDJ-AAAP pipeline, follow these steps:
 
 ``` bash
 conda activate pipeline
-```
-
-If not created earlier run:
-
-``` bash
-conda env create -f pipeline.yaml --name pipeline
 ```
 
 ## Overview tool:
