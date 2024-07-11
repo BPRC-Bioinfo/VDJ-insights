@@ -41,34 +41,34 @@ This pipeline and its corresponding scripts use different environments to genera
 
 This list contains all the different used packages and modules and which version are used. Changing the version of the packaged can be done in the individual envs.
 
-| Package          | Version   |
+| Package             | Version   |
 | ------------------- | --------- |
-| **beautifulsoup4**  | 4.12.3 |
-| **inspector**    | 1.2    |
-| **matplotlib**   | 3.8.4  |
-| **python**       | 3.11   |
-| **python**       | 3.6    |
-| **requests**     | 2.31.0 |
-| **bedtools**     | 2.31.0 |
-| **biopython**    | 1.83   |
-| **blast**        | 2.14.1 |
-| **bowtie**       | 1.3.1  |
-| **bowtie2**      | 2.5.1  |
-| **busco**        | 5.5.0  |
-| **hifiasm**      | 0.19.8 |
-| **imagemagick**  | 7.0.11_12 |
-| **jq**           | 1.5    |
-| **meme**         | 4.11.2 |
-| **minimap2**     | 2.26   |
+| **beautifulsoup4**  | 4.12.3    |
+| **inspector**       | 1.2       |
+| **matplotlib**      | 3.8.4     |
+| **python**          | 3.11      |
+| **python**          | 3.6       |
+| **requests**        | 2.31.0    |
+| **bedtools**        | 2.31.0    |
+| **biopython**       | 1.83      |
+| **blast**           | 2.14.1    |
+| **bowtie**          | 1.3.1     |
+| **bowtie2**         | 2.5.1     |
+| **busco**           | 5.5.0     |
+| **hifiasm**         | 0.19.8    |
+| **imagemagick**     | 7.0.11_12 |
+| **jq**              | 1.5       |
+| **meme**            | 4.11.2    |
+| **minimap2**        | 2.26      |
 | **ncbidatasetscli** | 15.25.0   |
-| **openpyxl**     | 3.1.2  |
-| **pandas**       | 2.2.1  |
-| **pyyaml**       | 6.0.1  |
-| **quast**        | 5.2.0  |
-| **samtools**     | 1.6    |
-| **seqkit**       | 2.8.0  |
-| **seqtk**        | 1.4    |
-| **unzip**        | 6.0    |
+| **openpyxl**        | 3.1.2     |
+| **pandas**          | 2.2.1     |
+| **pyyaml**          | 6.0.1     |
+| **quast**           | 5.2.0     |
+| **samtools**        | 1.6       |
+| **seqkit**          | 2.8.0     |
+| **seqtk**           | 1.4       |
+| **unzip**           | 6.0       |
 
 ## Pipeline
 
@@ -76,7 +76,7 @@ For the pipeline, just like mentioned, most things can be changed with the confi
 
 You can add extra values in the config file, but make sure you add them in the [snakefile](../Snakefile4#L31) and other scripts like [this](../scripts/RSS.py#L125). The input directory can also be changed if needed, please rename every **download** to something else you like. Every command in the snakefile can also be altered to your liking. Please follow the requirements of the package. For the in-house IMGT scrape, annotation tools and V(D)J display tool, please look at the **help rule (-h)**.
 
-From previous runs, it is known that sometimes the **kmer** and **window** needed to be added to achieve better results. These parameters can be added to the [command](../Snakefile4#L365).
+From previous runs, it is known that sometimes the **kmer** and **window** needed to be added to achieve better results. These parameters can be added to the [command](../Snakefile#L365).
 
 ## Custom scripts and tools
 
