@@ -28,8 +28,8 @@
   - [Configuration settings](#configuration-settings)
     - [Basic configuration options](#basic-configuration-options)
     - [Important configuration settings](#important-configuration-settings)
-  - [Output](#output)
-    - [Annotation](#annotation-1)
+  - [Pipeline output](#pipeline-output)
+    - [Annotation results](#annotation-results)
   - [Plots](#plots)
     - [Single plots](#single-plots)
     - [Interactive plot](#interactive-plot)
@@ -281,7 +281,7 @@ RSS_MERS:
 
 - **RSS_MERS**: Defines the positions of key components within the RSS - specifically, the heptamer and nonamer elements, denoted as `7` and `9`, respectively. This configuration allows for detailed specification of each RSS's structural components, critical for the annotation process. The lists under each RSS type (`12`, `23`) enumerate the preferred positions of these elements, facilitating precise identification and analysis of RSS structures within the genomic data.
 
-## Output
+## Pipeline output
 
 The pipeline creates a lot of important files locateded in different directories. The next code sample shows the tree with all the directories that are created when running pipeline.
 
@@ -313,7 +313,7 @@ The pipeline creates a lot of important files locateded in different directories
 └── split_files
 ```
 
-### Annotation
+### Annotation results
 
 One of the most important parts of the pipeline is the finding of novel VDJ gene segments. The result of the findings are located in the folder called **annotation**. In this directory, are the following excel files located.
 
