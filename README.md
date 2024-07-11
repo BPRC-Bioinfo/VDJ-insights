@@ -13,15 +13,23 @@
     - [Base setup](#base-setup)
     - [Environment Setup](#environment-setup)
     - [Getting Started](#getting-started)
+  - [Overview tool:](#overview-tool)
+  - [Pipeline:](#pipeline)
     - [Detailed Flag Descriptions](#detailed-flag-descriptions)
     - [Required:](#required)
     - [Optional:](#optional)
     - [Important Notes](#important-notes)
+  - [Annotation](#annotation)
+    - [Required:](#required-1)
+    - [Data source (mutually exclusive):](#data-source-mutually-exclusive)
+    - [Assembly specific flags:](#assembly-specific-flags)
+    - [Optional flags:](#optional-flags)
+    - [Important Notes](#important-notes-1)
   - [Configuration settings](#configuration-settings)
     - [Basic configuration options](#basic-configuration-options)
     - [Important configuration settings](#important-configuration-settings)
   - [Output](#output)
-    - [Annotation](#annotation)
+    - [Annotation](#annotation-1)
   - [Plots](#plots)
     - [Single plots](#single-plots)
     - [Interactive plot](#interactive-plot)
@@ -45,7 +53,9 @@ The assembly phase leverages a hybrid approach meaning it utilizes the strengths
 
 Specific genomic regions are then isolated using predefined flanking genes, these can be specified by the user or a default can be used (Default is for primates only because it is based on humans). 
 
-The pipeline extends its functionality to annotation, comparing assembled region sequences against a comprehensive library of validated VDJ segments sourced from the IMGT database or a pre-existing library in **`library/library.fasta`**. Outputs include detailed Excel reports on identified sequences, supplemented with an interactive plotting feature for enhanced data visualization and analysis, but also static plots showing the different haplotypes of the regions showcasing the order of the segements. Lastly it generates a easy to navigate HTML report containing al the generated results.
+The pipeline extends its functionality to annotation, which can also be ran on its own as part of this tool. Comparing the assembled region sequences against a comprehensive library of validated VDJ segments sourced from the IMGT database or a pre-existing library in **`library/library.fasta`**.
+ 
+Outputs include detailed Excel reports on identified sequences, supplemented with an interactive plotting feature for enhanced data visualization and analysis, but also static plots showing the different haplotypes of the regions showcasing the order of the segements. Lastly it generates a easy to navigate HTML report containing al the generated results.
 
 ## Installation
 
@@ -90,13 +100,32 @@ If not created earlier run:
 ``` bash
 conda env create -f pipeline.yaml --name pipeline
 ```
-You are now ready to run the pipeline. Execute the pipeline with the following command:
 
-``` bash
-python scripts/pipeline_shell.py -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fastq.gz> -ref <reference_genome> -r <receptor_type> -s <species_name> -t <threads> --default
+## Overview tool:
+Within this tool, you have the option to run the whole pipeline, which generates the VDJ analysis from the input ONT and PacBio fastq data. You only need to specify the reference genome either as a NCBI genome code or as a fasta file; the type of receptor `TR` or `IG` and the species name of the animal you want to analyse. To see the options that are available enter:
+```bash
+python scripts/pipeline_shell.py -h
+```
+The following options will be shown [pipeline](#pipeline) and [annotation](#annotation). You can read more information about these tools by pressing on the highlighted names.
+```txt
+Tool for sequencing data processing and VDJ annotation
+
+positional arguments:
+  {pipeline,annotation}
+                        Available commands
+    pipeline            Run the pipeline for sequencing data processing.
+    annotation          Run the annotation tool for VDJ segment analysis.
+
+options:
+  -h, --help            show this help message and exit
 ```
 
-Replace the placeholder values with your actual data.
+## Pipeline:
+You can execute the pipeline with the following command:
+
+``` bash
+python scripts/pipeline_shell.py pipeline -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fastq.gz> -ref <reference_genome> -r <receptor_type> -s <species_name> -t <threads> --default
+```
 
 ### Detailed Flag Descriptions
 
@@ -124,10 +153,49 @@ Replace the placeholder values with your actual data.
 - Ensure that the paths to the input files are correct and accessible.
 - If using the `--default` flag, do not specify `-f/--flanking-genes` or `-c/--chromosomes` as they are mutually exclusive with `--default`.
 
+## Annotation
+Within this tool there is also a option to run the annotation tool as a stand-alone program. It is the same program that is used within the pipeline. You can execute it by running this command.
+
+```bash
+python scripts/pipeline_shell.py annotation -a <assembly_directory> -l <library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads>
+
+```
+### Required:
+- `-l <library.fasta>`, `--library <library.fasta>`: This flag specifies the path to the library FASTA file. This is required. (default: None)
+
+- `-r <receptor_type>`, `--receptor-type <receptor_type>`: This flag specifies the type of receptor to analyze. The options are `TR` for T-cell receptor or `IG` for Immunoglobulin. This is required. (default: None)
+
+### Data source (mutually exclusive):
+Select the data source: regions or assembly.
+
+- `-i <input_directory>`, `--input <input_directory>`: This flag specifies the directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with `-f/--flanking-genes` or `-s/--species`. (default: None)
+
+- `-a <assembly_directory>`, `--assembly <assembly_directory>`: This flag specifies the path to the directory containing the assembly FASTA files. This is required if not using `-i/--input`. Must be used with `-f/--flanking-genes` and `-s/--species`. (default: None)
+
+### Assembly specific flags:
+These flags are required if `-a/--assembly` is chosen:
+
+- `-f <flanking_genes>`, `--flanking-genes <flanking_genes>`: This flag specifies a comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. Add them as pairs. Required with `-a/--assembly`. (default: None)
+
+- `-s <species_name>`, `--species <species_name>`: This flag specifies the scientific name of the species, e.g., "Homo sapiens". Required with `-a/--assembly`. (default: None)
+
+### Optional flags:
+- `-o <output_directory>`, `--output <output_directory>`: This flag specifies the output directory for the results. If not specified, it defaults to `annotation`. (default: annotation)
+
+- `-m <mapping_tool>`, `--mapping-tool <mapping_tool>`: This flag specifies the mapping tool(s) to use. Choose from: `minimap2`, `bowtie`, `bowtie2`. Defaults to all. (default: ['minimap2', 'bowtie', 'bowtie2'])
+
+- `-t <threads>`, `--threads <threads>`: This flag specifies the number of processing threads to use for the analysis. If not specified, it defaults to 8. (default: 8)
+
+### Important Notes
+
+- Ensure that the paths to the input files are correct and accessible.
+- If using the `-i/--input` flag, do not specify `-f/--flanking-genes` or `-s/--species` as they are only need when using `-a/--assembly`.
 
 ## Configuration settings
 
-The **config.yaml** file, located within the **config** directory, serves as a overview of the configuration settings that the pipeline uses. This config file is generate automatically and contains various parameters to tailor the analysis based on your given input. Although it is automatically generated, it is recommended to see what it contains.
+The **config.yaml** file, located within the **config** directory, serves as a overview of the configuration settings that the pipeline uses. This config file is generate automatically and contains various parameters to tailor the analysis based on your given input. The config file is also different when running the pipeline or only the annotation program. For the annotation only the **SPECIES**, **FLANKING_GENES**, and the **important** settings are generated.
+
+Although it is automatically generated, it is recommended to see what it contains.
 
 ### Basic configuration options
 
@@ -163,20 +231,14 @@ FLANKING_GENES:
 - EPDR1
 - VPS41
 ```
-
-- **All_CHROMOSOMES**: This list contains all chromosomes found within the reference genome. For those uncertain of the specific chromosomes included in their reference genome, it's advisable to consult the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/).
-      
+- **DATA**: The used input data for both ONT and PacBio samples. This is separated in the original files and the moved files, these files are always moved in a temporary downloads folder. 
+- **All_CHROMOSOMES**: This list contains all chromosomes found within the reference genome. For those uncertain of the specific chromosomes included in their reference genome, it's advisable to consult the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/).      
 - **ASSEMBLY_CHROMOSOMES**: List contains the TCR/IG chromosomes for the analysis.
-
 - **HAPLOTYPES**: List with each haplotype needed the analysis.
-
 - **SPECIES: name**: The chosen species for the analysis.
-
 - **SPECIES: genome**: Specified genome that is being used for the run. It can be found on the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/). Or already present.
-
 - **SPECIES: cell**: The receptor type that is being analyzed. This value to either `TR` (T-cell receptor) or `IG` (Immunoglobulin), depending on your study's focus.
-
-- **FLANKING**: A list of flanking genes that are needed to identify the contig containing the different TCR/IG regions. By default these are determined based on the given receptor type.
+- **FLANKING_GENES**: A list of flanking genes that are needed to identify the contig containing the different TCR/IG regions. By default these are determined based on the given receptor type.
 
 ### Important configuration settings
 
