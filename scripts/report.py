@@ -346,10 +346,10 @@ def annotation(df, annotation_folder, file_name):
     df.to_excel(annotation_folder / file_name, index=False)
 
 
-def report_main(annotation_folder, blast_file, cell_type):
+def report_main(annotation_folder, blast_file, cell_type, library):
     cwd = Path.cwd()
     load_config(cwd)
-    record = make_record_dict(cwd / "library" / "library.fasta")
+    record = make_record_dict(cwd / library)
     df = pd.read_excel(blast_file)
     df = add_values(df)
     df, ref_df = main_df(df)

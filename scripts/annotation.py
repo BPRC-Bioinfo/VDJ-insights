@@ -226,8 +226,8 @@ def main(args=None):
                        region_dir, args.library, args.threads)
     blast_file = annotation_folder / "blast_results.xlsx"
     if not blast_file.exists():
-        blast_main(df, blast_file)
-    report_main(annotation_folder, blast_file, args.receptor_type)
+        blast_main(df, blast_file, args.library)
+    report_main(annotation_folder, blast_file, args.receptor_type, args.library)
     RSS_main()
     logger.info(
         f"Annotation process completed. Results are available in {args.output}.")

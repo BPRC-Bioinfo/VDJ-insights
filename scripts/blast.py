@@ -33,7 +33,7 @@ def make_dir(dir):
     return dir
 
 
-def make_blast_db(cwd):
+def make_blast_db(cwd, library):
     """
     Create a blast database (db) directory folder to run blast with.
     It checks if the db exist, if exist return the db. 
@@ -47,7 +47,7 @@ def make_blast_db(cwd):
     """
     blast_db_path = cwd / "mapping" / "blast_db"
     if not blast_db_path.exists():
-        reference = cwd / "library" / "library.fasta"
+        reference = cwd / library
         make_dir(blast_db_path)
         command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
         try:
@@ -200,8 +200,8 @@ def run_blast_operations(df, db_path, blast_file_path):
     logger.info("BLAST operations completed and results saved to Excel.")
 
 
-def blast_main(df, blast_file):
+def blast_main(df, blast_file, library):
     cwd = Path.cwd()
-    db_path = make_blast_db(cwd)
+    db_path = make_blast_db(cwd, library)
     run_blast_operations(df, db_path, blast_file)
     logger.info("BLAST main process completed.")
