@@ -280,8 +280,9 @@ config/*
 
 # HTML files
 source/html/*
-source/images/*
 !/source/html/sidebar.html
 !/source/html/index.html
+source/images/*
+!source/images/BPRC_logo.png
 
 
