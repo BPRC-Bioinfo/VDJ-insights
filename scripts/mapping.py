@@ -351,7 +351,7 @@ def create_directory(location):
     Path(location).mkdir(parents=True, exist_ok=True)
 
 
-def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=0):
+def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
     """
     Main function to run the mapping script. It takes a mapping type in 
     as an argument to determine which type script to run. It created a 
