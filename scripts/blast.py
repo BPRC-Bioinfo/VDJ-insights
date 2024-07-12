@@ -97,7 +97,6 @@ def construct_blast_command(fasta_file_path, database_path, identity_cutoff, out
     command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
     if length <= LENGTH_THRESHOLD:
         command += f" {extra}"
-    logger.debug(f"Constructed BLAST command: {command}")
     return command
 
 
