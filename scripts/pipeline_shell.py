@@ -12,6 +12,7 @@ import yaml
 from creat_html import html_main
 from annotation import main as annotation_main
 from annotation import validate_file, validate_input
+from env_manager import create_and_activate_env, deactivate_env
 
 
 # Method for logging the current states of the program.
@@ -139,7 +140,7 @@ def setup_annotation_args(subparsers):
         'annotation', help='Run the annotation tool for VDJ segment analysis.')
 
     # Recreate arguments from annotation.py's argparser_setup
-    parser_annotation.add_argument('-l', '--library', required=True, type=validate_file,
+    parser_annotation.add_argument('-l', '--library', type=validate_file,
                                    help='Path to the library file. Expected to be in FASTA format.')
     parser_annotation.add_argument(
         '-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
@@ -192,8 +193,33 @@ def run_pipeline(args):
 def run_annotation(args):
     cwd = Path.cwd()
     logger.info('Running the annotation program')
+    library = cwd / 'library' / 'library.fasta'
+
+    if not args.library and not library.is_file():
+        logger.info('No library specified, generating it with the IMGT scraper.')
+        try:
+            command = f'python scripts/IMGT_scrape.py -S "{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+            create_and_activate_env(Path('envs/IMGT.yaml'))
+            result = subprocess.run(
+                command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            logger.info(
+                f"Downloaded the library from the IMGT for {args.species}")
+        except subprocess.CalledProcessError as e:
+            log_subprocess_error(e)
+        finally:
+            deactivate_env()
+
+    args.library = library
     create_config(cwd, args)
-    annotation_main(args)
+
+    try:
+        create_and_activate_env(Path('envs/script.yaml'))
+        annotation_main(args)
+    except Exception as e:
+        logger.error(f"Annotation failed with error: {str(e)}")
+    finally:
+        deactivate_env()
+
     logger.info('Creating HTML file!')
     html_main('Annotation')
 
