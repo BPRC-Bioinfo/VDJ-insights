@@ -8,17 +8,8 @@ dependencies:
   - snakemake
   - ncbi-datasets-cli
   - jinja2
-  - minimap2
-  - bowtie
-  - bowtie2
-  - blast
-  - meme
-  - imagemagick
   - pandas
   - openpyxl
-  - biopython
-  - samtools
-  - bedtools
   - pyyaml
 
 
