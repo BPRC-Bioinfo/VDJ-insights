@@ -195,25 +195,27 @@ def run_annotation(args):
     logger.info('Running the annotation program')
     library = cwd / 'library' / 'library.fasta'
 
-    if not args.library and not library.is_file():
-        logger.info('No library specified, generating it with the IMGT scraper.')
-        try:
-            command = f'python scripts/IMGT_scrape.py -S "{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
-            create_and_activate_env(Path('envs/IMGT.yaml'))
-            result = subprocess.run(
-                command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if not args.library:
+        if not library.is_file():
             logger.info(
-                f"Downloaded the library from the IMGT for {args.species}")
-        except subprocess.CalledProcessError as e:
-            log_subprocess_error(e)
-        finally:
-            deactivate_env()
-
-    args.library = library
+                'No library specified, generating it with the IMGT scraper.')
+            try:
+                command = f'python scripts/IMGT_scrape.py -S "{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+                create_and_activate_env(Path('envs/IMGT.yaml'))
+                result = subprocess.run(command, shell=True, check=True)
+                logger.info(
+                    f"Downloaded the library from the IMGT for {args.species}")
+            except subprocess.CalledProcessError as e:
+                log_subprocess_error(e)
+            finally:
+                deactivate_env()
+                args.library = library
+        else:
+            args.library = library
     create_config(cwd, args)
 
     try:
-        create_and_activate_env(Path('envs/script.yaml'))
+        create_and_activate_env(Path('envs/scripts.yaml'))
         annotation_main(args)
     except Exception as e:
         logger.error(f"Annotation failed with error: {str(e)}")
@@ -233,7 +235,7 @@ def key_sort(s):
     """
     Sort strings with numbers in a natural way (e.g., 1, 2, 10 instead of 1, 10, 2).
     """
-    return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', s)]
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 
 def split_chromosomes(cwd, fasta_path):

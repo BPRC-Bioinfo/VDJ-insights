@@ -120,7 +120,7 @@ def get_positions_and_name(sam, first, second, record_dict):
     try:
         coords, name, best_coords, contig_name = list(), list(), list(), ""
         for c, gene in enumerate([first, second]):
-            awk = "awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $2, $3, $4, $4 + length($10) - 1}}'"
+            awk = r"awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $2, $3, $4, $4 + length($10) - 1}}'"
             command = f"cat {sam} |  egrep '{gene}' | {awk}"
             if c == 0 and not gene:
                 coords.append(0)

@@ -38,12 +38,14 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
     if env_dir.exists() and saved_env_yaml_file.exists():
         # Compare the saved YAML with the current one
         if filecmp.cmp(env_file, saved_env_yaml_file, shallow=False):
-            logger.info(f"Environment {env_name} is up to date. Activating it.")
+            logger.environment(
+                f"Environment {env_name} is up to date. Activating it.")
             # Environment is the same, just activate it
-            activate_env(env_dir)
+            activate_env(env_dir, env_name)
             return env_dir
         else:
-            logger.info(f"Environment {env_name} has changed. Recreating it.")
+            logger.environment(
+                f"Environment {env_name} has changed. Recreating it.")
             # Archive the existing environment
             archive_path = ARCHIVE_DIR / env_name
             if archive_path.exists():
@@ -51,7 +53,7 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
             shutil.move(env_dir, archive_path)
 
     # Create the environment if it does not exist or has changed
-    logger.info(f"Creating environment {env_name}.")
+    logger.environment(f"Creating environment {env_name}.")
     result = subprocess.run(
         ["conda", "env", "create", "--file",
             str(env_file), "--prefix", str(env_dir)],
@@ -66,14 +68,14 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
     # Save a copy of the current YAML file
     shutil.copy(env_file, saved_env_yaml_file)
 
-    logger.info(f"Activating environment {env_name}.")
+    logger.environment(f"Activating environment {env_name}.")
     # Activate the environment
     activate_env(env_dir)
 
     return env_dir
 
 
-def activate_env(env_path):
+def activate_env(env_path, env_name):
     """
     Activate the specified conda environment.
 
@@ -83,7 +85,7 @@ def activate_env(env_path):
     conda_prefix = str(env_path)
     os.environ["CONDA_PREFIX"] = conda_prefix
     os.environ["PATH"] = f"{conda_prefix}/bin:" + os.environ["PATH"]
-    logger.info(f"Activated environment at {env_path}")
+    logger.environment(f"Activated environment {env_name} at {env_path}")
 
 
 def deactivate_env():
@@ -91,8 +93,10 @@ def deactivate_env():
     Deactivate the current conda environment.
     """
     conda_prefix = os.environ.pop("CONDA_PREFIX", None)
+    env_name = Path(conda_prefix).name
     if conda_prefix:
         # Reset the PATH to its original state by removing the conda path
         os.environ["PATH"] = ":".join(p for p in os.environ["PATH"].split(
             ":") if not p.startswith(conda_prefix))
-        logger.info(f"Deactivated environment at {conda_prefix}")
+        logger.environment(
+            f"Deactivated environment {env_name} at {conda_prefix}")

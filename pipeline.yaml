@@ -11,6 +11,8 @@ dependencies:
   - pandas
   - openpyxl
   - pyyaml
+  - biopython
+
 
 
 
