@@ -62,6 +62,7 @@ try:
       deactivate_env() ## Deactivating of the environment.
 ```
 
+
 The following list contains all the different used packages and modules with version numbers. Changing the version of the packaged can be done in the individual envs as follow. Navigate to the [envs](../envs/) directory open environment file, for example [samtools](../envs/samtools.yaml) and change the number after the equal(=) sign like this.
 
 ``` bash
