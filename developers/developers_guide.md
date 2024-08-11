@@ -54,7 +54,7 @@ To handle environment switching outside the use of Snakemake we have designed ou
 ```python
 from env_manager import create_and_activate_env, deactivate_env
 try:
-    create_and_activate_env(Path('envs/scripts.yaml')) ## Creation and/or creation of the environment.
+    create_and_activate_env(Path('envs/scripts.yaml')) ## Creation and/or activation of the environment.
     code_to_run() ## Code that is run in the environment.
 except Exception as e:
     print(f"Code failed with error: {str(e)}")
