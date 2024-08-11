@@ -9,6 +9,8 @@
   - [Authors](#authors)
   - [Introduction](#introduction)
   - [Packages](#packages)
+    - [Snakemake environments](#snakemake-environments)
+    - [Script environments](#script-environments)
   - [Pipeline](#pipeline)
   - [Custom scripts and tools](#custom-scripts-and-tools)
   - [region.py](#regionpy)
@@ -33,14 +35,40 @@
 
 ## Introduction
 
-For a brief overview of the main working of the VDJ-AAAP pipeline, please read the [abstract](../README.md#abstract). In this document, we will outline the main working of the different created script and pipeline. We discuss parts of the scrips and pipeline that can be changed, but not with the [config file](../README.md#configuration-settings). Furthermore, the main packages and modules used for the envs are shown.
+As can be read from the README this tool is devided in to two parts. The main pipeline which runs from the specified ONT and PacBio FASTQ file combined with a reference genome which can be either a fasta file or as a NCBI accesesion number. To read more on how to use the pipeline you can read the instruction in README under [pipeline](../README.md#pipeline).
+
+The other option the tool has is to use the V(D)J annotation tool directly, normally this is used in the pipeline already but can also be run as standalone tool. To use it you must enter a directory with the assembly files as fasta file and library containing known V(D)J segments. More about this also be read in the README under [annotation](../README.md#annotation).
+
+In this developers giode we discuss parts of the used scrips and Snakemake pipeline that are important, hard to understand or can be changed. Furthermore, the main packages and modules used are shown.
 
 ## Packages
 
-This pipeline and its corresponding scripts use different environments to generate the different results and intermediate results. If we look closer in to environment files, you see that packages are duplicated in different environment files. This is because you cannot inherit packages from environments, and Snakemakes **Conda** argument does not allow for multiple environment files.
+### Snakemake environments
 
-This list contains all the different used packages and modules and which version are used. Changing the version of the packaged can be done in the individual envs.
+The pipeline uses different rules to generate various results. These rules rely on environment files, which contain different packages. When looking at these environment files, you'll notice that some package entries appear multiple times across different files. This happens because you can't inherit packages from one environment to another, and Snakemake's **Conda** argument does not allow for multiple environment files to be used together. 
 
+### Script environments
+
+To handle environment switching outside the use of Snakemake we have designed our **Conda** environment switching system. It works similar to the **Conda** keyword Snakemake uses. You need the same style of environment file (yaml file). Then you need to specify the code block you want to execute within a certain environment. You need to import [create_and_activate_env](../scripts/env_manager.py#L17) and [deactivate_env](../scripts/env_manager.py#L91) from the [env_manager.py](../scripts/env_manager.py). The following example shows the best way to use it, if you would like to add to other places.
+
+```python
+from env_manager import create_and_activate_env, deactivate_env
+try:
+      create_and_activate_env(Path('envs/scripts.yaml')) ## Creation and/or creation of the environment.
+      code_to_run() ## Code that is run in the environment.
+  except Exception as e:
+      print(f"Code failed with error: {str(e)}")
+  finally:
+      deactivate_env() ## Deactivating of the environment.
+```
+
+The following list contains all the different used packages and modules with version numbers. Changing the version of the packaged can be done in the individual envs as follow. Navigate to the [envs](../envs/) directory open environment file, for example [samtools](../envs/samtools.yaml) and change the number after the equal(=) sign like this.
+
+``` bash
+samtools=1.6 -> samtools=1.7
+```  
+
+This is a list of all the packages used. The first column contains the name of the package and the second column contains the version number.
 | Package             | Version   |
 | ------------------- | --------- |
 | **beautifulsoup4**  | 4.12.3    |
