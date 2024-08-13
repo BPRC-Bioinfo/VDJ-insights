@@ -71,7 +71,7 @@ def write_seq(record_dict, name, start, stop, out):
     try:
         with open(out, 'w') as out_file:
             record = record_dict[name]
-            out_file.write(f">{record.id}\n{record.seq[start:stop]}")
+            out_file.write(f">{out.stem}\n{record.seq[start:stop]}")
             logger.info(f"Sequence written to {out}")
     except Exception as e:
         logger.error(f"Failed to write sequence to {out}: {e}")
