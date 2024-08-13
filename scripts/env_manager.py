@@ -55,10 +55,8 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
     # Create the environment if it does not exist or has changed
     logger.environment(f"Creating environment {env_name}.")
     result = subprocess.run(
-        ["conda", "env", "create", "--file",
+        ["mamba", "env", "create", "--file",
             str(env_file), "--prefix", str(env_dir)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
         text=True
     )
     if result.returncode != 0:
@@ -70,7 +68,7 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
 
     logger.environment(f"Activating environment {env_name}.")
     # Activate the environment
-    activate_env(env_dir)
+    activate_env(env_dir, env_name)
 
     return env_dir
 
