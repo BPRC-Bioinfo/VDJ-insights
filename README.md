@@ -229,6 +229,7 @@ FLANKING_GENES:
 - EPDR1
 - VPS41
 ```
+
 - **DATA**: The used input data for both ONT and PacBio samples. This is separated in the original files and the moved files, these files are always moved in a temporary downloads folder. 
 - **All_CHROMOSOMES**: This list contains all chromosomes found within the reference genome. For those uncertain of the specific chromosomes included in their reference genome, it's advisable to consult the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/).      
 - **ASSEMBLY_CHROMOSOMES**: List contains the TCR/IG chromosomes for the analysis.

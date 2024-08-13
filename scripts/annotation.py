@@ -6,7 +6,7 @@ import pandas as pd
 import argparse
 from logger import custom_logger
 from blast import blast_main
-from map_genes import extract_main
+from map_genes import map_main
 from extract_region import region_main
 
 """
@@ -220,7 +220,7 @@ def main(args=None):
     annotation_folder = cwd / args.output
     make_dir(annotation_folder)
     if args.assembly:
-        extract_main(args.flanking_genes, args.assembly, args.species)
+        map_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool,
                        region_dir, args.library, args.threads)

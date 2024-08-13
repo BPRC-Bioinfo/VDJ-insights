@@ -24,12 +24,12 @@
     - [blast.py](#blastpy)
     - [report.py](#reportpy)
     - [RSS.py](#rsspy)
-    - [Usage](#usage-1)
+    - [Annotation tool usage](#annotation-tool-usage)
   - [V(D)J display](#vdj-display)
     - [VDJ\_display.py](#vdj_displaypy)
     - [reevaluate.py (BETA)](#reevaluatepy-beta)
     - [order\_segments.py (BETA)](#order_segmentspy-beta)
-    - [Usage](#usage-2)
+    - [Usage](#usage-1)
 
 ## Authors
 
@@ -225,25 +225,25 @@ Finally, we prepare and formate the data for export to the different Excel files
 
 ### RSS.py
 
-To validate the entries in the `annotation_report.xlsx` and `annotation_report_100%.xlsx` files, we use the RSS of the found segments, we use `RSS.py`. It processes and analyze RSS from the `annotation_report_100%.xlsx`.
+The `RSS_script.py` script is the script used for validation V(D)J segments, based on the RSS heptamers and nonamers. The script is designed to load configuration settings, extract RSS sequences from V(D)J segments, validate these sequences against known reference motifs, and generate detailed annotation reports that include information on RSS matching.
 
-This time the config file is really important. It is used to determine how the RSS should be extracted and what the length is of the RSS. This is different per V(D)J segment on the different region for TCR and IG. Please read the [`Important configuration settings`](../README.md#important-configuration-settings) for a deeper understanding of how it works and how to alter it. Using the [`load_config`](../scripts/RSS.py#L22) function, these settings are loaded.
+The process begins with the `RSS_main` function, by setting up the configuration settings through the [`load_config`](../scripts/RSS_script.py#load_config) function. Storing the important settings in the global `CONFIG` variable. It also populates the `OPTIONS` variable with RSS layouts for the different segments.
 
-It first creates the needed directories with the [`create_directory`](../scripts/RSS.py#L30) function.
+After loading the configuration, the script checks for the existence of the two Excel files: `annotation_report.xlsx` and `annotation_report_100%.xlsx`. These files contain data on novel and known V(D)J segments, respectively. The [`check_if_exists`](../scripts/RSS_script.py#check_if_exists) function ensures these files are present before the script proceeds. The script then loads these files into DataFrames (`df1` and `df2`).
 
-We first run [`create_all_RSS_meme_files`](../scripts/RSS.py#L594). Here we create all the needed RSS extract the needed RSS for three different ["types"](../scripts/RSS.py#L619). For reference_RSS (Known), new_RSS (Novel) and combined_RSS (Known + Novel). Based on the segment and region the right values are retrieved from the config file. Using the [`calculate_position`](../scripts/RSS.py#L77) function. The start coord and end coord are adjusted to get the RSS coordinates. With [`write_fasta_file`](../scripts/RSS.py#L37) the RSS is saved into FASTA file. Each sequence file is named and organized according to its  region and segment (**TRAV.fasta**).
+The next step involves generating RSS heptamer and nonamer sequences and the sequence motifs. The [`create_all_RSS_meme_files`](../scripts/RSS_script.py#create_all_RSS_meme_files) function creates the directories for storing RSS heptamer and nonamer sequences and MEME sequence motifs for both novel and known sequences. The script generates RSS sequences by extracting specific heptamers and nonamers from the V(D)J segments using the [`fetch_sequence`](../scripts/RSS_script.py#fetch_sequence) function. This function calculates the start and end positions of RSS heptamer and nonamer based on the configuration settings, we also take in to account the segment, region and the segment's orientation (strand). The [`rss_type`](../scripts/RSS_script.py#rss_type) function is crucial to determine whether the sequence should be extracted from the start or end of the segment, depending on orientation.
 
-Then it generates MEME motif files through the [`run_meme`](../scripts/RSS.py#L169) function. This function handles the execution of the MEME suite, a tool set for motif discovery, adjusting [command](../scripts/RSS.py#L301) parameters if the amount of RSSs in the input file is higher than one. After running the MEME suite, we generated the sequence motifs and belonging text file `meme.txt`. From each RSS sequence motif regex pattern, the heptamer and nonamer are extracted with the help of a [regex pattern](../scripts/RSS.py#L334) (`\[[^\]]*\]|.`). It matches all substrings within square brackets and any single characters outside of brackets.
+Once the RSS sequences are generated, they are saved as FASTA files in a directory structure organized by region and segment, like this **TRAV.fasta**. The [`write_fasta_file`](../scripts/RSS_script.py#write_fasta_file) function handles this. Then we use the MEME suite to identify motifs within the heptamer and nonamer sequences. The generated motifs are stored. To run MEME we use the [`run_meme`](../scripts/RSS_script.py#run_meme) function, constructing the appropriate MEME commands based on the number of sequences present in each FASTA file. We use, the command uses options like `-dna` to specify DNA sequences, `-mod zoops` or `-mod anr` to define the distribution of motifs, and `-minw` to set the minimum motif width, corresponding to the length of the RSS variant (either 12 bp or 23 bp). The choice between using `-mod zoops` (Zero or One Occurrence Per Sequence) or `-mod anr` (Any Number of Repetitions) depends on whether multiple sequences are expected in the FASTA file, with `-mod zoops` typically used when analyzing sequences that might contain a single motif.
 
-With the `make_reference_rss` we create a reference dictionary of RSS motifs. It processes the `meme.txt` output files to extract RSS regular expressions, for sequence validation. This dictionary is essential for comparing newly discovered RSS sequences against a reference.
+We use a regular expressions to identify the heptamer and nonamer motifs within the RSS regex sequences. The [`get_reference_mers`](../scripts/RSS_script.py#get_reference_mers) function extracts these motifs by applying regex patterns that match the heptamer and nonamer sequences within the larger RSS context. For example, the function looks for patterns such as `[ACGT]{7}` for heptamers and `[ACGT]{9}` for nonamers, where `[ACGT]` matches any of the four DNA bases and the numbers indicate the length of the motif. These reference regex pattern are stored in a reference dictionary (`ref_rss_dict`) for later comparison.
 
-When the reference RSS regex patterns are established, we use the earlier loaded datasets and extract the RSS just as before. Now we append the RSS to the dataset per entry in the dataset through the use of [`add_base_rss_parts`](../scripts/RSS.py#L254).
+Next we do the actual validation. We compare the identified RSS sequences from novel segments to the reference motifs stored in the `ref_rss_dict`, which is created by the [`make_reference_rss`](../scripts/RSS_script.py#make_reference_rss) function. This dictionary stores the heptamer and nonamer motifs for each segment type and region, based on the results from the MEME analysis. 
 
-The script also integrates data validation features through the [`check_ref_rss`](../scripts/RSS.py#L286) function. This function compares newly generated RSS sequences against reference motifs to validate their accuracy, storing the results within the dataset. Every RSS is validated per position. When the number of mismatches is greater than 1, we put in `False`, which means there is a likely change the RSS is not correct. Otherwise, we put it as `True`.
+We run the validation with the [`update_df`](../scripts/RSS_script.py#update_df) function to apply the RSS validation process across all segments in the DataFrame. This function iterates over each row in the DataFrame, calling the [`check_ref_rss`](../scripts/RSS_script.py#check_ref_rss) function to validate the heptamer and nonamer motifs of the novel sequences against those stored in the reference dictionary. The [`rss_mismatch`](../scripts/RSS_script.py#rss_mismatch) function is used within this process to count the number of mismatches between the novel segment and the reference motif. It breaks down the RSS sequence into individual bases and compares each base to the corresponding base in the reference motif. If the total number of mismatches exceeds the threshold (one mismatch is allowed), the sequence is marked as a `False` otherwise as `True`. The results of this validation are stored in new columns in the DataFrame, indicating whether each sequence’s heptamer and nonamer sequence match the reference motif.
 
-In the final step, data is processed data for exporting to Excel. The [`create_rss_excel_file`](../scripts/RSS.py#L346) function compiles the results. Then with [`combine_df`](../scripts/RSS.py#L491) the new RSS data is merged with the old dataset. The following columns are [merged](../scripts/RSS.py#L509). Finally, the data is exported to an Excel file (`annotation_report_plus.xlsx` & `annotation_report_plus.xlsx`).
+After the validation step, the script generates updated Excel reports using the [`create_rss_excel_file`](../scripts/RSS_script.py#create_rss_excel_file) function. These reports, saved as `annotation_report_plus.xlsx` and `annotation_report_100%_plus.xlsx`, contain the new information about each segment, including the validated RSS motifs. The [`combine_df`](../scripts/RSS_script.py#combine_df) function merges the data with the original DataFrame, ensuring that all relevant information is included in the final reports.
 
-### Usage
+### Annotation tool usage
 
 To use the tool, you can use the following command. More information about the tool's command and settings are available on the [`README`](https://github.com/BPRC-CGR/VDJ_segment_discover/tree/devlopment) on GitHub page for the tool itself.
 

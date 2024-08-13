@@ -129,7 +129,7 @@ def map_flanking_genes(cwd, flanking_genes: Path, assembly_file: Path, threads=8
             logger.error(f"An unexpected error occurred: {e}")
 
 
-def extract_main(flanking_genes, assembly_dir, species):
+def map_main(flanking_genes, assembly_dir, species):
     try:
         cwd = Path.cwd()
         flanking_genes_dir = cwd / "flanking_genes"
@@ -150,4 +150,4 @@ def extract_main(flanking_genes, assembly_dir, species):
 
 
 if __name__ == "__main__":
-    extract_main()
+    map_main()
