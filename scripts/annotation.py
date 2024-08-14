@@ -8,7 +8,6 @@ from logger import custom_logger
 from blast import blast_main
 from map_genes import map_main
 from extract_region import region_main
-
 """
 Used python packages:
     1. pandas
@@ -164,10 +163,15 @@ def argparser_setup(include_help=True):
 
     assembly_options = parser.add_argument_group('Assembly-Specific Options',
                                                  'These options are required if -a/--assembly is chosen:')
-    assembly_options.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
-                                  help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
     assembly_options.add_argument('-s', '--species', type=str,
                                   help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
+
+    exclusive_group = parser.add_argument_group('Exclusive Options')
+    exclusive_mutually_exclusive = exclusive_group.add_mutually_exclusive_group()
+    exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=str,
+                                              help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
+    exclusive_mutually_exclusive.add_argument('--default', action='store_true',
+                                              help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
 
     optional_group = parser.add_argument_group('Optional Options')
     optional_group.add_argument('-o', '--output', type=str,
@@ -199,6 +203,7 @@ def main(args=None):
     """
     update_args = argparser_setup()
     region_dir = "region"
+    cwd = Path.cwd()
     if args is None:
         args = update_args.parse_args()
     elif isinstance(args, list):
@@ -216,7 +221,7 @@ def main(args=None):
             '-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
     if args.input:
         region_dir = args.input
-    cwd = Path.cwd()
+
     annotation_folder = cwd / args.output
     make_dir(annotation_folder)
     if args.assembly:

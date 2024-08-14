@@ -14,7 +14,6 @@ from annotation import main as annotation_main
 from annotation import validate_file, validate_input
 from env_manager import create_and_activate_env, deactivate_env
 
-
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
@@ -22,6 +21,19 @@ CONFIG = {}
 
 
 def load_config(config_file):
+    """
+    Loads a YAML configuration file if it exists. If the file does not exist,
+    the function logs an error and terminates the application.
+
+    Args:
+        config_file (Path): Path to the configuration file.
+
+    Returns:
+        dict: Parsed YAML configuration as a dictionary.
+
+    Raises:
+        SystemExit: If the configuration file does not exist.
+    """
     if config_file.exists():
         with open(config_file, 'r') as file:
             return yaml.safe_load(file)
@@ -31,6 +43,19 @@ def load_config(config_file):
 
 
 def validate_read_files(file_path):
+    """
+    Validates a file path to ensure it points to a valid .fastq.gz file. 
+    This function checks that the file exists and has the correct extension.
+
+    Args:
+        file_path (str): Path to the read file.
+
+    Returns:
+        Path: Validated Path object pointing to the read file.
+
+    Raises:
+        argparse.ArgumentTypeError: If the file is not a .fastq.gz file or does not exist.
+    """
     data_path = Path(file_path)
     validate_files(file_path)
     if data_path.suffixes != ['.fastq', '.gz']:
@@ -43,6 +68,20 @@ def validate_read_files(file_path):
 
 
 def validate_files(file_path):
+    """
+    Validates that the given file path points to an existing file. 
+    If the path is invalid or points to a directory, an error is logged 
+    and an exception is raised.
+
+    Args:
+        file_path (str): Path to the file that needs validation.
+
+    Returns:
+        Path: Validated Path object pointing to the file.
+
+    Raises:
+        argparse.ArgumentTypeError: If the path is invalid or points to a directory.
+    """
     data_path = Path(file_path)
     if not data_path.is_file():
         logger.error(f"File does not exist or is a directory: {file_path}")
@@ -53,6 +92,22 @@ def validate_files(file_path):
 
 
 def validate_reference(value):
+    """
+    Validates a reference genome input, ensuring it is either a valid 
+    .fasta/.fna file or a valid accession code. The function checks the 
+    file extension against known FASTA extensions and validates the 
+    presence of the file. If the input is an accession code, it is checked 
+    against known accession patterns.
+
+    Args:
+        value (str): The input reference genome file path or accession code.
+
+    Returns:
+        str: The validated reference genome path or accession code.
+
+    Raises:
+        argparse.ArgumentTypeError: If the input does not match the required format.
+    """
     fasta_extensions = {".fasta", ".fna", ".fa"}
     if Path(value).suffix in fasta_extensions:
         validate_files(value)
@@ -76,6 +131,21 @@ def validate_reference(value):
 
 
 def validate_flanking_genes(value):
+    """
+    Validates a comma-separated list of flanking genes, ensuring that the 
+    list is composed of uppercase gene names and contains an even number 
+    of elements. If the list is odd, an error is logged and an exception 
+    is raised.
+
+    Args:
+        value (str): Comma-separated list of flanking genes.
+
+    Returns:
+        list: A list of validated flanking gene names.
+
+    Raises:
+        argparse.ArgumentTypeError: If the number of genes is not even.
+    """
     flanking_genes = [gene.strip().upper() if gene.strip() !=
                       '-' else '' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
@@ -88,6 +158,21 @@ def validate_flanking_genes(value):
 
 
 def validate_chromosome(value):
+    """
+    Validates a comma-separated list of chromosome identifiers, ensuring 
+    that each identifier is a valid chromosome number between 1-22, or 
+    'X' or 'Y'. If any identifier is invalid, an error is logged and an 
+    exception is raised.
+
+    Args:
+        value (str): Comma-separated list of chromosome identifiers.
+
+    Returns:
+        list: A list of validated chromosome identifiers.
+
+    Raises:
+        argparse.ArgumentTypeError: If any chromosome identifier is invalid.
+    """
     chromosomes = [chromosome.strip() for chromosome in value.split(',')]
     valid_chromosomes = set(map(str, range(1, 23))) | {"X", "Y"}
 
@@ -102,9 +187,24 @@ def validate_chromosome(value):
 
 
 def setup_pipeline_args(subparsers):
+    """
+    Configures the argument parser for the 'pipeline' command. This command 
+    processes sequencing data, and the function sets up various argument groups 
+    including reads, reference genome, and analysis settings. It also sets up 
+    validation to ensure that the '--default' option is mutually exclusive with 
+    '--flanking-genes' and '--chromosomes'.
+
+    Args:
+        subparsers (argparse._SubParsersAction): The subparsers object to add 
+        the 'pipeline' command to.
+
+    Raises:
+        argparse.ArgumentError: If invalid argument combinations are provided.
+    """
     parser_pipeline = subparsers.add_parser(
         'pipeline', help='Run the pipeline for sequencing data processing.')
 
+    # Reads Group
     reads_group = parser_pipeline.add_argument_group(
         'reads', 'Arguments related to read files')
     reads_group.add_argument('-ont', '--nanopore', required=True, type=validate_read_files,
@@ -112,46 +212,93 @@ def setup_pipeline_args(subparsers):
     reads_group.add_argument('-pb', '--pacbio', required=True, type=validate_read_files,
                              help='Path to the Pacific Biosciences reads file.')
 
+    # Reference Group
     reference_group = parser_pipeline.add_argument_group(
         'reference', 'Arguments related to the reference genome')
     reference_group.add_argument('-ref', '--reference', type=validate_reference, required=False,
                                  help='Path to the reference genome file if one is already present (optional).')
 
+    # Analysis Group
     analysis_group = parser_pipeline.add_argument_group(
         'analysis', 'Arguments related to analysis settings')
-    analysis_group.add_argument('-s', '--species', type=str.capitalize,
-                                required=True, help='Species name, e.g., Homo sapiens.')
+
+    exclusive_group = analysis_group.add_mutually_exclusive_group(
+        required=False)
+    exclusive_group.add_argument('--default', action='store_true',
+                                 help='Use default settings. Cannot be used with --flanking-genes or --chromosomes.')
+
     analysis_group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
                                 help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
+    analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome,
+                                help='List of chromosomes where TR or IG is located.')
+
+    analysis_group.add_argument('-s', '--species', type=str.capitalize,
+                                required=True, help='Species name, e.g., Homo sapiens.')
     analysis_group.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=[
                                 'TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
-    analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome,
-                                required='--default' not in sys.argv, help='List of chromosomes where TR or IG is located.')
     analysis_group.add_argument('-t', '--threads', type=int,
                                 required=False, default=8, help='Amount of threads to run the analysis.')
-    analysis_group.add_argument('--default', action='store_true',
-                                help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
 
     parser_pipeline.set_defaults(func=run_pipeline)
 
+    def validate_pipeline_args(args):
+        """
+        Validates the arguments provided to the pipeline command, ensuring 
+        that '--default' is not used together with '--flanking-genes' or 
+        '--chromosomes', and that both '--flanking-genes' and '--chromosomes' 
+        are provided together unless '--default' is used.
+
+        Args:
+            args (argparse.Namespace): The parsed arguments.
+
+        Raises:
+            argparse.ArgumentError: If invalid argument combinations are provided.
+        """
+        if args.default:
+            if args.flanking_genes or args.chromosomes:
+                parser_pipeline.error(
+                    "--default cannot be used with --flanking-genes or --chromosomes.")
+        else:
+            if args.flanking_genes is None or args.chromosomes is None:
+                parser_pipeline.error(
+                    "Both --flanking-genes and --chromosomes must be provided together unless --default is used.")
+
+    parser_pipeline.set_defaults(validate_pipeline_args=validate_pipeline_args)
+
 
 def setup_annotation_args(subparsers):
+    """
+    Configures the argument parser for the 'annotation' command. This command 
+    is used for VDJ segment analysis, and the function sets up various argument 
+    groups including the library, receptor type, and species. It also sets up 
+    validation to ensure that the '--default' option is mutually exclusive with 
+    '--flanking-genes'.
+
+    Args:
+        subparsers (argparse._SubParsersAction): The subparsers object to add 
+        the 'annotation' command to.
+    """
     parser_annotation = subparsers.add_parser(
         'annotation', help='Run the annotation tool for VDJ segment analysis.')
 
-    # Recreate arguments from annotation.py's argparser_setup
+    group = parser_annotation.add_mutually_exclusive_group()
+    group.add_argument('--default', action='store_true',
+                       help='Use default settings. Cannot be used with --flanking-genes.')
+    group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
+                       help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
+
     parser_annotation.add_argument('-l', '--library', type=validate_file,
                                    help='Path to the library file. Expected to be in FASTA format.')
     parser_annotation.add_argument(
         '-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
         help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+
     data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
     data_choice.add_argument('-i', '--input', type=validate_input,
                              help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
     data_choice.add_argument('-a', '--assembly', type=validate_input,
                              help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
-    parser_annotation.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
-                                   help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
+
     parser_annotation.add_argument('-s', '--species', type=str,
                                    help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     parser_annotation.add_argument('-o', '--output', type=str,
@@ -163,10 +310,20 @@ def setup_annotation_args(subparsers):
                                    help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
     parser_annotation.add_argument('-t', '--threads', type=int,
                                    required=False, default=8, help='Amount of threads to run the analysis.')
+
     parser_annotation.set_defaults(func=run_annotation)
 
 
 def run_pipeline(args):
+    """
+    Executes the main pipeline process for sequencing data processing. This 
+    function orchestrates various steps such as filtering and moving files, 
+    splitting chromosomes, running Snakemake for the pipeline, and generating 
+    HTML reports.
+
+    Args:
+        args (argparse.Namespace): The parsed arguments for the pipeline command.
+    """
     cwd = Path.cwd()
     final_output = cwd / 'annotation' / 'annotation_report_plus.xlsx'
     logger.info("Starting main process")
@@ -191,6 +348,15 @@ def run_pipeline(args):
 
 
 def run_annotation(args):
+    """
+    Executes the annotation process for VDJ segment analysis. This function 
+    handles tasks such as generating or validating the library file, creating 
+    configuration files, running the main annotation process, and generating 
+    HTML reports.
+
+    Args:
+        args (argparse.Namespace): The parsed arguments for the annotation command.
+    """
     cwd = Path.cwd()
     logger.info('Running the annotation program')
     library = cwd / 'library' / 'library.fasta'
@@ -213,7 +379,6 @@ def run_annotation(args):
         else:
             args.library = library
     create_config(cwd, args)
-
     try:
         create_and_activate_env(Path('envs/scripts.yaml'))
         annotation_main(args)
@@ -227,18 +392,42 @@ def run_annotation(args):
 
 
 def make_dir(dir):
+    """
+    Creates a directory and any necessary parent directories. If the 
+    directory already exists, no error is raised.
+
+    Args:
+        dir (str or Path): Path to the directory to create.
+    """
     Path(dir).mkdir(parents=True, exist_ok=True)
     logger.info(f"Created directory: {dir}")
 
 
 def key_sort(s):
     """
-    Sort strings with numbers in a natural way (e.g., 1, 2, 10 instead of 1, 10, 2).
+    Sorts strings with numbers in a natural order (e.g., "chr1", "chr2", 
+    "chr10" instead of "chr1", "chr10", "chr2").
+
+    Args:
+        s (str): String to sort.
+
+    Returns:
+        list: A list of integers and strings, sorted naturally.
     """
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 
 def split_chromosomes(cwd, fasta_path):
+    """
+    Splits the chromosomes from a reference genome FASTA file into 
+    individual files for each chromosome. The function creates an 
+    output directory for the chromosome files and a new reference 
+    genome file, and logs the process.
+
+    Args:
+        cwd (Path): The current working directory.
+        fasta_path (Path): Path to the reference genome FASTA file.
+    """
     global CONFIG
     output_dir = cwd / 'reference' / 'chromosomes'
     genome_dir = cwd / 'reference' / 'genome'
@@ -253,6 +442,16 @@ def split_chromosomes(cwd, fasta_path):
 
 
 def write_chromosomes(fasta_path, output_dir, new_genome_file):
+    """
+    Writes each chromosome from a reference genome FASTA file to 
+    individual files and a combined reference genome file. It logs 
+    the file paths and saves each chromosome as a separate FASTA file.
+
+    Args:
+        fasta_path (Path): Path to the reference genome FASTA file.
+        output_dir (Path): Directory to save individual chromosome FASTA files.
+        new_genome_file (Path): Path to the new combined reference genome file.
+    """
     files = {}
     files["all"] = new_genome_file.open('a')
     for record in SeqIO.parse(fasta_path, 'fasta'):
@@ -262,6 +461,16 @@ def write_chromosomes(fasta_path, output_dir, new_genome_file):
 
 
 def process_record(record, output_dir, files):
+    """
+    Processes a single record from a FASTA file, extracting chromosome 
+    information and writing it to the appropriate chromosome file. The 
+    function updates the CONFIG dictionary with chromosome numbers.
+
+    Args:
+        record (SeqRecord): A single record from the FASTA file.
+        output_dir (Path): Directory to save the chromosome file.
+        files (dict): A dictionary of open file handles for writing.
+    """
     global CONFIG
     splitted = record.description.split(' ')
     try:
@@ -282,6 +491,17 @@ def process_record(record, output_dir, files):
 
 
 def extract_chromosome_info(splitted):
+    """
+    Extracts chromosome information from a split description string 
+    of a FASTA record. The function identifies the chromosome number 
+    and creates a chromosome identifier.
+
+    Args:
+        splitted (list): A list of strings split from the record description.
+
+    Returns:
+        str, str: The chromosome identifier and chromosome number.
+    """
     chromosome, chromosome_number = next(
         (f"reference_chr{splitted[i+1].rstrip(',')}", splitted[i+1])
         for i, x in enumerate(splitted)
@@ -291,11 +511,30 @@ def extract_chromosome_info(splitted):
 
 
 def close_files(files):
+    """
+    Closes all file handles in the provided dictionary of open files.
+
+    Args:
+        files (dict): A dictionary of open file handles to close.
+    """
     for file in files.values():
         file.close()
 
 
 def rename_files(cwd: Path, file: Path, read_type: str):
+    """
+    Renames a sequencing read file to a standard format based on the 
+    read type (e.g., nanopore or pacbio) and moves it to the downloads 
+    directory. The function returns the sample name and the new file path.
+
+    Args:
+        cwd (Path): The current working directory.
+        file (Path): The original file path of the sequencing read.
+        read_type (str): The type of sequencing read (e.g., nanopore, pacbio).
+
+    Returns:
+        str, Path: The sample name and the new file path.
+    """
     moved_dir = cwd / 'downloads'
     make_dir(moved_dir)
     new_file = get_new_file_path(file, read_type, moved_dir)
@@ -304,6 +543,18 @@ def rename_files(cwd: Path, file: Path, read_type: str):
 
 
 def get_new_file_path(file, read_type, moved_dir):
+    """
+    Constructs a new file path for a sequencing read file based on the 
+    read type and sample name. The file is moved to the downloads directory.
+
+    Args:
+        file (Path): The original file path.
+        read_type (str): The type of sequencing read (e.g., nanopore, pacbio).
+        moved_dir (Path): The directory to move the renamed file to.
+
+    Returns:
+        Path: The new file path in the downloads directory.
+    """
     conversion = {"ONT": "nanopore", "NANOPORE": "nanopore",
                   "PACBIO": "pacbio", "PB": "pacbio"}
     stripped_extensions = file.with_suffix('').with_suffix('')
@@ -313,6 +564,16 @@ def get_new_file_path(file, read_type, moved_dir):
 
 
 def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: Path):
+    """
+    Filters and moves sequencing read files (nanopore and pacbio) to 
+    standard locations in the working directory. It updates the CONFIG 
+    dictionary with the original and moved file paths.
+
+    Args:
+        cwd (Path): The current working directory.
+        original_nanopore (Path): Path to the original nanopore read file.
+        original_pacbio (Path): Path to the original pacbio read file.
+    """
     global CONFIG
     ont_sample, moved_nanopore = rename_files(
         cwd, original_nanopore, 'nanopore')
@@ -333,6 +594,19 @@ def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: P
 
 
 def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio, ont_sample, pb_sample):
+    """
+    Moves the original nanopore and pacbio read files to their new 
+    locations in the downloads directory. If the sample names differ, 
+    the files are renamed with a standard naming convention.
+
+    Args:
+        original_nanopore (Path): Path to the original nanopore read file.
+        original_pacbio (Path): Path to the original pacbio read file.
+        moved_nanopore (Path): Path to the new nanopore read file location.
+        moved_pacbio (Path): Path to the new pacbio read file location.
+        ont_sample (str): The sample name extracted from the nanopore read file.
+        pb_sample (str): The sample name extracted from the pacbio read file.
+    """
     if ont_sample != pb_sample:
         moved_nanopore = moved_nanopore.with_name(f"SAMPLE_ont.fastq.gz")
         moved_pacbio = moved_pacbio.with_name(f"SAMPLE_pacbio.fastq.gz")
@@ -343,6 +617,18 @@ def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio,
 
 
 def unzip_file(file_path, dir):
+    """
+    Unzips a file to a specified directory. The function logs the 
+    extraction process and handles exceptions that may occur during 
+    extraction.
+
+    Args:
+        file_path (Path): Path to the zip file to extract.
+        dir (Path): Directory to extract the contents to.
+
+    Raises:
+        Exception: If extraction fails, logs the error and raises an exception.
+    """
     extract_to_path = Path(dir)
     try:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -353,6 +639,16 @@ def unzip_file(file_path, dir):
 
 
 def download_flanking_genes(gene, dir: Path, species):
+    """
+    Downloads the flanking genes for a given gene and species using 
+    the NCBI datasets command-line tool. The downloaded files are 
+    extracted and processed into a FASTA file.
+
+    Args:
+        gene (str): The name of the gene for which flanking genes are to be downloaded.
+        dir (Path): The directory to save the downloaded files.
+        species (str): The species name for which the genes are being downloaded.
+    """
     dir = Path(dir)
     output_zip = dir / f"{gene}.zip"
     output_fna = dir / f"{gene}.fna"
@@ -361,6 +657,22 @@ def download_flanking_genes(gene, dir: Path, species):
 
 
 def run_download_command(gene, species, output_zip, output_fna, dir):
+    """
+    Executes the command to download flanking genes for a given gene 
+    and species. The function logs the command and processes the 
+    downloaded files.
+
+    Args:
+        gene (str): The name of the gene for which flanking genes are to be downloaded.
+        species (str): The species name for which the genes are being downloaded.
+        output_zip (Path): The path to save the downloaded zip file.
+        output_fna (Path): The path to save the processed FASTA file.
+        dir (Path): The directory to save the downloaded and processed files.
+
+    Raises:
+        subprocess.CalledProcessError: If the command execution fails.
+        Exception: If any unexpected error occurs during file processing.
+    """
     try:
         command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
         result = subprocess.run(
@@ -374,6 +686,16 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
 
 
 def process_downloaded_files(output_zip, dir, output_fna):
+    """
+    Processes the downloaded zip file by extracting its contents and 
+    renaming the gene FASTA file. The function then cleans up the 
+    downloaded files and logs the process.
+
+    Args:
+        output_zip (Path): The path to the downloaded zip file.
+        dir (Path): The directory where the files are extracted.
+        output_fna (Path): The path to save the processed FASTA file.
+    """
     unzip_file(output_zip, dir)
     ncbi_fna_path = dir / "ncbi_dataset" / "data" / "gene.fna"
     ncbi_fna_path.rename(output_fna)
@@ -381,6 +703,14 @@ def process_downloaded_files(output_zip, dir, output_fna):
 
 
 def cleanup_downloaded_files(output_zip, dir):
+    """
+    Cleans up the downloaded files by deleting the zip file, README file, 
+    and the extracted directory. The function logs the cleanup process.
+
+    Args:
+        output_zip (Path): The path to the downloaded zip file.
+        dir (Path): The directory where the files were extracted.
+    """
     output_zip.unlink()
     readme_path = dir / "README.md"
     if readme_path.exists():
@@ -390,12 +720,31 @@ def cleanup_downloaded_files(output_zip, dir):
 
 
 def log_subprocess_error(e):
+    """
+    Logs the error information from a failed subprocess command. The 
+    function captures the standard output and error streams and logs 
+    them for debugging.
+
+    Args:
+        e (subprocess.CalledProcessError): The exception object from a failed subprocess command.
+    """
     logger.error(f"Error occurred while running command: {e}")
     logger.error(e.stdout.decode())
     logger.error(e.stderr.decode())
 
 
 def download_reference_genome(genome_code, reference_dir: Path):
+    """
+    Downloads a reference genome using the NCBI datasets command-line tool, 
+    extracts the genome FASTA file, and saves it to the specified directory.
+
+    Args:
+        genome_code (str): The accession code for the reference genome.
+        reference_dir (Path): The directory to save the downloaded genome.
+
+    Returns:
+        Path: The path to the downloaded and processed reference genome FASTA file.
+    """
     reference_dir = Path(reference_dir)
     make_dir(reference_dir)
     output_zip = reference_dir / f"{genome_code}.zip"
@@ -407,6 +756,21 @@ def download_reference_genome(genome_code, reference_dir: Path):
 
 
 def run_reference_download_command(genome_code, output_zip, reference_dir, output_fna):
+    """
+    Executes the command to download a reference genome based on the 
+    accession code. The function logs the command and processes the 
+    downloaded files.
+
+    Args:
+        genome_code (str): The accession code for the reference genome.
+        output_zip (Path): The path to save the downloaded zip file.
+        reference_dir (Path): The directory to save the extracted genome files.
+        output_fna (Path): The path to save the processed reference genome FASTA file.
+
+    Raises:
+        subprocess.CalledProcessError: If the command execution fails.
+        Exception: If any unexpected error occurs during file processing.
+    """
     try:
         command = f'datasets download genome accession {genome_code} --include genome --filename {output_zip}'
         logger.info(f"Running command: {command}")
@@ -421,6 +785,17 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
 
 
 def process_reference_files(output_zip, reference_dir, output_fna, genome_code):
+    """
+    Processes the downloaded reference genome zip file by extracting its 
+    contents and renaming the genome FASTA file. The function then cleans 
+    up the downloaded files and logs the process.
+
+    Args:
+        output_zip (Path): The path to the downloaded zip file.
+        reference_dir (Path): The directory where the files were extracted.
+        output_fna (Path): The path to save the processed reference genome FASTA file.
+        genome_code (str): The accession code for the reference genome.
+    """
     unzip_file(output_zip, reference_dir)
     ncbi_fna_path = (reference_dir / "ncbi_dataset" /
                      "data" / genome_code).glob('*.fna')
@@ -431,6 +806,15 @@ def process_reference_files(output_zip, reference_dir, output_fna, genome_code):
 
 
 def deep_merge(d1, d2):
+    """
+    Deep merges two dictionaries. If there are nested dictionaries, the 
+    function recursively merges them. If there are conflicting keys, the 
+    values from the second dictionary overwrite those in the first.
+
+    Args:
+        d1 (dict): The first dictionary to merge.
+        d2 (dict): The second dictionary to merge.
+    """
     for key, value in d2.items():
         if key in d1:
             if isinstance(d1[key], dict) and isinstance(value, dict):
@@ -442,6 +826,15 @@ def deep_merge(d1, d2):
 
 
 def loop_flanking_genes(cwd, args):
+    """
+    Processes flanking genes by downloading them and determining their 
+    associated chromosomes. The function updates the argument namespace 
+    with the downloaded flanking genes and their chromosomes.
+
+    Args:
+        cwd (Path): The current working directory.
+        args (argparse.Namespace): The parsed arguments for the pipeline command.
+    """
     receptor_chromosomes = set()
     flanking_genes_dir = prepare_flanking_genes_directory(cwd)
     species_dict = get_species_dict(cwd, args)
@@ -455,6 +848,16 @@ def loop_flanking_genes(cwd, args):
 
 
 def prepare_flanking_genes_directory(cwd):
+    """
+    Prepares the directory for storing downloaded flanking genes. 
+    If the directory does not exist, it is created.
+
+    Args:
+        cwd (Path): The current working directory.
+
+    Returns:
+        Path: The path to the flanking genes directory.
+    """
     default_setting_file = cwd / '_config' / 'species.yaml'
     flanking_genes_dir = cwd / "flanking_genes"
     make_dir(flanking_genes_dir)
@@ -462,6 +865,18 @@ def prepare_flanking_genes_directory(cwd):
 
 
 def get_species_dict(cwd, args):
+    """
+    Retrieves the species-specific configuration dictionary from the 
+    species YAML file. If a species-specific configuration is not found, 
+    the default configuration is returned.
+
+    Args:
+        cwd (Path): The current working directory.
+        args (argparse.Namespace): The parsed arguments for the pipeline command.
+
+    Returns:
+        dict: The species-specific or default configuration dictionary.
+    """
     default_setting_file = cwd / '_config' / 'species.yaml'
     default_dict = load_config(default_setting_file)
     species_key = args.species.replace(' ', '_')
@@ -469,6 +884,16 @@ def get_species_dict(cwd, args):
 
 
 def process_flanking_gene(gene, flanking_genes_dir, species, receptor_chromosomes):
+    """
+    Downloads the flanking gene for a given species and adds the 
+    associated chromosome information to the receptor_chromosomes set.
+
+    Args:
+        gene (str): The name of the gene for which flanking genes are to be downloaded.
+        flanking_genes_dir (Path): The directory to save the downloaded files.
+        species (str): The species name for which the genes are being downloaded.
+        receptor_chromosomes (set): A set to store the associated chromosomes.
+    """
     download_flanking_genes(gene, flanking_genes_dir, species)
     gene_file = flanking_genes_dir / f"{gene}.fna"
     records = SeqIO.to_dict(SeqIO.parse(gene_file, 'fasta'))
@@ -480,14 +905,34 @@ def process_flanking_gene(gene, flanking_genes_dir, species, receptor_chromosome
 
 
 def extract_chromosome_number_and_trailing(chromosome_info):
+    """
+    Extracts the chromosome number and any trailing characters 
+    (e.g., 'X', 'Y') from a chromosome description string.
+
+    Args:
+        chromosome_info (str): The chromosome description string.
+
+    Returns:
+        str, str: The chromosome number and trailing characters.
+    """
     number = ''.join(filter(str.isdigit, chromosome_info))
     trailing = ''.join(filter(str.isalpha, chromosome_info))
     return number, trailing
 
 
 def create_config(cwd: Path, args):
+    """
+    Creates a configuration file based on the provided arguments 
+    and species-specific settings. The configuration is saved as a 
+    YAML file in the config directory.
+
+    Args:
+        cwd (Path): The current working directory.
+        args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
+    """
     global CONFIG
-    initialize_config(args)
+    species_config = load_config(cwd / '_config' / 'species.yaml')
+    initialize_config(args, species_config)
     rss_config = load_config(cwd / '_config' / 'rss.yaml')
     deep_merge(CONFIG, rss_config.get(args.receptor_type, {}))
     config_file = cwd / 'config' / 'config.yaml'
@@ -495,7 +940,17 @@ def create_config(cwd: Path, args):
     save_config_to_file(config_file)
 
 
-def initialize_config(args):
+def initialize_config(args, species_config):
+    """
+    Initializes the global CONFIG dictionary based on the provided 
+    arguments and species-specific settings. It populates the 
+    CONFIG dictionary with species name, receptor type, flanking genes, 
+    and other relevant information.
+
+    Args:
+        args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
+        species_config (dict): The species-specific configuration dictionary.
+    """
     global CONFIG
     CONFIG.setdefault('SPECIES', {
         'name': args.species,
@@ -510,18 +965,49 @@ def initialize_config(args):
             args.chromosomes, key=lambda x: key_sort(x)))
     if hasattr(args, 'flanking_genes') and args.flanking_genes is not None:
         CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
+
+    # Handling flanking genes based on default settings
+    flanking_genes = getattr(args, 'flanking_genes', None)
+
+    if not flanking_genes and args.default:
+        flanking_genes = species_config.get(
+            args.species.capitalize().replace(" ", "_"), "default"
+        ).get(args.receptor_type, {}).get("FLANKING_GENES")
+
+    if flanking_genes:
+        CONFIG.setdefault("FLANKING_GENES", flanking_genes)
+        args.flanking_genes = flanking_genes
+
     if hasattr(args, 'assembly') and args.assembly is not None:
         CONFIG.setdefault('DATA', {})['library'] = str(args.library)
         CONFIG.setdefault('DATA', {})['assembly'] = str(args.assembly)
 
 
 def save_config_to_file(file_name):
+    """
+    Saves the global CONFIG dictionary to a YAML configuration file.
+
+    Args:
+        file_name (Path): The path to the YAML configuration file.
+    """
     global CONFIG
     with open(file_name, 'w') as f:
         yaml.dump(CONFIG, f, default_flow_style=False)
 
 
 def run_snakemake(args, snakefile="Snakefile"):
+    """
+    Runs the Snakemake workflow using the provided number of threads. 
+    The function first performs a dry-run to check the workflow and 
+    then runs the complete pipeline if the dry-run is successful.
+
+    Args:
+        args (argparse.Namespace): The parsed arguments for the pipeline command.
+        snakefile (str): The path to the Snakefile. Default is "Snakefile".
+
+    Raises:
+        SystemExit: If the Snakemake workflow fails.
+    """
     try:
         result = subprocess.run(
             f"snakemake -s {snakefile} --cores {args.threads} --use-conda -prn",
@@ -542,6 +1028,12 @@ def run_snakemake(args, snakefile="Snakefile"):
 
 
 def cleanup():
+    """
+    Cleans up by moving the original sequencing read files back 
+    to their original locations from the downloads directory, 
+    and removes the downloads directory.
+
+    """
     pacbio_original = CONFIG['DATA']['ORIGINAL'].get('pacbio')
     nanopore_original = CONFIG['DATA']['ORIGINAL'].get('nanopore')
     nanopore_moved = CONFIG['DATA']['MOVED'].get('nanopore')
@@ -552,6 +1044,15 @@ def cleanup():
 
 
 def main():
+    """
+    The main entry point of the script. It sets up the argument 
+    parsers for the 'pipeline' and 'annotation' commands, parses 
+    the command-line arguments, and invokes the corresponding 
+    function based on the command provided.
+
+    Raises:
+        SystemExit: If no command is provided or if invalid arguments are provided.
+    """
     parser = argparse.ArgumentParser(
         description="Tool for sequencing data processing and VDJ annotation")
     subparsers = parser.add_subparsers(
@@ -561,7 +1062,8 @@ def main():
     setup_annotation_args(subparsers)
 
     args = parser.parse_args()
-
+    if args.command == 'pipeline':
+        args.validate_pipeline_args(args)
     if not args.command:
         parser.print_help()
     else:
