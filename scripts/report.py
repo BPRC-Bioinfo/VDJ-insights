@@ -22,14 +22,29 @@ Used CLI packages:
     5. bedtools
 """
 
-# Method for logger current states of the program.
+# Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
+# Global configuration dictionary, loaded from config.yaml.
 CONFIG = None
+
+# Enable copy-on-write mode to improve performance and reduce memory usage.
 pd.options.mode.copy_on_write = True
 
 
 def load_config(cwd):
+    """
+    Loads the configuration file 'config.yaml' located in the specified directory.
+    This function sets the global CONFIG variable to a dictionary containing
+    the configuration settings. If the file does not exist, the program logs
+    an error and exits.
+
+    Args:
+        cwd (Path): Path object representing the current working directory.
+
+    Raises:
+        SystemExit: If the configuration file is not found.
+    """
     global CONFIG
     config_file = Path(cwd / 'config' / 'config.yaml')
     if config_file.exists():
@@ -41,6 +56,19 @@ def load_config(cwd):
 
 
 def make_record_dict(fasta):
+    """
+    Creates a dictionary from a FASTA file, mapping sequence IDs to their corresponding SeqRecord objects.
+
+    Args:
+        fasta (str or Path): Path to the input FASTA file.
+
+    Returns:
+        dict: A dictionary where keys are sequence IDs and values are SeqRecord objects.
+
+    Raises:
+        FileNotFoundError: If the FASTA file does not exist.
+        IOError: If there is an error reading the FASTA file.
+    """
     record_dict = {}
     with open(fasta, 'r') as fasta_file:
         for record in SeqIO.parse(fasta_file, "fasta"):
@@ -50,26 +78,37 @@ def make_record_dict(fasta):
 
 
 def fetch_prefix(name, cell_type):
+    """
+    Extracts the prefix of a sequence name that starts with the specified cell type.
+
+    Args:
+        name (str): The sequence name from which to extract the prefix.
+        cell_type (str): The cell type to match against the prefix.
+
+    Returns:
+        str: The extracted prefix that starts with the cell type.
+
+    Raises:
+        ValueError: If no prefix starting with the cell type is found.
+    """
     prefix = [i for i in name.split("_") if i.startswith(cell_type)][0]
     return prefix
 
 
 def add_region_segment(row, cell_type):
     """
-    Determines based on the potential name of the segment what the 
-    segment and the region is. It first brakes the name based on the "_" 
-    in to a list and check if it finds a a part that starts with a value 
-    specified in the option variable. When a part if found all the 
-    numeric values are removed with regex.
-    The two values are appointed to the columns "Region" and "Segment" 
-    and the new row is returned.
+    Determines the region and segment of a sequence based on its name.
+    The sequence name is broken into parts using underscores, and the part
+    starting with the specified cell type is identified. Numeric values
+    are removed from the prefix, and the resulting string is split into the
+    region and segment. These values are added as new columns in the DataFrame row.
 
     Args:
-        row (Series): Current row of the df.
+        row (pd.Series): Current row of the DataFrame.
+        cell_type (str): The cell type to fetch the prefix.
 
     Returns:
-        row (series): Current row with the two extra columns 
-        "Region" and "Segment".
+        pd.Series: The updated row with 'Region', 'Segment', and 'Short name' columns added.
     """
     query = row['Old name-like']
     prefix = fetch_prefix(query, cell_type)
@@ -82,36 +121,31 @@ def add_region_segment(row, cell_type):
 
 def filter_group(group):
     """
-    Check if group contains a 100% identity. If this is the case,
-    the group is discarded.
+    Filters out groups of sequences that contain a 100% identity match.
 
     Args:
-        group (Series): Dataframe grouped by ["start", "stop"].
+        group (pd.DataFrame): A DataFrame group containing sequence alignments.
 
     Returns:
-        bool: Boolean that indicates if a group contains a 100% identity
-        (True otherwise False).
+        bool: True if the group does not contain any 100% identity matches, False otherwise.
     """
     return not (group['% identity'] == 100).any()
 
 
 def main_df(df):
     """
-    Processes the BLAST results df and filtering out entries.
-    It filters out entries where either 'query seq' or 'subject seq'
-    contains a "-", as these represent gaps in the alignment.
-    Also converts the '% identity' column to float for easier numerical 
-    operations. Additionally, filter out entries with 100% identity, 
-    as these do not contain new segments. 
-    These entries are filtered and saved in the reference_df.
+    Processes the BLAST results DataFrame to filter out entries that contain gaps in the sequences or have 100% identity.
+    Converts the '% identity' column to float for numerical operations and filters out 100% identity entries,
+    which are considered as non-novel segments. The filtered entries are returned along with a reference DataFrame
+    containing only the entries with 100% identity.
 
     Args:
-        df (pd.DataFrame): A df containing BLAST results.
+        df (pd.DataFrame): A DataFrame containing BLAST results.
+
     Returns:
-        df (DataFrame): The filtered DataFrame with entries having no 
-        dashes in sequences and excluding 100% identity entries.
-        reference_df (DataFrame): A reference df containing only
-        the entries with 100% identity.
+        tuple: A tuple containing two DataFrames:
+            - df (pd.DataFrame): The filtered DataFrame without gaps and 100% identity entries.
+            - reference_df (pd.DataFrame): A DataFrame containing only 100% identity entries.
     """
     mask = ~df['query seq'].str.contains(
         '-') & ~df['subject seq'].str.contains('-')
@@ -124,19 +158,14 @@ def main_df(df):
 
 def add_values(df):
     """
-    Add different columns to the df such as "% Mismatches of total alignment". 
-    This is an indicator of the percentage of the amount mismatches in a sequence.
-    Also add the length of the query (query_seq_length) and
-    subject (subject_seq_length) to the df. Finally split (":") the 
-    query in to 5 columns ['query', 'start', 'stop', 'strand', 'path'] and
-    add them to to df.
-
+    Adds additional columns to the DataFrame, such as the percentage of mismatches relative to the alignment length,
+    the lengths of the query and subject sequences, and splits the 'query' column into multiple columns for easier access.
 
     Args:
-        df (DataFrame): An df containing BLAST results.
+        df (pd.DataFrame): A DataFrame containing BLAST results.
 
     Returns:
-        df (DataFrame): BLAST result df with the extra columns added.
+        pd.DataFrame: The DataFrame with additional columns for sequence lengths, mismatch percentage, and split query information.
     """
     df['% Mismatches of total alignment'] = (
         df['mismatches'] / df['alignment length']) * 100
@@ -150,15 +179,14 @@ def add_values(df):
 
 def add_like_to_df(df):
     """
-    Sorts the BLAST results df by 'reference'. It also creates a new 
-    column 'Old name-like' which contains the reference with -like 
-    behind it. It also extract the important columns and renames them. 
+    Adds a 'Old name-like' column to the DataFrame, which appends '-like' to the reference names.
+    This function also sorts the DataFrame by 'Reference' and renames certain columns for consistency.
 
     Args:
-        df (DataFrame): An df containing BLAST results.
+        df (pd.DataFrame): A DataFrame containing BLAST results.
 
     Returns:
-        output_df (DataFrame): df with added "Old name-like" column.
+        pd.DataFrame: The DataFrame with the added 'Old name-like' column and renamed columns.
     """
     output_df = df[[
         'subject', 'query',
@@ -183,6 +211,21 @@ def add_like_to_df(df):
 
 
 def orf_function(aa, segment):
+    """
+    Determines the functional status of a segment based on its amino acid sequence.
+    If the sequence ends with a single stop codon ('*') and has no internal stop codons, it is considered 'F/ORF'.
+    If the sequence has internal stop codons, it is considered 'P'.
+    Additionally, a message is generated to indicate if the stop codon is at a critical position.
+
+    Args:
+        aa (str): The amino acid sequence of the segment.
+        segment (str): The type of segment (V, D, or J).
+
+    Returns:
+        tuple: A tuple containing:
+            - message (str): A message indicating the presence of a stop codon.
+            - function_type (str): The functional status of the segment ('F/ORF' or 'P').
+    """
     end_codon = aa[-1] == "*" and aa.count("*") == 1
     function_dict = {
         "V": "F/ORF" if end_codon or not "*" in aa else "P",
@@ -200,6 +243,20 @@ def orf_function(aa, segment):
 
 
 def trim_sequence(sequence, strand):
+    """
+    Trims a nucleotide sequence to ensure it is a multiple of three bases long,
+    and translates it into its corresponding amino acid sequence.
+    If the strand is '-', the sequence is reverse complemented before trimming and translation.
+
+    Args:
+        sequence (str): The nucleotide sequence to be trimmed and translated.
+        strand (str): The strand orientation ('+' or '-').
+
+    Returns:
+        tuple: A tuple containing:
+            - aa (str): The translated amino acid sequence.
+            - sequence (str): The trimmed nucleotide sequence.
+    """
     sequence = Seq(sequence)
     seq_length = len(sequence)
     excess_aa = seq_length % 3
@@ -213,17 +270,16 @@ def trim_sequence(sequence, strand):
 
 def add_orf(row):
     """
-    Check if the sequence contains a * when translated to amino acids. 
-    When the strand is "-" the reverse_complete() is taken from the 
-    sequence and also checked. A column named "Function" is created. 
-    When the sequence contains a "*" a "P" is stored in the 
-    "Function" otherwise a "F/ORF".
+    Adds a 'Function' column to the DataFrame row, indicating the functional status of the segment.
+    The status is determined by translating the nucleotide sequence into amino acids and checking for stop codons.
+    If the sequence contains a single stop codon at the end, it is marked as 'F/ORF'. Otherwise, it is marked as 'P'.
+    Additionally, a 'Message' column is added to provide information about the stop codon position.
 
     Args:
-        row (Series): An row from the BLAST df.
+        row (pd.Series): The current row of the DataFrame.
 
     Returns:
-        row (Series): The row with the extra "Function" column.
+        pd.Series: The updated row with 'Function' and 'Message' columns added.
     """
     sequence, strand, segment = row[['Old name-like seq', 'Strand', "Segment"]]
     aa, sequence = trim_sequence(sequence, strand)
@@ -235,25 +291,18 @@ def add_orf(row):
 
 def filter_df(row, cell_type):
     """
-    Filters the BLAST row/section to identify the best reference and creates 
-    a list of leftover similar references. First the Specific Part,
-    which begins with the chosen cell type. It is determined from the 
-    Old name-like column. Then selects the best reference based on the presence of 
-    this 'Specific Part' in the 'Reference' column, sorting by 
-    'Mismatches' and 'Reference' and taking the first hit. 
-    If no specific hit is found, the first row of the df is 
-    used. Remaining similar references are stored in the 'Similar 
-    references' column. In the end the Old name-like naming is 
-    constructed again.
+    Filters a group of sequences to identify the best reference sequence and creates a list of similar references.
+    The best reference is determined based on the presence of the 'Specific Part' (a combination of region and segment)
+    in the 'Reference' column, sorting by 'Mismatches' and 'Reference', and taking the first hit. 
+    If no specific hit is found, the first row of the group is used.
+    The remaining similar references are stored in the 'Similar references' column, and the 'Old name-like' is updated.
 
     Args:
-        row (pd.Series): The current section that is being filtered.
-        cell_type (str): The cell type to fetch the prefix.
+        row (pd.DataFrame): The current group of sequences.
+        cell_type (str): The cell type used to fetch the prefix.
 
     Returns:
-        best_row: the BLAST df with now the best reference chosen and 
-        a extra column "Similar references" containing the list with similar 
-        references.
+        pd.Series: The best reference sequence with an additional column for similar references.
     """
     row['Specific Part'] = row["Region"] + row["Segment"]
     specific_part_in_reference = row.apply(
@@ -279,12 +328,36 @@ def filter_df(row, cell_type):
 
 
 def add_reference_length(row, record):
+    """
+    Adds the length of the reference sequence to the DataFrame row.
+    The length is determined by looking up the sequence in the record dictionary.
+
+    Args:
+        row (pd.Series): The current row of the DataFrame.
+        record (dict): A dictionary mapping reference names to SeqRecord objects.
+
+    Returns:
+        pd.Series: The updated row with the 'Library Length' column added.
+    """
     reference = row["Reference"]
     row["Library Length"] = len(record[reference].seq)
     return row
 
 
 def run_like_and_length(df, record, cell_type):
+    """
+    Adds 'Old name-like', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
+    Filters the DataFrame to retain only rows where the reference length, old name-like length, and library length are equal.
+    Adds a 'Sample' column, which is extracted from the path.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to process.
+        record (dict): A dictionary mapping reference names to SeqRecord objects.
+        cell_type (str): The cell type used to fetch the prefix.
+
+    Returns:
+        pd.DataFrame: The processed DataFrame with additional columns and filtered rows.
+    """
     df = add_like_to_df(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
@@ -296,6 +369,17 @@ def run_like_and_length(df, record, cell_type):
 
 
 def group_similar(df, cell_type):
+    """
+    Groups sequences by their start coordinate, end coordinate, and haplotype, and filters each group to identify the best reference sequence.
+    The best reference sequence is selected based on the number of mismatches and the reference name, and similar references are stored.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to group and filter.
+        cell_type (str): The cell type used to fetch the prefix.
+
+    Returns:
+        pd.DataFrame: The grouped and filtered DataFrame.
+    """
     df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(
         lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
@@ -304,14 +388,15 @@ def group_similar(df, cell_type):
 
 def annotation_long(df, annotation_folder):
     """
-    Generates a condensed df for the 
-    "annotation_report_long.xlsx" file, 
-    selecting only the specific columns needed for
-    "annotation_report_long.xlsx".
+    Generates a condensed version of the annotation report, saving it as 'annotation_report_long.xlsx'.
+    The report includes key columns such as reference names, coordinates, functions, paths, and regions.
 
     Args:
-        df (DataFrame): An df containing BLAST results.
-        annotation_folder (Path): Path to the annotation_report_long.xlsx file 
+        df (pd.DataFrame): The DataFrame containing BLAST results.
+        annotation_folder (Path): The directory where the report will be saved.
+
+    Raises:
+        OSError: If the file cannot be created or written to.
     """
     logger.info("Generating annotation_report_long.xlsx!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
@@ -323,19 +408,17 @@ def annotation_long(df, annotation_folder):
 
 def annotation(df, annotation_folder, file_name):
     """
-    Generates a condensed df for the 
-    "annotation_report.xlsx" file, 
-    selecting only the specific columns needed for
-    "annotation_report.xlsx".
+    Generates a full annotation report and saves it as the specified file name.
+    The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
 
     Args:
-        df (DataFrame): An df containing BLAST results.
-        annotation_folder (Path): Path to the annotation_report.xlsx file.
-        file_name (str): Name of the excel file the df is written to. 
-    """
-    # Loose columns 'Reference seq', 'Old name-like seq', 'Reference Length',
-    # 'Old name-like Length', 'Library Length',
+        df (pd.DataFrame): The DataFrame containing BLAST results.
+        annotation_folder (Path): The directory where the report will be saved.
+        file_name (str): The name of the output Excel file.
 
+    Raises:
+        OSError: If the file cannot be created or written to.
+    """
     logger.info(f"Generating {file_name}!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
@@ -347,6 +430,22 @@ def annotation(df, annotation_folder, file_name):
 
 
 def report_main(annotation_folder, blast_file, cell_type, library):
+    """
+    Main function to process and generate the annotation reports from the BLAST results.
+    It performs the following steps:
+        1. Loads the configuration and reference sequence records.
+        2. Processes the BLAST results DataFrame to add necessary columns and filter the results.
+        3. Generates the condensed and full annotation reports.
+
+    Args:
+        annotation_folder (Path): The directory where the reports will be saved.
+        blast_file (Path or str): Path to the input BLAST results file (Excel format).
+        cell_type (str): The cell type used to fetch prefixes.
+        library (Path or str): Path to the reference sequence library in FASTA format.
+
+    Raises:
+        Exception: If any step fails, logs the error and raises an exception.
+    """
     cwd = Path.cwd()
     load_config(cwd)
     record = make_record_dict(cwd / library)

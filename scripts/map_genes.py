@@ -5,8 +5,9 @@ from time import sleep
 import zipfile
 from Bio import SeqIO
 from logger import custom_logger
+
 """
-Used python packages:
+Used Python packages:
     1. biopython
     
 Used CLI packages:
@@ -19,19 +20,33 @@ logger = custom_logger(__name__)
 
 def make_dir(dir):
     """
-    Create a directory if not existing.
+    Creates a directory and any necessary parent directories if they do not already exist.
 
     Args:
-        location (str): Path of the directory to create.
+        dir (str or Path): Path of the directory to create.
+
+    Raises:
+        Exception: If the directory cannot be created, logs the error and raises an exception.
     """
     try:
         Path(dir).mkdir(parents=True, exist_ok=True)
         logger.debug(f"Directory created or already exists: {dir}")
     except Exception as e:
         logger.error(f"Failed to create directory {dir}: {e}")
+        raise
 
 
 def unzip_file(file_path, dir):
+    """
+    Extracts a zip file to the specified directory.
+
+    Args:
+        file_path (str or Path): Path to the zip file to be extracted.
+        dir (str or Path): Directory where the zip file's contents will be extracted.
+
+    Raises:
+        Exception: If the extraction fails, logs the error and raises an exception.
+    """
     extract_to_path = Path(dir)
     try:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -39,15 +54,22 @@ def unzip_file(file_path, dir):
         logger.info(f'Extracted {file_path} to {extract_to_path}')
     except Exception as e:
         logger.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
+        raise
 
 
 def download_flanking_genes(gene, dir: Path, species="homo sapiens"):
     """
-    Downloads and extracts flanking gene sequences for the specified gene and species.
+    Downloads flanking gene sequences for the specified gene and species using the NCBI datasets CLI.
+    Extracts the sequences to a specified directory and processes them into a FASTA file.
 
-    :param gene: Gene symbol to download.
-    :param dir: Directory where the files will be saved.
-    :param species: Species name, default is "homo sapiens".
+    Args:
+        gene (str): The gene symbol for which to download flanking sequences.
+        dir (Path): Directory where the downloaded files will be saved.
+        species (str, optional): Species name for the gene. Defaults to "homo sapiens".
+
+    Raises:
+        subprocess.CalledProcessError: If the command to download the genes fails.
+        Exception: If an unexpected error occurs during file processing, logs the error and raises an exception.
     """
     dir = Path(dir)
     output_zip = dir / f"{gene}.zip"
@@ -71,11 +93,26 @@ def download_flanking_genes(gene, dir: Path, species="homo sapiens"):
             logger.error(f"Error occurred while running command: {e}")
             logger.error(e.stdout.decode())
             logger.error(e.stderr.decode())
+            raise
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}")
+            raise
 
 
 def combine_genes(dir, flanking_output):
+    """
+    Combines all gene sequences in a specified directory into a single FASTA file.
+
+    Args:
+        dir (Path): Directory containing the individual gene FASTA files to combine.
+        flanking_output (Path): Path to the output FASTA file where all gene sequences will be combined.
+
+    Returns:
+        Path: The path to the combined FASTA file.
+
+    Raises:
+        Exception: If the genes cannot be combined, logs the error and raises an exception.
+    """
     dir = Path(dir)
     flanking_output = Path(flanking_output)
 
@@ -85,7 +122,7 @@ def combine_genes(dir, flanking_output):
     if not flanking_output.is_file():
         try:
             with open(flanking_output, 'w') as outfile:
-                # Using a single list comprehension to gather files with desired extensions
+                # Gather files with desired extensions
                 extensions = ["*.fna", "*.fasta", "*.fa"]
                 gene_files = [
                     file for ext in extensions for file in dir.glob(ext)]
@@ -101,11 +138,25 @@ def combine_genes(dir, flanking_output):
                 f'All files in {dir} have been combined into {flanking_output}')
         except Exception as e:
             logger.error(f"Failed to combine genes: {e}")
+            raise
     return flanking_output
 
 
 def map_flanking_genes(cwd, flanking_genes: Path, assembly_file: Path, threads=8):
-    output_dir = cwd / f"mapped_genes"
+    """
+    Maps flanking genes to an assembly file using Minimap2, producing a SAM file.
+
+    Args:
+        cwd (Path): Current working directory.
+        flanking_genes (Path): Path to the FASTA file containing flanking genes.
+        assembly_file (Path): Path to the assembly FASTA file to which flanking genes will be mapped.
+        threads (int, optional): Number of threads to use for Minimap2. Defaults to 8.
+
+    Raises:
+        subprocess.CalledProcessError: If the Minimap2 command fails.
+        Exception: If an unexpected error occurs during the mapping process, logs the error and raises an exception.
+    """
+    output_dir = cwd / "mapped_genes"
     if not output_dir.is_dir():
         make_dir(output_dir)
     sam_file = output_dir / assembly_file.with_suffix(".sam").name
@@ -125,11 +176,24 @@ def map_flanking_genes(cwd, flanking_genes: Path, assembly_file: Path, threads=8
             logger.error(f"Error occurred while running command: {e}")
             logger.error(e.stdout.decode())
             logger.error(e.stderr.decode())
+            raise
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}")
+            raise
 
 
 def map_main(flanking_genes, assembly_dir, species):
+    """
+    Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
+
+    Args:
+        flanking_genes (list): List of gene symbols representing the flanking genes to be processed.
+        assembly_dir (str or Path): Directory containing assembly FASTA files.
+        species (str): Species name for which the flanking genes are to be downloaded and processed.
+
+    Raises:
+        Exception: If the main mapping process fails, logs the error and raises an exception.
+    """
     try:
         cwd = Path.cwd()
         flanking_genes_dir = cwd / "flanking_genes"
@@ -146,7 +210,8 @@ def map_main(flanking_genes, assembly_dir, species):
             map_flanking_genes(cwd, gene_output, Path(assembly_file))
         logger.info("Extract main process completed successfully")
     except Exception as e:
-        logger.error(f"Failed in extract_main: {e}")
+        logger.error(f"Failed in map_main: {e}")
+        raise
 
 
 if __name__ == "__main__":

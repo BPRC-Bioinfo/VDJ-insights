@@ -5,7 +5,7 @@ from Bio import SeqIO
 from logger import custom_logger
 
 """
-Used python packages:
+Used Python packages:
     1. yaml
     2. biopython
 """
@@ -15,19 +15,36 @@ logger = custom_logger(__name__)
 
 def make_dir(dir):
     """
-    Create a directory if not existing.
+    Creates a directory and any necessary parent directories if they do not already exist.
 
     Args:
-        location (str): Path of the directory to create.
+        dir (str or Path): Path of the directory to create.
+
+    Raises:
+        Exception: If the directory cannot be created, logs the error and raises an exception.
     """
     try:
         Path(dir).mkdir(parents=True, exist_ok=True)
         logger.debug(f"Directory created or already exists: {dir}")
     except Exception as e:
         logger.error(f"Failed to create directory {dir}: {e}")
+        raise
 
 
 def make_record_dict(fasta):
+    """
+    Creates a dictionary of SeqIO records from a given FASTA file. 
+    The dictionary allows for efficient access to sequences by their IDs.
+
+    Args:
+        fasta (str or Path): Path to the FASTA file.
+
+    Returns:
+        dict: A dictionary where the keys are sequence IDs and the values are SeqRecord objects.
+
+    Raises:
+        Exception: If the FASTA file cannot be read or parsed, logs the error and raises an exception.
+    """
     try:
         with open(fasta, 'r') as fasta_file:
             record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
@@ -39,13 +56,16 @@ def make_record_dict(fasta):
 
 def load_config(cwd):
     """
-    Load the config yaml file "config.yaml" and return the dictionary from that file.
+    Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
 
     Args:
-        cwd (Path): Path object from the user's current cwd (current directory the user is in).
+        cwd (Path): The current working directory.
 
     Returns:
-        dict: Dictionary containing the chromosomes of interest and their respective start and end flanking genes.
+        dict: Dictionary containing the configuration settings, including chromosomes of interest and their respective flanking genes.
+
+    Raises:
+        Exception: If the configuration file cannot be loaded, logs the error and raises an exception.
     """
     try:
         with open(cwd / "config" / "config.yaml") as f:
@@ -59,14 +79,18 @@ def load_config(cwd):
 
 def write_seq(record_dict, name, start, stop, out):
     """
-    Write the sequence to the output file.
+    Writes a sequence from a given record dictionary to an output FASTA file, 
+    using specified start and stop coordinates.
 
     Args:
-        record_dict (dict): Dictionary containing the SeqIO information for a certain fasta file.
-        name (str): Name of the region the current region is on.
-        start (int): Start coordinate of the region of interest.
-        stop (int): End coordinate of the region of interest.
-        out (Path): Path of the output directory.
+        record_dict (dict): Dictionary containing SeqRecord objects indexed by sequence ID.
+        name (str): ID of the sequence to write.
+        start (int): Start coordinate of the region to extract.
+        stop (int): End coordinate of the region to extract.
+        out (Path): Path to the output FASTA file.
+
+    Raises:
+        Exception: If the sequence cannot be written, logs the error and raises an exception.
     """
     try:
         with open(out, 'w') as out_file:
@@ -80,18 +104,22 @@ def write_seq(record_dict, name, start, stop, out):
 
 def get_best_coords(sam_list):
     """
-    Get the best coordinates from the sam list.
+    Determines the best coordinates from a list of SAM file entries based on the lowest bitwise flag value.
 
     Args:
-        sam_list (list): List containing the bitwise flag(s), coordinates, and contig name(s), for a flanking gene.
+        sam_list (list): List of strings representing SAM file entries, including bitwise flags and coordinates.
 
     Returns:
-        best[2:] (Slice): Slice of the best hit in the sam list containing only the coordinates.
-        contig_name (str): The name of the contig of the best hit in the sam list.
+        tuple: A tuple containing:
+            - list: The best coordinates from the SAM list.
+            - str: The contig name associated with the best coordinates.
+
+    Raises:
+        Exception: If the best coordinates cannot be determined, logs the error and raises an exception.
     """
     try:
         bitwise_flag = float("inf")
-        best = list()
+        best = []
         for i in range(0, len(sam_list), 4):
             sublist = sam_list[i:i+4]
             sam_bitwise = int(sublist[0])
@@ -105,20 +133,24 @@ def get_best_coords(sam_list):
 
 def get_positions_and_name(sam, first, second, record_dict):
     """
-    Get the positions and name from the sam file.
+    Extracts the positions and contig name from a SAM file for given flanking genes.
 
     Args:
-        sam (Path): Path to the sam file.
+        sam (Path): Path to the SAM file.
         first (str): First flanking gene.
         second (str): Second flanking gene.
-        record_dict (dict): Dictionary containing the SeqIO information for a certain fasta file.
+        record_dict (dict): Dictionary containing SeqRecord objects indexed by sequence ID.
 
     Returns:
-        coords (list): List containing the coordinates of the flanking gene(s), begin or end of the region.
-        name (list): List containing the name of the regions.
+        tuple: A tuple containing:
+            - list: A list of coordinates for the flanking genes.
+            - list: A list of contig names associated with these coordinates.
+
+    Raises:
+        Exception: If positions and names cannot be extracted, logs the error and raises an exception.
     """
     try:
-        coords, name, best_coords, contig_name = list(), list(), list(), ""
+        coords, name, best_coords, contig_name = [], [], [], ""
         for c, gene in enumerate([first, second]):
             awk = r"awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $2, $3, $4, $4 + length($10) - 1}}'"
             command = f"cat {sam} |  egrep '{gene}' | {awk}"
@@ -143,16 +175,20 @@ def get_positions_and_name(sam, first, second, record_dict):
 
 def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, config):
     """
-    Extract the sequence and write it to the output file.
+    Extracts a sequence from an assembly FASTA file based on flanking genes, 
+    and writes it to an output FASTA file.
 
     Args:
-        cwd (Path): Path object from the user's current cwd (current directory the user is in).
-        assembly_fasta (Path): Path to the assembly fasta file.
+        cwd (Path): The current working directory.
+        assembly_fasta (Path): Path to the assembly FASTA file.
         first (str): First flanking gene.
         second (str): Second flanking gene.
         sample (str): Sample identifier.
         haplotype (str): Haplotype identifier.
-        config (dict): Dictionary containing the chromosomes with their region of interest and their start and stop flanking genes.
+        config (dict): Dictionary containing regions of interest and their associated flanking genes.
+
+    Raises:
+        Exception: If the sequence cannot be extracted, logs the error and raises an exception.
     """
     outfile = directory / f"{sample}_{first}_{second}_{haplotype}.fasta"
     if not outfile.is_file():
@@ -175,6 +211,18 @@ def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, co
 
 
 def create_name(filename: Path):
+    """
+    Parses the filename to extract the chromosome, sample, and haplotype information.
+
+    Args:
+        filename (Path): The file name to parse.
+
+    Returns:
+        tuple: A tuple containing:
+            - str: Chromosome identifier.
+            - str: Sample identifier.
+            - str: Haplotype identifier.
+    """
     name_part = filename.stem.split("_")
     chrom, sample, haplotype = "", "", ""
 
@@ -191,11 +239,15 @@ def create_name(filename: Path):
 
 def region_main(flanking_genes, assembly_dir=""):
     """
-    Main function of this script. It takes a sam file of the region and creates the different region fasta files based on the flanking genes, located in "config/config.yaml".
+    Main function that processes SAM files to create region-specific FASTA files 
+    based on flanking genes specified in the configuration.
 
     Args:
-        flanking_genes (list): List of flanking genes.
-        assembly_dir (str): Directory containing the assembly fasta files.
+        flanking_genes (list): List of flanking genes used to define regions.
+        assembly_dir (str, optional): Directory containing the assembly FASTA files. Defaults to "".
+
+    Raises:
+        Exception: If the main region processing fails, logs the error and raises an exception.
     """
     try:
         cwd = Path.cwd()

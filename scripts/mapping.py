@@ -24,11 +24,24 @@ Used CLI packages:
 
 CONFIG = None
 
-# Method for logger current states of the program.
+# Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
 
 def load_config(cwd):
+    """
+    Loads the configuration file from the specified directory.
+
+    This function reads a YAML configuration file located at 
+    'config/config.yaml' in the current working directory and 
+    stores its contents in the global `CONFIG` variable.
+
+    Args:
+        cwd (Path): The current working directory.
+
+    Raises:
+        SystemExit: If the configuration file does not exist.
+    """
     global CONFIG
     config_file = Path(cwd / 'config' / 'config.yaml')
     if config_file.exists():
@@ -41,15 +54,15 @@ def load_config(cwd):
 
 class MappingFiles:
     """
-    Creating a class for all the needed files for a certain mapping type 
-    based on a certain prefix, which is either
-    "bowtie" or "bowtie2" or "minimap2".
+    A class representing the file paths required for the mapping process.
 
-    Parameters:
-        -
+    This class initializes the paths for various files needed in the mapping
+    process, including the Bowtie/Bowtie2 database, SAM, BAM, and BED files.
 
-    Returns:
-        - 
+    Args:
+        prefix (str): A prefix used to name the files.
+        index (Path): Path to the directory where index files are stored.
+        beddir (Path): Path to the directory where BED files are stored.
     """
 
     def __init__(self, prefix, index, beddir):
@@ -61,19 +74,20 @@ class MappingFiles:
 
 def get_sequence(line, fasta):
     """
-    Takes a line from a bedfile, which is an list and a fasta file.
-    It takes the first three elements from the line.
-    Based on the coordinates from the bed file line list and the
-    fasta file the sequence is cut out with SeqIO.
+    Extracts a sequence from a FASTA file based on coordinates in a BED file.
 
+    This function takes a line from a BED file, extracts the sequence
+    specified by the coordinates (start and stop) and reference, and
+    returns the sequence.
 
     Args:
-        line (list): list of a bedfile line containing reference,
-        start and stop.
-        fasta (str): Path of the fasta file location.
+        line (list): A list representing a line from a BED file, 
+        containing reference, start, and stop coordinates.
+        fasta (str): Path to the FASTA file.
 
     Returns:
-        str: Sequence of a based on the coordinates from the bed file line.
+        str: The sequence extracted from the FASTA file based on 
+        the coordinates in the BED file line.
     """
     reference, start, stop = line[0:3]
     sequences = SeqIO.to_dict(SeqIO.parse(fasta, "fasta"))
@@ -83,17 +97,17 @@ def get_sequence(line, fasta):
 
 def get_region_and_segment(name, cell_type):
     """
-    Takes in a name of a potential segment and find the region and
-    segment name in that. The name must contain a part which start 
-    with the given cell type. If a part starts with the cell type the region 
-    and segment is returned otherwise it returns "other" and "-".
+    Determines the region and segment from a potential segment name.
+
+    This function identifies the region and segment in the provided name
+    by checking for a part that starts with the specified cell type.
 
     Args:
-        name (str): Potential name of a segment.
+        name (str): The name of a potential segment.
+        cell_type (str): The type of cell (e.g., TR, IG) to look for in the name.
 
     Returns:
-        str, str: Return either a region name, segment name as string 
-        or other and - as str.
+        str, str: The region and segment names, or "other" and "-" if not found.
     """
     prefix = [i for i in name.split("_") if i.startswith(cell_type)]
     if prefix:
@@ -106,24 +120,21 @@ def get_region_and_segment(name, cell_type):
 
 def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
     """
+    Parses a BED file and extracts relevant information for each entry.
 
-    Reads the content of a bed file and loops over the content line by 
-    line to get all the necessary information such as the sequence, 
-    the used score/accuracy from 1 to 100, bed_file path it self, 
-    the mapping type this can either be "bowtie" or "bowtie2" or "minimap2", 
-    region, segment and the path of the fasta file.
-    It returns a list with all the different found entries of the bedfile
+    This function reads a BED file line by line, extracting information
+    such as sequence, accuracy, file path, mapping type, region, and segment.
+    The function returns a list of all the entries found in the BED file.
 
     Args:
-        file_path (str): The path of the bedfile 
-        accuracy (int): Score between 1 and 100
-        fasta (str): The path of a fasta file
-        mapping_type (str): The type of mapping that is being used, 
-        either "bowtie", "bowtie2" or "minimap2".
+        file_path (str): Path to the BED file.
+        accuracy (int): Accuracy score between 1 and 100.
+        fasta (str): Path to the reference FASTA file.
+        mapping_type (str): The type of mapping tool used (`bowtie`, `bowtie2`, or `minimap2`).
+        cell_type (str): The type of cell (e.g., TR, IG).
 
     Returns:
-        entries (list[list]): A nested list which contains all the 
-        information from this bedfile.
+        list[list]: A nested list containing information for each entry in the BED file.
     """
     entries = []
     with open(file_path, "r") as file:
@@ -131,18 +142,20 @@ def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
             line = line.strip().split("\t")
             region, segment = get_region_and_segment(line[3], cell_type)
             line.extend([get_sequence(line, fasta),
-                        accuracy, str(file_path), mapping_type, region, segment, fasta])
+                         accuracy, str(file_path), mapping_type, region, segment, fasta])
             entries.append(line)
     return entries
 
 
 def run_command(command):
     """
-    Tries to run a certain command with subprocess, if this fails it 
-    throws a logger error saying failed with exit code.
+    Executes a shell command using subprocess.
+
+    This function tries to run a specified shell command using subprocess.
+    If the command fails, it logs an error with the exit code.
 
     Args:
-        command (str): A string containing the command.
+        command (str): The shell command to execute.
     """
     try:
         subprocess.run(command, shell=True,
@@ -154,73 +167,81 @@ def run_command(command):
 
 def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     """
-    Configures the bowtie2 command.
-    It adjusts some parameters based on a given acc.
-    - N: is either a 1 if "acc" is below 50, otherwise 0.
-    - L: Calculates an integer seed length based on "acc".
-    - score_min: Is a minimum score threshold for alignments,
-    based on the "acc".
-    In the end the command is returned with the right parameters, 
-    bowtie_db and files.
+    Configures the Bowtie2 command for mapping sequences.
 
+    This function adjusts several Bowtie2 parameters based on the provided accuracy score (`acc`):
+    - `N`: The number of mismatches allowed in the seed alignment. It is set to 1 if `acc` is below 50, otherwise 0.
+    - `L`: The seed length, calculated as an integer based on the accuracy. It is determined by the formula `L = 15 + (acc / 100) * 5`.
+    - `score_min`: The minimum alignment score threshold, calculated based on the accuracy. It is set using the formula `score_min = L,0,(-0.1 + (acc / 100) * 0.08)`.
+
+    The constructed command includes these parameters along with the Bowtie2 database, reference FASTA file, and the output SAM file paths.
 
     Args:
-        acc (int): Score between 1 and 100
-        bowtie_db (str): Bowtie database path
-        rfasta (Path): Reference fasta file path.
-        sam_file (str): Sam file path
+        acc (int): Accuracy score between 1 and 100.
+        bowtie_db (str): Path to the Bowtie2 database index.
+        rfasta (Path): Path to the reference FASTA file.
+        sam_file (str): Path to the output SAM file.
+        threads (int): Number of threads to use for the mapping process.
 
     Returns:
-        str: A constructed bowtie2 command.
+        str: A fully configured Bowtie2 command string.
     """
     N = 1 if acc < 50 else 0
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min \
-        {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
 def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
     """
-    Configures the bowtie command.
-    It adjust some parameters based on the given "acc".
-    - v: These are the amount of mismatches, 3 if acc <= 33, 2 in acc 
-    <= 66 and 1 < 100.
-    In the end the bowtie command is constructed and returned with the 
-    right parameters, bowtie_db and files.
+    Configures the Bowtie command for mapping sequences.
 
+    This function adjusts the following Bowtie parameters based on the provided accuracy score (`acc`):
+    - `v`: The number of allowed mismatches. It is set based on the accuracy score as follows:
+        - 3 mismatches if `acc` <= 33
+        - 2 mismatches if `acc` <= 66
+        - 1 mismatch if `acc` < 100
+        - 0 mismatches if `acc` = 100
+
+    The constructed command includes these parameters along with the Bowtie database, reference FASTA file, and the output SAM file paths.
 
     Args:
-        acc (int): Score between 1 and 100
-        bowtie_db (str): Bowtie database path
-        rfasta (str): Reference fasta file path.
-        sam_file (str): Sam file path
-
+        acc (int): Accuracy score between 1 and 100.
+        bowtie_db (str): Path to the Bowtie database index.
+        rfasta (str): Path to the reference FASTA file.
+        sam_file (str): Path to the output SAM file.
+        threads (int): Number of threads to use for the mapping process.
 
     Returns:
-        str: A constructed bowtie command.
+        str: A fully configured Bowtie command string.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x \
-        {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
 def make_minimap2_command(acc, ffile, rfasta, sam_file, threads):
     """
-    Constructs the minimap2 command. Based on the accuracy (acc) / 
-    score, fasta file (ffile), reference fasta file (rfasta) and sam file.
+    Configures the Minimap2 command for mapping sequences.
+
+    The following parameters are used in the construction of the command:
+    - `-a`: Output in SAM format.
+    - `-m {acc}`: Sets the minimum alignment score required to output an alignment.
+    - `-t {threads}`: Number of threads to use.
+
+    The command maps the sequences in the query FASTA file (`ffile`) against the reference FASTA file (`rfasta`) and outputs the results to the specified SAM file.
 
     Args:
-        acc (int): Score between 1 and 100
-        ffile (Path): Region fasta file path.
-        rfasta (Path): Reference fasta file path.
-        sam_file (Path): Sam file path
+        acc (int): Accuracy score between 1 and 100.
+        ffile (Path): Path to the query FASTA file.
+        rfasta (Path): Path to the reference FASTA file.
+        sam_file (Path): Path to the output SAM file.
+        threads (int): Number of threads to use for the mapping process.
 
     Returns:
-        command (str): Constructed minimap2 command.
+        str: A fully configured Minimap2 command string.
     """
     command = f"minimap2 -a -m {acc} -t {threads} {ffile} {rfasta} > {sam_file}"
     return command
@@ -228,23 +249,23 @@ def make_minimap2_command(acc, ffile, rfasta, sam_file, threads):
 
 def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, threads):
     """
-    Creates all the necessary commands needed for a certain 
-    accuracy/score combined with the fasta_file 
-    (which is a fasta file of a region of interest). It also check what 
-    the mapping type is to construct the right command and to remove 
-    the build command because minimap2 does require it.  
+    Generates all the necessary commands to run a sequence mapping process using the specified tool.
+
+    Based on the mapping type (`bowtie`, `bowtie2`, or `minimap2`), the appropriate commands are generated:
+    - If using `bowtie` or `bowtie2`, an index is first created using `bowtie-build` or `bowtie2-build`.
+    - The sequences are then aligned, and the results are sorted and converted to BAM format using `samtools`.
+    - Finally, the BAM file is converted to BED format using `bedtools`.
 
     Args:
-        files (MappingFiles): class containing all the input and output files.
-        fasta_file (str): Fasta file path of a region of interest.
-        rfasta (str): Reference fasta file path.
-        acc (int): Score between 1 and 100
-        mapping_type (str): The type of mapping that is being used, 
-        either "bowtie", "bowtie2", or "minimap2".
+        files (MappingFiles): An instance of the `MappingFiles` class containing paths to input and output files.
+        fasta_file (str): Path to the query FASTA file containing sequences to be mapped.
+        rfasta (str): Path to the reference FASTA file.
+        acc (int): Accuracy score between 1 and 100.
+        mapping_type (str): The mapping tool to be used (`bowtie`, `bowtie2`, or `minimap2`).
+        threads (int): Number of threads to use for the mapping process.
 
     Returns:
-        command (list): List of all mapping commands suited to run
-        the right mapping variant.
+        list: A list of shell command strings to execute the mapping process.
     """
     if mapping_type == "bowtie2":
         bowtie_command = make_bowtie2_command(
@@ -255,6 +276,7 @@ def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, thr
     else:
         bowtie_command = make_bowtie_command(
             acc, files.bowtie_db, rfasta, files.sam, threads)
+
     commands = [
         f"{mapping_type}-build {fasta_file} {files.bowtie_db}",
         bowtie_command,
@@ -262,22 +284,26 @@ def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, thr
         f"samtools index {files.bam}",
         f"bedtools bamtobed -i {files.bam} > {files.bed}",
     ]
+
     if mapping_type == "minimap2":
-        del commands[0]
+        del commands[0]  # Remove the index building command for minimap2
+
     return commands
 
 
 def make_df(all_entries):
     """
-    Make a pandas dataframe (df) based on the given list of entries. 
-    Also the index of the df is reset.
+    Creates a pandas DataFrame from a list of entries.
+
+    This function takes a list of entries (each representing information
+    from a BED file line) and constructs a pandas DataFrame.
 
     Args:
-        all_entries (list[list]): A nested list which contains all the 
-        information from this bedfile.
+        all_entries (list[list]): A nested list where each sublist contains 
+        information for an entry.
 
     Returns:
-        pd.DataFrame: pandas dataframe containing all. 
+        pd.DataFrame: A pandas DataFrame containing all entries.
     """
     headers = [
         "reference",
@@ -293,7 +319,6 @@ def make_df(all_entries):
         "region",
         "segment",
         "fasta-file"
-
     ]
     df = pd.DataFrame(all_entries, columns=headers)
     return df.reset_index(drop=True)
@@ -301,28 +326,26 @@ def make_df(all_entries):
 
 def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
     """
-    Loop over the "indir" directory which contains all
-    the region of interest fasta files. Create the index directories,
-    runs alignment commands if BED file is absent, and parses BED file entries. 
-    It also logs the number of parsed entries or warns the user if a 
-    certain BED file is not present. In the end yield a list with all 
-    parsed entries or an empty list per FASTA file.
+    Runs the mapping process for each FASTA file in the input directory.
+
+    This function loops over the files in the specified input directory,
+    creates the necessary index directories, runs alignment commands if
+    the corresponding BED file is absent, and parses the resulting BED
+    file entries.
 
     Args:
-        cwd (Path): A path of the current folder location.
-        indir (Path): A path to input directory.
-        outdir (Path): A path to the base bowtie output directory.
-        rfasta (Path): Reference fasta file path.
-        beddir (Path): A path to the bed input directory.
-        acc (int): Score between 1 and 100.
-        mapping_type (str): The type of bowtie that is being used, 
-        either bowtie or bowtie2.
+        indir (Path): Path to the input directory containing FASTA files.
+        outdir (Path): Path to the output directory where indices are stored.
+        rfasta (Path): Path to the reference FASTA file.
+        beddir (Path): Path to the directory where BED files are stored.
+        acc (int): Accuracy score between 1 and 100.
+        mapping_type (str): The mapping tool to be used (`bowtie`, `bowtie2`, or `minimap2`).
+        cell_type (str): The type of cell (e.g., TR, IG).
+        threads (int): Number of threads to use for the mapping process.
 
     Yields:
-        entries (list[list]): A nested list which contains all the 
-        information from this bedfile.
+        list[list]: A nested list containing parsed entries for each FASTA file.
     """
-
     for fasta in indir.glob("*.fasta"):
         prefix = fasta.stem
         index = outdir / prefix
@@ -343,33 +366,36 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
 
 def create_directory(location):
     """
-    Create an directory when not existing.
+    Creates a directory if it does not already exist.
+
+    This function checks if a specified directory exists, and if not,
+    it creates the directory (including any necessary parent directories).
 
     Args:
-        location (str): Path of the directory to create.
+        location (str): Path to the directory to create.
     """
     Path(location).mkdir(parents=True, exist_ok=True)
 
 
 def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
     """
-    Main function to run the mapping script. It takes a mapping type in 
-    as an argument to determine which type script to run. It created a 
-    cwd path object and based on this it sets some input and output
-    directories/files. It runs the run function
-    for a accuracy/score (acc) of 1 to 100 to create
-    all the different entries. Each run is saved in a directory with
-    the following format: "{acc}%acc".
-    When all entries are created and fetched a dataframe (df) is made
-    and returned.
+    Main function to run the mapping process for a specified tool.
+
+    This function sets up the paths for input and output directories, and
+    runs the mapping process for a range of accuracy scores. The results
+    are accumulated into a pandas DataFrame, which is then returned.
 
     Args:
-    mapping_type (str): The type of mapping that is being used, 
-    either "bowtie", "bowtie2", or "minimap2".
-
+        mapping_type (str): The mapping tool to be used (`bowtie`, `bowtie2`, or `minimap2`).
+        cell_type (str): The type of cell (e.g., TR, IG).
+        input_dir (str): The input directory containing the region of interest FASTA files.
+        library (str): Path to the reference library FASTA file.
+        threads (int): Number of threads to use for the mapping process.
+        start (int, optional): Starting accuracy score (default is 100).
+        stop (int, optional): Stopping accuracy score (default is 70).
 
     Returns:
-        df (DataFrame): A df containing all the entries.
+        pd.DataFrame: A DataFrame containing all entries from the mapping process.
     """
     cwd = Path.cwd()
     load_config(cwd)
