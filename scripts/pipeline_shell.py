@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 from logger import custom_logger
 import yaml
-from creat_html import html_main
+from create_html import html_main
 from annotation import main as annotation_main
 from annotation import validate_file, validate_input
 from env_manager import create_and_activate_env, deactivate_env

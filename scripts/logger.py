@@ -1,6 +1,5 @@
 import logging
 
-# Define new log levels
 ENVIRONMENT_LEVEL = 25
 SUCCESS_LEVEL = 26
 NOTICE_LEVEL = 27
@@ -11,7 +10,6 @@ logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
 logging.addLevelName(NOTICE_LEVEL, "NOTICE")
 logging.addLevelName(TRACE_LEVEL, "TRACE")
 
-# Custom formatter for the logging module
 COLORS = {
     'WARNING': '\033[93m',    # Yellow
     'INFO': '\033[92m',       # Green
@@ -57,7 +55,6 @@ def custom_logger(name=__name__):
     logger.handlers = []
     logger.addHandler(handler)
 
-    # Adding methods for custom levels to the logger
     logging.Logger.environment = lambda self, message, * \
         args, **kws: self._log(ENVIRONMENT_LEVEL, message, args, **kws)
     logging.Logger.success = lambda self, message, * \
@@ -70,16 +67,5 @@ def custom_logger(name=__name__):
     return logger
 
 
-# Example usage:
 if __name__ == "__main__":
-    logger = custom_logger("example_logger")
-
-    logger.debug("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
-    logger.error("This is an error message.")
-    logger.critical("This is a critical message.")
-    logger.environment("This is an environment message.")
-    logger.success("This is a success message.")
-    logger.notice("This is a notice message.")
-    logger.trace("This is a trace message.")
+    pass

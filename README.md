@@ -213,7 +213,7 @@ These flags are required if `-a/--assembly` is chosen:
 
 ## Configuration settings
 
-The **config.yaml** file, located within the **config** directory, serves as a overview of the configuration settings that the pipeline uses. This config file is generate automatically and contains various parameters to tailor the analysis based on your given input. The config file is also different when running the pipeline or only the annotation program. For the annotation only the **SPECIES** `(without genome)`, **FLANKING_GENES**, and the **important** settings are generated.
+The **config.yaml** file, located within the **config** directory, serves as a overview of the configuration settings that the pipeline uses. This config file is generate automatically and contains various parameters to tailor the analysis based on your given input. The config file is also different when running the pipeline or only the annotation program. For the annotation only the **SPECIES** `(without genome)`, **FLANKING_GENES**, and the **important** settings are generated. The DATA setting is different based on running the whole pipeline or the annotation tool.
 
 Although it is automatically generated, it is recommended to see what it contains.
 
@@ -222,7 +222,16 @@ Although it is automatically generated, it is recommended to see what it contain
 Below is an overview of the **config file** structure:
 
 ``` yaml
-DATA:
+DATA: ## the whole pipeline
+  ORIGINAL:
+    pacbio: pacbio_data/EAW_pacbio.fastq.gz
+    nanopore: nanopore_data/EAW_nanopore.fastq.gz
+  MOVED:
+    pacbio: downloads/EAW_pacbio.fastq.gz
+    nanopore: downloads/EAW_nanopore.fastq.gz
+or
+
+DATA: ## only the annotation tool
   assembly: data
   library: library/library.fasta
 

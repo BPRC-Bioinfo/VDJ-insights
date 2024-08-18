@@ -13,7 +13,8 @@
     - [Script environments](#script-environments)
     - [Package and module list](#package-and-module-list)
   - [Developed code / tools](#developed-code--tools)
-    - [Tool shell](#tool-shell)
+    - [**Tool shell**](#tool-shell)
+      - [logger.py](#loggerpy)
       - [pipeline\_shell.py](#pipeline_shellpy)
       - [create\_html.py](#create_htmlpy)
     - [**Pipeline (Snakefile)**](#pipeline-snakefile)
@@ -118,17 +119,59 @@ The following table lists all the packages used in the tool. The columns are org
 
 ## Developed code / tools
 
-We will also take a look at the code of the developed packages such as the custom created scripts/tools to produce the needed results. This includes the IMGT_scrape for the retrieval of known V(D)J segments from the IMGT database, the annotation tool for the annotation of V(D)J segments and lastly the VDJ_display for visualization of the V(D)J segments in right order. We will explain the main working of the different script for the developed tools.
+We will also take a look at the code of the developed packages such as the custom created scripts/tools to produce the needed results. This includes the IMGT_scrape for the retrieval of known V(D)J segments from the IMGT database, the annotation tool for the annotation of V(D)J segments and lastly the VDJ_display for visualization of the V(D)J segments in right order. We will explain the main working of the different script for the developed tools. If the code explanations are not enough please check the functions of all the non beta code, which is well documented.
 
-### Tool shell
+### **Tool shell**
+
+This shell/command line tool makes it possible to run either the entire pipeline or just the annotation tool, based on the user input provided. It generates the necessary configuration file according to the user's input. For this, we use the `_config` directory, which contains two files: the [_species.yaml](../_config/species.yaml) file, which holds the flanking genes required to extract the TCR regions, and includes a default option if the specified species is not recognized. At this stage, only the TCR is incorporated, not the IG. The second file, [_rss.yaml](../_config/rss.yaml), contains all the information needed to extract the RSS, including its heptamer and nonamer sequences. After the configuration file is created, either the pipeline or the annotation tool is ran. In the end, a detailed HTML report is also generated. All the needed information to generate the HTML report is stored in `source`. This directory contains all the [`templates`](../source/template/), [`css`](../source/css) and [`javascript`](../source/js/). At this time, the HTML report can only be made active with the help of `VScodes Live Server`. Every Python script that is used within the shell, pipeline or annotation tool is provided with a custom logger to better display the information on to the console. For more information on how to run the shell please look at the [Overview BPRC tool](../README.md#overview-bprc-tool).
+
+#### logger.py
+
+The `custom_logger.py` script sets up an better logging system by introducing custom log levels and color-codeds to add more logging categories to the exisiting logging module. It begins by defining four new custom log types (levels): `ENVIRONMENT`, `SUCCESS`, `NOTICE`, and `TRACE`, each assigned with a numeric value. These new custom log types are registered using `logging.addLevelName`.
+
+A `COLORS` dictionary is used to map the all the loggers to a specific colors, such as `WARNING` in yellow, `ERROR` in red, and custom levels like `NOTICE` in cyan. The coloring makes the log types easier to read and distinguish between them.
+
+The [`CustomFormatter`](../scripts/custom_logger.py#L27) class extends to the `logging.Formatter` to apply the colors to each log type. This class makes sure that each log types message is formatted with the correct color before being displayed.
+
+The [`custom_logger`](../scripts/custom_logger.py#L34) function creates the main logger with a specified name (defaulting to `__name__`). It sets the main logger's type (level) to `DEBUG` and attaches a `StreamHandler` to output log messages to the console. The handler uses the `CustomFormatter` to format messages with a timestamp, log type (level), and color, it also prevents duplicated log types to be created.
 
 #### pipeline_shell.py
 
+The `pipeline_shell.py` script handles both the activation of the `pipeline` or the `annotation tool`. It begins by setting up the configuration settings via the [`load_config`](../scripts/pipeline_shell.py#L23) function, storing them in the global `CONFIG` variable.
+
+The argument that are parsed to run either the pipeline or the annotation tool are validated. For the pipeline, inputs like ONT and PacBio read files, reference genomes, flanking genes, and chromosome lists are validated through functions such as [`validate_read_files`](../scripts/pipeline_shell.py#L45), [`validate_reference`](../scripts/pipeline_shell.py#L94), and [`validate_flanking_genes`](../scripts/pipeline_shell.py#L133).
+
+For the annotation process, functions like [`validate_file`](../scripts/pipeline_shell.py#L70) and [`validate_input`](../scripts/annotation.py#L180) ensure the correct receptor type, species, and file formats are validated. While the parsed arguments are almost identical to those in [annotation.py](../scripts/annotation.py#L230), they are not inherited directly from it; instead, they are generated again.
+
+The core pipeline functionality is initiated with either [`run_pipeline`](../scripts/pipeline_shell.py#L317) or the [`run_annotation`](../scripts/pipeline_shell.py#L350) function, based on the chosen option. First `run_pipeline` which starts by filtering and moving read (FASTQ) files into appropriate directories using the [`filter_and_move_files`](../scripts/pipeline_shell.py#L566) function. This ensures they are in the right location for Snakemake to access and run the pipeline. The provided reference genome is, is processed by the [`split_chromosomes`](../scripts/pipeline_shell.py#L420) function, which splits the genome into individual chromosome files, only the chromosomes and unplaced chromosomal fragments are retained. The chromosome files are then recombined and saved in `new_reference.fasta`. The provided flanking genes either by the user or the default flanking genes are downloaded using the [`download_flanking_genes`](../scripts/pipeline_shell.py#L641) function.
+
+Next, the script generates a configuration file with all the needed information for the pipeline through the [`create_config`](../scripts/pipeline_shell.py#L923) function. A dry run of the Snakemake pipeline is then executed by the [`run_snakemake`](../scripts/pipeline_shell.py#L998) function, which checks whether the pipeline can be successfully executed without running the full analysis. This ensures that a potential fail is caught before running the whole pipeline. Once if the dry run passes, the full pipeline is run. Once the pipeline is complete, a detailed HTML report is generated using the [`html_main`](../scripts/create_html.py#L288) function, summarizing the results for a nicer overview.
+
+For the annotation, the [`run_annotation`](../scripts/pipeline_shell.py#L350) function manages the entire process, ensuring that input files are valid and that a V(D)J library is either validated or generated. If no library is provided, the script generates it through the IMGT scraper. It runs a subprocess to download V(D)J sequences based on the specified species and receptor type. If a library is already present, it is validated and used in the subsequent analysis.
+
+The main annotation is handled by the [`annotation_main (main)`](../scripts/annotation.py#L293) function, which performs V(D)J segment analysis on the input data. This function annotates the sequences by aligning them with documented V(D)J segments. After the annotation process, the results are stored in the output directory specified by the user. Once annotation is complete, it will generate a detailed HTML report generated asl well.
+
+After both the pipeline and annotation processes are completed, the script cleans up any temporary files and directories created during the execution using the [`cleanup`](../scripts/pipeline_shell.py#L1030) function. This ensures that the working environment is returned to its original state, with all relevant outputs saved to user-defined directories.
+
 #### create_html.py
+
+The `create_html.py` script generates the HTML report based on various generated results from either the pipeline or the annotation tool. All the images that are needed for the generated HTML report are stored in the [source/images](../scripts/create_html.py#L13) directory. The main function, [`html_main`](../scripts/create_html.py#L299), starts the process by calling the [`load_config`](../scripts/create_html.py#L16) function, which reads the `config.yaml` file and stores the settings in the global `CONFIG` variable.
+
+Next, it ensures that necessary directories are moved using [`move_dir`](../scripts/create_html.py#L42). This function moves the files into designated place, ensuring that all data is properly organized and easy accessible.
+
+The script then parses several types of data required for the HTML report. It begins with quality control (QC) seqkit data, parsed by the [`parse_qc_files`](../scripts/create_html.py#L54) function, which collects information from various QC files and organizes it into a dictionary. It then handles QUAST data through the [`parse_quast_data`](../scripts/create_html.py#L81) function, which processes QUAST results, moves related files (such as PDFs), and extracts basic statistics from the QUAST files. If needed the report is transposed, using the [`parse_transposed_report`](../scripts/create_html.py#L115) function.
+
+TCR or IG region files, are parsed by the [`parse_region_files`](../scripts/create_html.py#129) function, which extracts information from FASTA files, including sequence lengths and metadata, and organizes the parsed data into a list.
+
+RSS meme sequence motif data, which contains information about RSS, is parsed by the [`parse_rss_meme_data`](../scripts/create_html.py#L156) function. This function moves and organizes the sequence motif logo files.
+
+The script also processes annotation data by summarizing it from Excel files through the [`summarize_annotation_data`](../scripts/create_html.py#L188) function. This function loads the annotation data into a pandas DataFrame, groups the data by region, haplotype, function, and segment, and summarizes it for use in the report. Both known and novel annotation data are processed, and their summaries are returned as dictionaries.
+
+Once all the necessary data is parsed, the script moves on to generating the HTML report. The [`parse_config_to_html`](../scripts/create_html.py#L209) function utilizes Jinja2 templates to create the final HTML report. The function uses a pre-defined [HTML template](../source/template/) and renders it with the collected data, generating a comprehensive report. The output is saved as `report.html`, and additional detailed views for known and novel sequences are saved as `annotation_details_known.html` and `annotation_details_novel.html`.
 
 ### **Pipeline (Snakefile)**
 
-For the pipeline itself, you can change settings in the [Snakemake file](../Snakefile) itself. But some values like the main [configuration file](../Snakefile#l6) (configfile) should not be altered. The configuration file is generated automatically after choosing the right arguments with the command line tool. It contains all the necessary information the pipeline needs to work properly. For more information about the configuration file please see the [Configuration settings](../README.md#configuration-settings) in the README.
+Pipeline itself runs all the needed programs automatically. Ir runs when pipeline is chosen by the user. If needed the settings/rules can be changed in the [Snakemake file](../Snakefile) itself. But values like the main [configuration file](../Snakefile#l6) (configfile) should not be altered. The configuration file is generated automatically after choosing the options with the pipeline shell. It contains all the necessary information to make the pipeline work properly. For more information about the configuration file please see the [Configuration settings](../README.md#configuration-settings) in the README.
 
 From previous runs, it is known that sometimes the **kmer** and **window** needed to be added to the Hifiasm (assembly) command to achieve better results. These parameters can be added to the [command](../Snakefile#L358).
 
@@ -184,7 +227,7 @@ All the sequences from the intact regions are extracted from their corresponding
 
 The `mapping.py` script is used for identifying and extracting V(D)J segments using minimap2, bowtie and bowtie2. This script is run for every mapping tool, specified above. It returns a dataframe with the results.
 
-It starts by loading configuration settings from a YAML file via the [`load_config`](../scripts/mapping.py#L31) function. If the config file is missing, the script logs an error and exits to prevent further execution without the necessary settings.
+It starts by loading configuration settings from the `config.yaml` file via the [`load_config`](../scripts/mapping.py#L31) function. If the config file is missing, the script logs an error and exits to prevent further execution without the necessary settings.
 
 We handle the file management by the [`MappingFiles`](../scripts/mapping.py#L55) class, which sets up paths for the required files (Bowtie indices, SAM, BAM, and BED files) based on the selected mapping tool, to reduce the amount of redundant code.
 
