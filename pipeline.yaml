@@ -5,14 +5,10 @@ channels:
 dependencies:
   - python
   - mamba
-  - snakemake
-  - ncbi-datasets-cli
-  - jinja2
-  - pandas
-  - openpyxl
-  - pyyaml
-  - biopython
-
-
-
-
+  - snakemake=7.32.4
+  - ncbi-datasets-cli=15.25.0
+  - jinja2=3.1.3
+  - pandas=2.2.1
+  - openpyxl=3.1.2
+  - pyyaml=6.0.1
+  - biopython=1.83

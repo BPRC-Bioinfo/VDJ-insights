@@ -52,7 +52,7 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
 
     logger.environment(f"Creating environment {env_name}.")
     result = subprocess.run(
-        ["mamba", "env", "create", "--file",
+        ["conda", "env", "create", "--file",
             str(env_file), "--prefix", str(env_dir)],
         text=True
     )
