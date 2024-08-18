@@ -35,7 +35,7 @@
       - [reevaluate.py (BETA)](#reevaluatepy-beta)
       - [order\_segments.py (BETA)](#order_segmentspy-beta)
       - [V(D)J display usage](#vdj-display-usage)
-  - [**Bugs**](#bugs)
+  - [Bugs](#bugs)
 
 ## Authors
 
@@ -44,11 +44,11 @@
 
 ## Introduction
 
-As can be read from the README this tool is devided in to two parts. The main pipeline which runs from the specified ONT and PacBio FASTQ file combined with a reference genome which can be either a fasta file or as a NCBI accesesion number. To read more on how to use the pipeline you can read the instruction in README under [pipeline](../README.md#pipeline).
+As can be read from the README, this tool is divided into two parts. The main pipeline which runs from the specified ONT and PacBio FASTQ file combined with a reference genome which can be either a fasta file or as a NCBI accession number. To read more on how to use the pipeline, you can read the instruction in README under [pipeline](../README.md#pipeline).
 
-The other option the tool has is to use the V(D)J annotation tool directly, normally this is used in the pipeline already but can also be run as standalone tool. To use it you must enter a directory with the assembly files as fasta file and library containing known V(D)J segments. More about this also be read in the README under [annotation](../README.md#annotation).
+The other option the tool has is to use the V(D)J annotation tool directly, normally this is used in the pipeline already but can also be run as a standalone tool. To use it, you must enter a directory with the assembly files as fasta file and a library containing known V(D)J segments. More about this also be read in the README under [annotation](../README.md#annotation).
 
-In this developers giode we discuss parts of the used scrips and Snakemake pipeline that are important, hard to understand or can be changed. Furthermore, the main packages and modules used are shown.
+In this developer's guide, we discuss parts of the used tools/scrips and Snakemake pipeline that are important, difficult to understand or can be changed. Furthermore, the main packages and modules used are shown. Lastly, the latest bugs are also noted.
 
 ## Environments and packages
 
@@ -63,12 +63,12 @@ To handle environment switching outside the use of Snakemake we have designed ou
 ```python
 from env_manager import create_and_activate_env, deactivate_env
 try:
-    create_and_activate_env(Path('envs/scripts.yaml')) ## Creation and/or activation of the environment.
-    code_to_run() ## Code that is run in the environment.
+ create_and_activate_env(Path('envs/scripts.yaml')) ## Creation and/or activation of the environment.
+ code_to_run() ## Code that is run in the environment.
 except Exception as e:
-    print(f"Code failed with error: {str(e)}")
+ print(f"Code failed with error: {str(e)}")
 finally:
-    deactivate_env() ## Deactivating of the environment.
+ deactivate_env() ## Deactivating of the environment.
 ```
 
 ### Package and module list
@@ -90,50 +90,54 @@ The following table lists all the packages used in the tool. The columns are org
   - **VDJ display**: Used within the VDJ display tool.
   - **IMGT scrape**: Used within the IMGT scrape tool.
 
-|Package          |Version  |Program                                 |
-|-----------------|---------|----------------------------------------|
-|beautifulsoup4   |4.12.3   |Annotation tool                         |
-|inspector        |1.2      |Pipeline                                |
-|matplotlib       |3.8.4    |VDJ display                             |
-|python           |3.11     |Global                                  |
-|python           |3.6      |Global                                  |
-|requests         |2.31.0   |IMGT scrape                             |
-|bedtools         |2.31.0   |Pipeline - Annotation tool              |
-|biopython        |1.83     |Pipeline - Annotation tool - IMGT scrape|
-|blast            |2.14.1   |Annotation tool                         |
-|bowtie           |1.3.1    |Annotation tool                         |
-|bowtie2          |2.5.1    |Annotation tool                         |
-|busco            |5.5.0    |Pipeline                                |
-|hifiasm          |0.19.8   |Pipeline                                |
-|imagemagick      |7.0.11_12|Annotation tool                         |
-|meme             |4.11.2   |Annotation tool                         |
-|minimap2         |2.26     |Pipeline - Annotation tool              |
-|ncbi-datasets-cli|15.25.0  |Global                                  |
-|openpyxl         |3.1.2    |Global - Annotation tool                |
-|pandas           |2.2.1    |Global - Annotation tool                |
-|pyyaml           |6.0.1    |Global - Annotation tool                |
-|quast            |5.2.0    |Pipeline                                |
-|samtools         |1.6      |Pipeline - Annotation tool              |
-|seqkit           |2.8.0    |Pipeline                                |
-|seqtk            |1.4      |Pipeline                                |
+| Package       | Version  | Program                                |
+|------------------|----------|-------------------------------------------|
+| beautifulsoup4 | 4.12.3   | Annotation tool                        |
+| bedtools       | 2.31.0   | Pipeline - Annotation tool             |
+| biopython      | 1.83  | Pipeline - Annotation tool - IMGT scrape  |
+| blast          | 2.14.1   | Annotation tool                        |
+| bowtie         | 1.3.1 | Annotation tool                        |
+| bowtie2        | 2.5.1 | Annotation tool                        |
+| busco          | 5.5.0 | Pipeline                               |
+| gfatools       | 0.5   | Global                                 |
+| hifiasm        | 0.19.8   | Pipeline                               |
+| imagemagick    | 7.0.11_12| Annotation tool                        |
+| inspector      | 1.2   | Pipeline                               |
+| jinja2         | 3.1.3 | Global                                 |
+| matplotlib     | 3.3.4 | VDJ display                            |
+| meme           | 4.11.2   | Annotation tool                        |
+| minimap2       | 2.26  | Pipeline - Annotation tool             |
+| ncbi-datasets-cli | 15.25.0  | Global                                 |
+| numpy          | 2.0.1 | VDJ display                            |
+| openpyxl       | 3.1.2 | Global - Annotation tool               |
+| pandas         | 2.2.1 | Global - Annotation tool               |
+| pyyaml         | 6.0.1 | Global - Annotation tool - VDJ display |
+| python         | 3.11  | Global (IMGT scrape)                   |
+| python         | 3.10  | Global  (VDJ display)                  |
+| python         | 3.6   | Global (inspector/pipeline)            |
+| quast          | 5.2.0 | Pipeline                               |
+| requests       | 2.31  | IMGT scrape                            |
+| samtools       | 1.6   | Pipeline - Annotation tool             |
+| seqkit         | 2.8.0 | Pipeline                               |
+| seqtk          | 1.4   | Pipeline                               |
 
 ## Developed code / tools
 
-We will also take a look at the code of the developed packages such as the custom created scripts/tools to produce the needed results. This includes the IMGT_scrape for the retrieval of known V(D)J segments from the IMGT database, the annotation tool for the annotation of V(D)J segments and lastly the VDJ_display for visualization of the V(D)J segments in right order. We will explain the main working of the different script for the developed tools. If the code explanations are not enough please check the functions of all the non beta code, which is well documented.
+We will also review the code of the developed packages, including custom scripts and tools used to generate the required results. This includes the main shell script (pipeline_shell.py) for executing the pipeline or annotation tool, IMGT_scrape for retrieving known V(D)J segments from the IMGT database, the annotation tool for annotating V(D)J segments, VDJ_display for visualizing these segments, and other scripts. We will explain the core functionality of each script within the developed tools. If further clarification is needed, please refer to the functions of all non-beta code, which is thoroughly documented.
 
 ### **Tool shell**
 
-This shell/command line tool makes it possible to run either the entire pipeline or just the annotation tool, based on the user input provided. It generates the necessary configuration file according to the user's input. For this, we use the `_config` directory, which contains two files: the [_species.yaml](../_config/species.yaml) file, which holds the flanking genes required to extract the TCR regions, and includes a default option if the specified species is not recognized. At this stage, only the TCR is incorporated, not the IG. The second file, [_rss.yaml](../_config/rss.yaml), contains all the information needed to extract the RSS, including its heptamer and nonamer sequences. After the configuration file is created, either the pipeline or the annotation tool is ran. In the end, a detailed HTML report is also generated. All the needed information to generate the HTML report is stored in `source`. This directory contains all the [`templates`](../source/template/), [`css`](../source/css) and [`javascript`](../source/js/). At this time, the HTML report can only be made active with the help of `VScodes Live Server`. Every Python script that is used within the shell, pipeline or annotation tool is provided with a custom logger to better display the information on to the console. For more information on how to run the shell please look at the [Overview BPRC tool](../README.md#overview-bprc-tool).
+This shell/command line tool makes it possible to run either the entire pipeline or just the annotation tool, based on the user input provided. It generates the necessary configuration file according to the user's input. For this, we use the `_config` directory, which contains two files: the [_species.yaml](../_config/species.yaml) file, which holds the flanking genes required to extract the TCR regions, and includes a default option if the specified species is not recognized. At this stage, only the TCR is incorporated, not the IG. The second file, [_rss.yaml](../_config/rss.yaml), contains all the information needed to extract the RSS, including its heptamer and nonamer sequences. After the configuration file is created, either the pipeline or the annotation tool is run. In the end, a detailed HTML report is also generated. All the needed information to generate the HTML report is stored in `source`. This directory contains all the [`templates`](../source/template/), [`css`](../source/css) and [`javascript`](../source/js/). At this time, the HTML report can only be made active with the help of `VScodes Live Server`. Every Python script that is used within the shell, pipeline or annotation tool is provided with a custom logger to better display the information on the console. For more information on how to run the shell, please look at the [Overview BPRC tool](../README.md#overview-bprc-tool).
 
 #### logger.py
 
-The `custom_logger.py` script sets up an better logging system by introducing custom log levels and color-codeds to add more logging categories to the exisiting logging module. It begins by defining four new custom log types (levels): `ENVIRONMENT`, `SUCCESS`, `NOTICE`, and `TRACE`, each assigned with a numeric value. These new custom log types are registered using `logging.addLevelName`.
+The `custom_logger.py` script sets up a better logging system by introducing custom log levels and color-coded to add more logging categories to the existing logging module. It begins by defining four new custom log types (levels): `ENVIRONMENT`, `SUCCESS`, `NOTICE`, and `TRACE`, each assigned with a numeric value. These new custom log types are registered using `logging.addLevelName`.
 
-A `COLORS` dictionary is used to map the all the loggers to a specific colors, such as `WARNING` in yellow, `ERROR` in red, and custom levels like `NOTICE` in cyan. The coloring makes the log types easier to read and distinguish between them.
+A `COLORS` dictionary is used to map all the loggers to a specific colors, such as `WARNING` in yellow, `ERROR` in red, and custom levels like `NOTICE` in cyan. The coloring makes the log types easier to read and distinguish between them.
 
-The [`CustomFormatter`](../scripts/custom_logger.py#L27) class extends to the `logging.Formatter` to apply the colors to each log type. This class makes sure that each log types message is formatted with the correct color before being displayed.
+The [`CustomFormatter`](../scripts/custom_logger.py#L27) class extends to the `logging.Formatter` to apply the colors to each log type. This class makes sure that each log type's message is formatted with the correct color before being displayed.
 
-The [`custom_logger`](../scripts/custom_logger.py#L34) function creates the main logger with a specified name (defaulting to `__name__`). It sets the main logger's type (level) to `DEBUG` and attaches a `StreamHandler` to output log messages to the console. The handler uses the `CustomFormatter` to format messages with a timestamp, log type (level), and color, it also prevents duplicated log types to be created.
+The [`custom_logger`](../scripts/custom_logger.py#L34) function creates the main logger with a specified name (defaulting to `__name__`). It sets the main logger's type (level) to `DEBUG` and attaches a `StreamHandler` to output log messages to the console. The handler uses the `CustomFormatter` to format messages with a timestamp, log type (level), and color, it also prevents duplicated log types from being created.
 
 #### pipeline_shell.py
 
@@ -149,7 +153,7 @@ Next, the script generates a configuration file with all the needed information 
 
 For the annotation, the [`run_annotation`](../scripts/pipeline_shell.py#L350) function manages the entire process, ensuring that input files are valid and that a V(D)J library is either validated or generated. If no library is provided, the script generates it through the IMGT scraper. It runs a subprocess to download V(D)J sequences based on the specified species and receptor type. If a library is already present, it is validated and used in the subsequent analysis.
 
-The main annotation is handled by the [`annotation_main (main)`](../scripts/annotation.py#L293) function, which performs V(D)J segment analysis on the input data. This function annotates the sequences by aligning them with documented V(D)J segments. After the annotation process, the results are stored in the output directory specified by the user. Once annotation is complete, it will generate a detailed HTML report generated asl well.
+The main annotation is handled by the [`annotation_main (main)`](../scripts/annotation.py#L293) function, which performs V(D)J segment analysis on the input data. This function annotates the sequences by aligning them with documented V(D)J segments. After the annotation process, the results are stored in the output directory specified by the user. Once annotation is complete, it will generate a detailed HTML report generated as well.
 
 After both the pipeline and annotation processes are completed, the script cleans up any temporary files and directories created during the execution using the [`cleanup`](../scripts/pipeline_shell.py#L1030) function. This ensures that the working environment is returned to its original state, with all relevant outputs saved to user-defined directories.
 
@@ -157,9 +161,9 @@ After both the pipeline and annotation processes are completed, the script clean
 
 The `create_html.py` script generates the HTML report based on various generated results from either the pipeline or the annotation tool. All the images that are needed for the generated HTML report are stored in the [source/images](../scripts/create_html.py#L13) directory. The main function, [`html_main`](../scripts/create_html.py#L299), starts the process by calling the [`load_config`](../scripts/create_html.py#L16) function, which reads the `config.yaml` file and stores the settings in the global `CONFIG` variable.
 
-Next, it ensures that necessary directories are moved using [`move_dir`](../scripts/create_html.py#L42). This function moves the files into designated place, ensuring that all data is properly organized and easy accessible.
+Next, it ensures that necessary directories are moved using [`move_dir`](../scripts/create_html.py#L42). This function moves the files into its designated place, ensuring that all data is properly organized and easy accessible.
 
-The script then parses several types of data required for the HTML report. It begins with quality control (QC) seqkit data, parsed by the [`parse_qc_files`](../scripts/create_html.py#L54) function, which collects information from various QC files and organizes it into a dictionary. It then handles QUAST data through the [`parse_quast_data`](../scripts/create_html.py#L81) function, which processes QUAST results, moves related files (such as PDFs), and extracts basic statistics from the QUAST files. If needed the report is transposed, using the [`parse_transposed_report`](../scripts/create_html.py#L115) function.
+The script then parses several types of data required for the HTML report. It begins with quality control (QC) seqkit data, parsed by the [`parse_qc_files`](../scripts/create_html.py#L54) function, which collects information from various QC files and organizes it into a dictionary. It then handles QUAST data through the [`parse_quast_data`](../scripts/create_html.py#L81) function, which processes QUAST results, moves related files (such as PDFs), and extracts basic statistics from the QUAST files. If needed, the report is transposed, using the [`parse_transposed_report`](../scripts/create_html.py#L115) function.
 
 TCR or IG region files, are parsed by the [`parse_region_files`](../scripts/create_html.py#129) function, which extracts information from FASTA files, including sequence lengths and metadata, and organizes the parsed data into a list.
 
@@ -171,7 +175,7 @@ Once all the necessary data is parsed, the script moves on to generating the HTM
 
 ### **Pipeline (Snakefile)**
 
-Pipeline itself runs all the needed programs automatically. Ir runs when pipeline is chosen by the user. If needed the settings/rules can be changed in the [Snakemake file](../Snakefile) itself. But values like the main [configuration file](../Snakefile#l6) (configfile) should not be altered. The configuration file is generated automatically after choosing the options with the pipeline shell. It contains all the necessary information to make the pipeline work properly. For more information about the configuration file please see the [Configuration settings](../README.md#configuration-settings) in the README.
+Pipeline itself runs all the needed programs automatically. Ir runs when pipeline is chosen by the user. If needed, the settings/rules can be changed in the [Snakemake file](../Snakefile) itself. But values like the main [configuration file](../Snakefile#l6) (configfile) should not be altered. The configuration file is generated automatically after choosing the options with the pipeline shell. It contains all the necessary information to make the pipeline work properly. For more information about the configuration file, please refer to the [Configuration settings](../README.md#configuration-settings) in the README.
 
 From previous runs, it is known that sometimes the **kmer** and **window** needed to be added to the Hifiasm (assembly) command to achieve better results. These parameters can be added to the [command](../Snakefile#L358).
 
@@ -179,7 +183,7 @@ From previous runs, it is known that sometimes the **kmer** and **window** neede
 
 #### IMGT_scrape.py
 
-This tool automates the retrieval of immunoglobulin (IG) and T-cell receptor (TR) V(D)J segment sequences from the IMGT database for specified species. It allows users to customize the sequence fetching process based on several parameters including species type, receptor type (IG or TR), and sequence frame, which is needed to change the types of segments to fetch. The script outputs the sequences in FASTA format per region and segment. Optionally, it can compile them into one fasta file a library. It removes the excess files by default.
+This tool automates the retrieval of immunoglobulin (IG) and T-cell receptor (TR) V(D)J segment sequences from the IMGT database for specified species. It allows users to customize the sequence fetching process based on several parameters including species type, receptor type (IG or TR), and sequence frame, which is needed to change the types of segments to fetch. The script outputs the sequences in FASTA format per region and segment. Optionally, it can compile them into one fasta file, a library. It removes the excess files by default.
 
 #### IMGT scrape Usage
 
@@ -191,17 +195,17 @@ For more information about this tool, please see the [README.md](https://github.
 
 ### **Annotation**
 
-This is the tool that is used to discover novel and known V(D)J segments, present on assembly data or contigs. It takes a generated assembly as fasta file, the assembly can either be phased or collapsed. You also need to add a library with known V(D)J segments, because novel segments are determined based on the segments. The type of receptor also need to be chosen either TCR or IG and lastly the species. The TCR version the best of the two because IG is still in BETA. The reason you need the choose the species and receptor is because the config file is generated based on these input, this is important for example the RSS validation. By default, it uses minimap2, bowtie and bowtie2 to do annotation. This is the best set tools to discover because of the different length of V(D)J segments. Minimap2 for the largest segments, the V (around 300 bps or larger), bowtie2 for the short segments, the J (between 50 bps to 300 bps) and lastly bowtie for the shortest sequences the D (between 1 and 50).
+This is the tool that is used to discover novel and known V(D)J segments, present in assembly data or contigs. It takes a generated assembly as fasta file, the assembly can either be phased or collapsed. You also need to add a library with known V(D)J segments because novel segments are determined based on the segments. The type of receptor also needs to be chosen, either TCR or IG, and lastly the species. The TCR version the best of the two because IG is still in BETA. The reason you have to choose the species and receptor is because the config file is generated based on these input, this is important for example the RSS validation. By default, it uses minimap2, bowtie and bowtie2 to do annotation. This is the best set of tools to discover because of the different length of V(D)J segments. Minimap2 for the largest segments, the V (around 300 bps or larger), bowtie2 for the short segments, the J (between 50 bps to 300 bps) and lastly bowtie for the shortest sequences the D (between 1 and 50).
 
 #### annotation.py
 
-`annotation.py` is the main script activated when running the annotation tool. It starts by validating the user inputs. It wil cut out the desired region (TCR or IG) based on the flanking genes in the config file. Then if verifies if **report.xlsx** exists if this is not the case it will run the mapping script to perform V(D)J segment mapping using user-specified tools. After it it performs the BLAST to check the amount of divergence of the known segment, it will write the initial findings to the **annotation_report.xlsx**, **annotation_report_100%.xlsx** excel files and does RSS validation updates the previous mentioned files with the RSS validation. This can be seen in the file name because it has a **_plus** suffix. The differed script will be explained below.
+`annotation.py` is the main script activated when running the annotation tool. It starts by validating the user inputs. It will cut out the desired region (TCR or IG) based on the flanking genes in the config file. Then it verifies if **report.xlsx** exists. If this is not the case, it will run the mapping script to perform V(D)J segment mapping using user-specified tools. After it performs the BLAST to check the amount of divergence of the known segment, it will write the initial findings to the **annotation_report.xlsx**, **annotation_report_100%.xlsx** Excel files and does RSS validation updates the previous mentioned files with the RSS validation. This can be seen in the file name because it has a **_plus** suffix. The differed script will be explained below.
 
 #### map_genes.py
 
 In this script, the specified flanking genes from the config file are downloaded for the chosen species using the NCBI dataset package using the [download_flanking_genes](../scripts/map_genes.py#L60) function. Only the files containing the flanking genes are retained, while other unnecessary files are removed.
 
-Next all the flanking genes are combined using the [combine_genes](../scripts/map_genes.py#L102) function. It processes the files, ensuring they are in the correct format, and merges them into the `all_genes.fna` file. We support multiple FASTA file extensions, such as `.fna`, `.fasta`, and `.fa`. If you need more or fewer extension types, you can easily [modify](../scripts/map_genes.py#126) the list of supported.
+Next, all the flanking genes are combined using the [combine_genes](../scripts/map_genes.py#L102) function. It processes the files, ensuring they are in the correct format, and merges them into the `all_genes.fna` file. We support multiple FASTA file extensions, such as `.fna`, `.fasta`, and `.fa`. If you need more or fewer extension types, you can easily [modify](../scripts/map_genes.py#126) the list of supported.
 
 Once the flanking gene files are combined, the script proceeds to map them to the user-specified assembly files using [`minimap2`](../scripts/map_genes.py#L167). The `-ax asm5` preset is selected because both the flanking genes and assembly files originate from the same species, ensuring a close match. The `--secondary=no` option is used to avoid duplicate entries of flanking genes.
 
@@ -211,15 +215,15 @@ To refine the mapping results, an [`awk`](../scripts/map_genes.py#L163) statemen
 
 To extract the necessary regions (either TCR or IG), we use the previously generated SAM files. The process begins by looping over the [flanking genes](../scripts/extract_region.py#L257) list one pair at a time, ensuring accurate identification of flanking gene pairs. Simultaneously, the script iterates through the assembly files, using `pathlib`'s **glob** to locate relevant FASTA files with various extensions.
 
-To handle the file names we use the [create_name](../scripts/extract_region.py#l213) function, which parses filenames to extract details like chromosome, sample, and haplotype. This function is essential because we have phased and unphased assembly files and we need a flexable way to generate the file names. If a keywords is not found, the name fields remain blank.
+To handle the file names, we use the [create_name](../scripts/extract_region.py#l213) function, which parses filenames to extract details like chromosome, sample, and haplotype. This function is essential because we have phased and unphased assembly files, and we need a flexible way to generate the file names. If a keyword is not found, the name fields remain blank.
 
-The assembly data is stored into a dictionary using [make_record_dict](../scripts/extract_region.py#L14). This dictionary, created with `SeqIO` from the `biopython`, stores the different contig sequences or record by their ID. This dictionary is needed to cut the region(s) out when we retrieve the coordinates.
+The assembly data is stored into a dictionary using [make_record_dict](../scripts/extract_region.py#L14). This dictionary, created with `SeqIO` from the `biopython`, stores the different contig sequences or records by their ID. This dictionary is needed to cut the region(s) out when we retrieve the coordinates.
 
-To get the coordinates we use the [get_positions_and_name](../scripts/extract_region.py#L134) function and this [**awk**](../scripts/map_genes.py#L155) command to extract the coordinates and contig names. It filters out the bitwise flags and alignment positions. This is stored as [**sam_list**](../scripts/extract_region.py#L165).
+To get the coordinates, we use the [get_positions_and_name](../scripts/extract_region.py#L134) function and this [**awk**](../scripts/map_genes.py#L155) command to extract the coordinates and contig names. It filters out the bitwise flags and alignment positions. This is stored as [**sam_list**](../scripts/extract_region.py#L165).
 
-Next we select the best alignment of a flanking gene and get the right coordinates from the **sam_list**, the [get_best_coords](../scripts/extract_region.py#L105) function compares bitwise flags, which encode alignment information. By choosing the alignment with the lowest bitwise flag, we ensures that the most reliable alignment is chosen.
+Next we select the best alignment of a flanking gene and get the right coordinates from the **sam_list**, the [get_best_coords](../scripts/extract_region.py#L105) function compares bitwise flags, which encode alignment information. By choosing the alignment with the lowest bitwise flag, we ensure that the most reliable alignment is chosen.
 
-After we have chosen the coordinates we check if the [coordinates exists](../scripts/extract_region.py#L200) and if we have a [unique contig name](../scripts/extract_region.py#201). If no coordinates are found, the region is skipped. If the contig name is unique, we known that the region is correctly located on a single contig. If the names are not unique, the region is not located on a single contig and is also skipped.
+After we have selected the coordinates, we check if the [coordinates exists](../scripts/extract_region.py#L200) and if we have a [unique contig name](../scripts/extract_region.py#201). If no coordinates are found, the region is skipped. If the contig name is unique, we knew that the region is correctly located on a single contig. If the names are not unique, the region is not located on a single contig and is also skipped.
 
 All the sequences from the intact regions are extracted from their corresponding assembly FASTA file and written to a new output file in FASTA format.
 
@@ -241,15 +245,15 @@ All the mapping results of all annotation tools are saved as [`report.xlsx`](../
 
 #### blast.py
 
-To check how much divergence there is between the found segments and the one from the library we use the `blast.py` script. It automates BLAST searches against a specified database, which is the library. We utilize parallel processing because we process a large amount of segments.
+To check how much divergence there is between the found segments and the one from the library, we use the `blast.py` script. It automates BLAST searches against a specified database, which is the library. We utilize parallel processing because we process a large number of segments.
 
 We start by setting up the BLAST database through the [`make_blast_db`](../scripts/blast.py#L45) function. This function checks if the BLAST database already exists and creates it if necessary using the `makeblastdb` command. You can change the database creation settings and paths by modifying the `blast_db_path` and `command`.
 
-Once the database is ready, we execute the `run_blast_operations` function, which runs the entire BLAST search and result aggregation. First we run the [`aggregate_blast_results`](../scripts/blast.py#L177) function to perform the BLAST searches for each segment in the DataFrame (which is parsed from `annotation.py`). `aggregate_blast_results` manages these searches in parallel and iterates over multiple identity cutoffs [**(100%, 75%, 50%)**](../scripts/blast.py#L177). These can be changed if needed.
+Once the database is ready, we execute the `run_blast_operations` function, which runs the entire BLAST search and result aggregation. First, we run the [`aggregate_blast_results`](../scripts/blast.py#L177) function to perform the BLAST searches for each segment in the DataFrame (which is parsed from `annotation.py`). `aggregate_blast_results` manages these searches in parallel and iterates over multiple identity cutoffs [**(100%, 75%, 50%)**](../scripts/blast.py#L177). These can be changed if needed.
 
-For each segmgent in the DataFrame, `aggregate_blast_results` calls the [`execute_blast_search`](../scripts/blast.py#L131) function. This function is responsible for creating temporary FASTA files and running the BLAST command. The BLAST command is constructed by the [`construct_blast_command`](../scripts/blast.py#L85) function, which customizes it based on the given parameters, such as identity `identity_cutoff`, `LENGTH_THRESHOLD`, and other options like word size and e-value. I would advise to only change the `LENGTH_THRESHOLD`, this value is now chosen based on the average length of the D segment, because this one is harder for BLAST to find because it is small in length.
+For each segment in the DataFrame, `aggregate_blast_results` calls the [`execute_blast_search`](../scripts/blast.py#L131) function. This function is responsible for creating temporary FASTA files and running the BLAST command. The BLAST command is constructed by the [`construct_blast_command`](../scripts/blast.py#L85) function, which customizes it based on the given parameters, such as identity `identity_cutoff`, `LENGTH_THRESHOLD`, and other options like word size and e-value. I would advise to only change the `LENGTH_THRESHOLD`, this value is now chosen based on the average length of the D segment because this one is harder for BLAST to find because it is small in length.
 
-The results from each BLAST search are temporarily stored, then read into DataFrames within `aggregate_blast_results`. These DataFrames are combined into a single DataFrame, with a extra `identity_cutoff` column. The temporary result files are deleted.
+The results from each BLAST search are temporarily stored, then read into DataFrames within `aggregate_blast_results`. These DataFrames are combined into a single DataFrame, with an extra `identity_cutoff` column. The temporary result files are deleted.
 
 After aggregating the BLAST results, `run_blast_operations` further filters the data, retaining only entries with 100% query coverage. It also splits the query information to extract `start` and `stop` positions for each sequence. The filtered results are then saved to an Excel file, named `blast_results.xlsx`. You can change the name if needed.
 
@@ -257,7 +261,7 @@ After aggregating the BLAST results, `run_blast_operations` further filters the 
 
 The `report_script.py` script processes BLAST results to categorize V(D)J segments, generating detailed reports that distinguish between known and novel sequences.
 
-We first have the `report_main` function. This function first loads the necessary configuration settings via the [`load_config`](../scripts/report_script.py#L35) function and loads it into the global `CONFIG` variable. If the configuration file is missing, the script logs an error and exits to prevent further issues.
+We first have the `report_main` function. First, this function loads the necessary configuration settings via the [`load_config`](../scripts/report_script.py#L35) function and loads it into the global `CONFIG` variable. If the configuration file is missing, the script logs an error and exits to prevent further issues.
 
 After successfully loading the configuration, `report_main` reads the sequence data from the specified library using the [`make_record_dict`](../scripts/report_script.py#L58) function, which creates a dictionary of the V(D)J segments library. This dictionary is essential for referencing the V(D)J sequences later in the process.
 
@@ -279,13 +283,13 @@ criteria:
 
 After selecting the optimal reference, the script compiles similar references for additional context.
 
-Finally, we prepare and formate the data for export to the different Excel files. The [`annotation_long`](../scripts/report_script.py#L389) function exports the unfiltered data to `annotation_report_plus.xlsx`, while the [`annotation`](../scripts/report_script.py#L409) function generates two key reports: `annotation_report.xlsx` for novel matches and `annotation_report_100%.xlsx` for known matches. These reports provide a comprehensive overview of the data, including detailed information such as start and stop coordinates, function, similar references, and messages indicating potential issues with the sequences.
+Finally, we prepare and format the data for export to the different Excel files. The [`annotation_long`](../scripts/report_script.py#L389) function exports the unfiltered data to `annotation_report_plus.xlsx`, while the [`annotation`](../scripts/report_script.py#L409) function generates two key reports: `annotation_report.xlsx` for novel matches and `annotation_report_100%.xlsx` for known matches. These reports provide a comprehensive overview of the data, including detailed information such as start and stop coordinates, function, similar references, and messages indicating potential issues with the sequences.
 
 #### RSS.py
 
 The `RSS.py` script is the script used for validation V(D)J segments, based on the RSS heptamers and nonamers. The script is designed to load configuration settings, extract RSS sequences from V(D)J segments, validate these sequences against known reference motifs, and generate detailed annotation reports that include information on RSS matching.
 
-The process begins with the `RSS_main` function, by again, setting up the configuration settings through the [`load_config`](../scripts/RSS.py#L34) function. Storing the important settings in the global `CONFIG` variable. It also populates the `OPTIONS` variable with RSS layouts for the different segments.
+The process begins with the `RSS_main` function, by, again, setting up the configuration settings through the [`load_config`](../scripts/RSS.py#L34) function. Storing the important settings in the global `CONFIG` variable. It also populates the `OPTIONS` variable with RSS layouts for the different segments.
 
 After loading the configuration, the script checks for the existence of the two Excel files: `annotation_report.xlsx` and `annotation_report_100%.xlsx`. These files contain data on novel and known V(D)J segments, respectively. The [`check_if_exists`](../scripts/RSS.py#L34) function ensures these files are present before the script proceeds. The script then loads these files into DataFrames (`df1` and `df2`).
 
@@ -303,7 +307,7 @@ After the validation step, the script generates updated Excel reports using the 
 
 #### Annotation tool usage
 
-To use the tool, you can use the following command. More information about the tool's command and settings are available on the [`README`](https://github.com/BPRC-CGR/VDJ_segment_discover/tree/devlopment) on GitHub page for the tool itself.
+To use the tool, you can use the following command. More information about the tool's command and settings are available in the [`README`](../README.md#annotation).
 
 ```bash
 python annotation.py --input /path/to/sequence_data_directory --library /path/to/reference_library.fasta --output /path/to/output_directory
@@ -315,33 +319,33 @@ Tool to nicely visualize V(D)J segments on their haplotypes. Giving the ability 
 
 #### VDJ_display.py
 
-The `VDJ_display.py` script is essential for generating various V(D)J segment plots. It starts by processing user input with the [`parse_arguments`](../scripts/VDJ_display.py#L422) function. Next, the file paths are cleaned up by removing any extraneous separators.
+The `VDJ_display.py` script is essential for generating various V(D)J segment plots. It starts by processing user input with the [`parse_arguments`](../scripts/VDJ_display.py#L657) function. Next, the file paths are cleaned up by removing any extraneous separators.
 
 The script uses the `PlotGenerator` class to handle everything from data loading to the final visualization output. Upon initialization, `PlotGenerator` sets up necessary configurations such as color schemes corresponding to different genomic segments and prepares the output directory for storing generated plots.
 
-Extra color schemes can be added by creating an extra a dictionary in [`color_themes`](../scripts/) dictionary. Make sure you also add it in the [`choices`](../scripts/) in the `--color-theme`.
+Extra color schemes can be added by creating an extra a dictionary in [`color_themes`](../scripts/VDJ_display.py#L699) dictionary. Make sure you also add it in the [`choices`](../scripts/VDJ_display.py#L677) in the `--color-theme`.
 
-Data processing begins with the `load_dataframe` function that parses data from provided Excel files into a single dataset. This dataset is then processed by unique regions through the [`process_region_data`](../scripts/VDJ_display.py) method.
+Data processing begins with the [`load_dataframe`](../scripts/VDJ_display.py#L200) function that parses data from provided Excel files into a single dataset. This dataset is then processed by unique regions through the [`process_region_data`](../scripts/VDJ_display.py#L635) method.
 
-The [`process_region`](../scripts/VDJ_display.py) function checks for any entries with misclassified files, where segments appear in files where they logically shouldn't. Simultaneously, the `add_filter` function refines the segment names by removing unnecessary characters, making the data easier to manage for plotting.
+The [`process_region`](../scripts/VDJ_display.py#L620) function checks for any entries with misclassified files, where segments appear in files where they logically shouldn't. Simultaneously, the `add_filter` function refines the segment names by removing unnecessary characters, making the data easier to manage for plotting.
 
-Depending on user settings, the script runs either [`run_seperate_haplotype`](../scripts/VDJ_display.py) for single haplotype visualizations or [`run_combined_haplotype`](../scripts/VDJ_display.py) for combined plots. The data is sorted by "Start coord" for plot creation. For combined configurations, `align_lists_by_matching` is used to synchronize two lists of genomic segments by inserting blanks to address mismatches.
+Depending on user settings, the script runs either [`run_seperate_haplotype`](../scripts/VDJ_display.py#L564) for single haplotype visualizations or [`run_combined_haplotype`](../scripts/VDJ_display.py#L597) for combined plots. The data is sorted by "Start coord" for plot creation. For combined configurations, [`align_lists_by_matching`](../scripts/VDJ_display.py#L58) is used to synchronize two lists of genomic segments by inserting blanks to address mismatches.
 
-Footers are dynamically determined; for single plots, `Short names` are used directly, while for combined plots, the [`generate_footer_lists`](../scripts/VDJ_display.py) method creates two lists for each haplotype based on start coordinates—one where segment values match and another where they differ. This also uses the `Short names`.
+Footers are dynamically determined; for single plots, `Short names` are used directly, while for combined plots, the [`generate_footer_lists`](../scripts/VDJ_display.py#L148) method creates two lists for each haplotype based on start coordinates—one where segment values match and another where they differ. This also uses the `Short names`.
 
-The `calculate_plot_size` function adjusts plot dimensions based on the number of segments. It returns the **block size, block spacing, width per block, font size**. The plot structure is then created by the [`configure_plot`](../scripts/VDJ_display.py) function, which calls the functions to calculate the total width needed and sets up the plotting area with `initialize_plot`. The `add_segment_blocks` method creates two blocks using `create_dual_color_features`, differentiating 'V', 'D' and 'J' for the top block and 'Novel' and 'Known' for the bottom block.
+The [`calculate_plot_size`](../scripts/VDJ_display.py#L226) function adjusts plot dimensions based on the number of segments. It returns the **block size, block spacing, width per block, font size**. The plot structure is then created by the [`configure_plot`](../scripts/VDJ_display.py#L431) function, which calls the functions to calculate the total width needed and sets up the plotting area with [`initialize_plot`](../scripts/VDJ_display.py#L279). The [`add_segment_blocks`](../scripts/VDJ_display.py#L300) method creates two blocks using [`create_dual_color_features`](../scripts/VDJ_display.py#L246), differentiating 'V', 'D' and 'J' for the top block and 'Novel' and 'Known' for the bottom block.
 
-Legends are added through `add_legends`, which creates a legend for sample and haplotypes and other for the colored blocks. Additionally, an optional footer can be added to provide further details or context about the data being visualized with [`add_footer`](../scripts/).
+Legends are added through [`add_legends`](../scripts/VDJ_display.py#L370), which creates a legend for sample and haplotypes and other for the colored blocks. Additionally, an optional footer can be added to provide further details or context about the data being visualized with [`add_footer`](../scripts/VDJ_display.py#L347).
 
-The `save_plot` method ensures each plot is saved in the designated directory. For combined plots, `combine_and_save_plots_vertically` merges the two plots into a single image by converting them to NumPy arrays, aligning them vertically, and then saving the unified plot.
+The [`save_plot`](../scripts/VDJ_display.py#465) method ensures each plot is saved in the designated directory. For combined plots, [`combine_and_save_plots_vertically`](../scripts/VDJ_display.py#L516) merges the two plots into a single image by converting them to NumPy arrays, aligning them vertically, and then saving the unified plot.
 
 #### reevaluate.py (BETA)
 
-This Python script is still in the experimental fase, and functions are not stable or implemented yet.
+This Python script is currently in the experimental phase, with functions that are still unreliable or not fully implemented.
 
 #### order_segments.py (BETA)
 
-This Python script is still in the experimental fase, and functions are not stable or implemented yet.
+This Python script is currently in the experimental phase, with functions that are still unreliable or not fully implemented.
 
 #### V(D)J display usage
 
@@ -351,7 +355,8 @@ To use this tool, you can use the following command. For more information, pleas
 python VDJ_display.py --files path/to/file1.xlsx path/to/file2.xlsx --output_dir path/to/output --style combined
 ```
 
-## **Bugs**
+## Bugs
 
 1. The annotation tool has a bug where it incorrectly annotates segments that are spaced closely together, within 5 base pairs of the start coordinate. It thinks certain segments are different segments, but in reality they are actually the same, only the correct segment is not being chosen.
-2. The environment manager has a bug where it is unable to activate environments containing Python packages like `pandas`, etc., within a Python script. The activation of packages like `BLAST` can be activated within the Python scripts because they are command line tool that are not activate directly running python.
+2. The environment manager has a bug where it is unable to activate environments containing Python packages like `pandas`, etc., within a Python script. The activation of packages like `BLAST` can be activated within the Python scripts because they are command line tool that are not activated directly running python.
+3.

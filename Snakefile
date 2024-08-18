@@ -505,10 +505,26 @@ rule annotation:
         python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -r {params.cell_type} -f "{params.flanking_genes}" -t {threads} 2> {log}
         """
 
+rule VDJ_display:
+    input:
+        "annotation/annotation_report_plus.xlsx"
+    output:
+        touch("VDJ_visualization/generated.txt")
+    benchmark: 
+        "benchmarks/vdj_display.txt"
+    log:
+        "logs/vdj_display.log"
+    conda:
+        "envs/display.yaml"
+    shell:
+        """
+        python scripts/VDJ_display.py -f "annotation_report_100%_plus.xlsx" "annotation_report_plus.xlsx" -o "VDJ_visualization" -s "combined" 2> {log}
+        """
 
 rule fetchAllInput:
     input:
         ancient("annotation/annotation_report_plus.xlsx"),
+        ancient("VDJ_visualization/generated.txt"),
         ancient("QC/raw/{accession}_{machine}.stats"),
         ancient("QC/filtered/filtered_{accession}_{machine}.stats"),
         ancient("quast/hifiasm/chr{assembly_chrs}_{accession}"),

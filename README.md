@@ -46,17 +46,17 @@
 
 ## Abstract
 
-The BPRC tool offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). We Designed a set of tools, a pipeline (**VDJ Analize, Assamble and Annotate Pipeline (VDJ-AAAP)**) and a annotation tool to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors/immunoglobulins (IG). This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
+The BPRC tool offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). We Designed a set of tools, a pipeline (**VDJ Analyze, Assemble and Annotate Pipeline (VDJ-AAAP)**) and an annotation tool to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors/immunoglobulins (IG). This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
 
-Addressing the challenge of assembling the repetitive VDJ regions, our pipeline selectively processes reads exceeding 5 Kbs, minimizing erroneous mappings and noise. It generates a refined reference genome if none is specified. If a reference genome is present it can alse be selected. From the reference genome we use only known chromosomes and unplaced chromosomal fragments to prevent assembly inaccuracies. Utilizing minimap2, reads are mapped against this filtered reference genome.
+Addressing the challenge of assembling the repetitive VDJ regions, our pipeline selectively processes reads exceeding 5 Kb, minimizing erroneous mappings and noise. It generates a refined reference genome if none is specified. If a reference genome is present, it can also be selected. From the reference genome, we use only known chromosomes and unplaced chromosomal fragments to prevent assembly inaccuracies. Utilizing minimap2, reads are mapped against this filtered reference genome.
 
-The assembly phase uses the Hifiasm assembler to assemble the target region. We use a hybrid approach meaning it utilizes both filtered PacBio and ONT data, which gives it PacBio's precision with ONT's relative longer read lengths for better assembly results. Hifiasm generates GFA files which are converted into fasta files.
+The assembly phase uses the Hifiasm assembler to assemble the target region. We use a hybrid approach, meaning it utilizes both filtered PacBio and ONT data, which gives it PacBio's precision with ONT's relative longer read lengths for better assembly results. Hifiasm generates GFA files which are converted into fasta files.
 
 The pipeline uses the annotation tool (also usable by itself) to annotate the target assemblies. Make sure that the input files are in fasta format if you use the annotation by itself.
 
-We start with the extraction of the target regions using predefined flanking genes, these can be specified by the user or a default can be used (Default is for primates only because it is based on humans). When the region(s) are cut out we annotate them using a predefined library of validated VDJ segments sourced from the IMGT database. You can also use your own library.
+We start with the extraction of the target regions using predefined flanking genes, these can be specified by the user or a default can be used (Default is for primates only because it is based on humans). When the region(s) are cut out, we annotate them using a predefined library of validated VDJ segments sourced from the IMGT database. You can also use your own library.
 
-Generated outputs include detailed Excel reports on identified known and novel segments, supplemented with an interactive plotting feature for enhanced data visualization and analysis, but also static plots that show the different V(D)J segments on the phased haplotypes. Lastly the pipeline or annotation tool generates a easy to navigate HTML report containing al the generated results.
+Generated outputs include detailed Excel reports on identified known and novel segments, supplemented with an interactive plotting feature for enhanced data visualization and analysis, but also static plots that show the different V(D)J segments on the phased haplotypes. Lastly the pipeline or annotation tool generates an easy to navigate HTML report containing al the generated results.
 
 ## Installation
 
@@ -104,25 +104,25 @@ conda activate pipeline
 
 ## Overview BPRC tool
 
-Within the BPRC tool, you have the option to run the complete pipeline, which generates the VDJ analysis from the input ONT and PacBio fastq data. You only need to specify the reference genome either as a NCBI genome code or as a fasta file; the type of receptor `TR` or `IG` and the species name of the animal you want to analyse. To see the options that are available enter:
+Within the BPRC tool, you have the option to run the complete pipeline, which generates the VDJ analysis from the input ONT and PacBio FASTQ data. You only need to specify the reference genome, either as a NCBI genome code or as a fasta file; the type of receptor `TR` or `IG` and the species name of the animal you want to analyze. To see the options that are available, enter:
 
 ```bash
 python scripts/pipeline_shell.py -h
 ```
 
-The following options will be shown [pipeline](#pipeline) and [annotation](#annotation). You can read more information about these tools by pressing on the highlighted names.
+The following options will be shown, [pipeline](#pipeline) and [annotation](#annotation). You can read more information about these tools by pressing on the highlighted names.
 
 ```txt
 Tool for sequencing data processing and VDJ annotation
 
 positional arguments:
   {pipeline,annotation}
-                        Available commands
-    pipeline            Run the pipeline for sequencing data processing.
-    annotation          Run the annotation tool for VDJ segment analysis.
+                    	Available commands
+	pipeline        	Run the pipeline for sequencing data processing.
+	annotation      	Run the annotation tool for VDJ segment analysis.
 
 options:
-  -h, --help            show this help message and exit
+  -h, --help        	show this help message and exit
 ```
 
 ## Pipeline
@@ -138,23 +138,23 @@ python scripts/pipeline_shell.py pipeline -ont <nanopore_data.fastq.gz> -pb <pac
 ### Required
 
 - `-ont <nanopore_data.fastq.gz>`, `--nanopore <nanopore_data.fastq.gz>`: This flag specifies the path to the Oxford Nanopore Technologies (ONT) reads file. The file must be in `.fastq.gz` format.
-  
+ 
 - `-pb <pacbio_data.fastq.gz>`, `--pacbio <pacbio_data.fastq.gz>`: This flag specifies the path to the Pacific Biosciences (PacBio) reads file. The file must be in `.fastq.gz` format.
-  
+ 
 - `-ref <reference_genome>`, `--reference <reference_genome>`: This optional flag specifies the path to the reference genome file if it is already available. The file can be a `.fasta` or `.fna` file or a valid accession code.
-  
+ 
 - `-r <receptor_type>`, `--receptor-type <receptor_type>`: This required flag specifies the type of receptor to analyze. The options are `TR` for T-cell receptor or `IG` for Immunoglobulin.
-  
+ 
 - `-s <species_name>`, `--species <species_name>`: This required flag specifies the scientific name of the species, e.g., "Homo sapiens".
 
 ### Optional
 
 - `-f <flanking_genes>`, `--flanking-genes <flanking_genes>`: This flag specifies a comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. The genes should be added as pairs.
-  
+ 
 - `-c <chromosomes>`, `--chromosomes <chromosomes>`: This flag specifies a list of chromosomes where TR or IG is located. All values must be integers between 1-22, or 'X', 'Y'.
-  
+ 
 - `-t <threads>`, `--threads <threads>`: This optional flag specifies the number of processing threads to use for the analysis. If not specified, it defaults to 8.
-  
+ 
 - `--default`: This optional flag uses default settings for the analysis. It cannot be used in conjunction with `-f/--flanking-genes` or `-c/--chromosomes`.
 
 ### Important notes
@@ -164,7 +164,7 @@ python scripts/pipeline_shell.py pipeline -ont <nanopore_data.fastq.gz> -pb <pac
 
 ## Annotation
 
-Within the BPRC tool there is also a option to run the annotation tool as a stand-alone program. It is the same program that is used within the pipeline. You can execute it by running this command.
+Within the BPRC tool, there is also an option to run the annotation tool as a stand-alone program. It is the same program that is used within the pipeline. You can execute it by running this command.
 
 ```bash
 python scripts/pipeline_shell.py annotation -a <assembly_directory> -l <library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads>
@@ -195,7 +195,7 @@ These flags are required if `-a/--assembly` is chosen:
 
 - `-f <flanking_genes>`, `--flanking-genes <flanking_genes>`: This flag specifies a comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. Add them as pairs. Required with `-a/--assembly`. (default: None)
 
-- `--default`: This optional flag uses default settings for the analysis. It cannot be used in conjunction with `-f/--flanking-genes`.
+- `--default`: This optional flag uses default settings for the analysis. It cannot be used with `-f/--flanking-genes`.
 
 ### Optional flags
 
@@ -213,7 +213,7 @@ These flags are required if `-a/--assembly` is chosen:
 
 ## Configuration settings
 
-The **config.yaml** file, located within the **config** directory, serves as a overview of the configuration settings that the pipeline uses. This config file is generate automatically and contains various parameters to tailor the analysis based on your given input. The config file is also different when running the pipeline or only the annotation program. For the annotation only the **SPECIES** `(without genome)`, **FLANKING_GENES**, and the **important** settings are generated. The DATA setting is different based on running the whole pipeline or the annotation tool.
+The **config.yaml** file, located within the **config** directory, serves as an overview of the configuration settings that the pipeline uses. This config file is generated automatically and contains various parameters to tailor the analysis based on your given input. The config file is also different when running the pipeline or only the annotation program. For the annotation only the **SPECIES** `(without genome)`, **FLANKING_GENES**, and the **important** settings are generated. The DATA setting is different based on running the whole pipeline or the annotation tool.
 
 Although it is automatically generated, it is recommended to see what it contains.
 
@@ -224,11 +224,11 @@ Below is an overview of the **config file** structure:
 ``` yaml
 DATA: ## the whole pipeline
   ORIGINAL:
-    pacbio: pacbio_data/EAW_pacbio.fastq.gz
-    nanopore: nanopore_data/EAW_nanopore.fastq.gz
+	pacbio: pacbio_data/EAW_pacbio.fastq.gz
+	nanopore: nanopore_data/EAW_nanopore.fastq.gz
   MOVED:
-    pacbio: downloads/EAW_pacbio.fastq.gz
-    nanopore: downloads/EAW_nanopore.fastq.gz
+	pacbio: downloads/EAW_pacbio.fastq.gz
+	nanopore: downloads/EAW_nanopore.fastq.gz
 or
 
 DATA: ## only the annotation tool
@@ -265,14 +265,14 @@ FLANKING_GENES:
 - VPS41
 ```
 
-- **DATA**: When using the pipeline it specifies the used input data for both ONT and PacBio samples. This is separated in the original files and the moved files, these files are always moved in a temporary downloads folder. When using only the annotation tool, only the input directory is specified and the used library.
+- **DATA**: When using the pipeline, it specifies the used input data for both ONT and PacBio samples. This is separated in the original files and the moved files, these files are always moved in a temporary downloads folder. When using only the annotation tool, only the input directory is specified and the used library.
 - **All_CHROMOSOMES**: This list contains all chromosomes found within the reference genome. For those uncertain of the specific chromosomes included in their reference genome, it's advisable to consult the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/).
 - **ASSEMBLY_CHROMOSOMES**: List contains the TCR/IG chromosomes for the analysis.
-- **HAPLOTYPES**: List with each haplotype needed the analysis.
+- **HAPLOTYPES**: List with each haplotype needed in the analysis.
 - **SPECIES: name**: The chosen species for the analysis.
 - **SPECIES: genome**: Specified genome that is being used for the run. It can be found on the [NCBI Genome database](https://www.ncbi.nlm.nih.gov/datasets/genome/). Or already present.
 - **SPECIES: cell**: The receptor type that is being analyzed. This value to either `TR` (T-cell receptor) or `IG` (Immunoglobulin), depending on your study's focus.
-- **FLANKING_GENES**: A list of flanking genes that are needed to identify the contig containing the different TCR/IG regions. By default these are determined based on the given receptor type.
+- **FLANKING_GENES**: A list of flanking genes that are needed to identify the contig containing the different TCR/IG regions. By default, these are determined based on the given receptor type.
 
 ### Important configuration settings
 
@@ -308,8 +308,8 @@ RSS_MERS:
   - The RSS type (`12`, `23`) indicating the spacer length in base pairs.
   - The orientation (`+`, `-`) for identifying the RSS direction in relation to the gene segment.
   - Methods of extraction (`start_minus`, `end_plus`) which define how the RSS is located and annotated based on its positional context to the VDJ segment.
-    - `start_minus`: Extracts the RSS from the start (left side) of the VDJ segment, utilizing the segment's start coordinate and subtracting the RSS length to locate the RSS.
-    - `end_plus`: Extracts the RSS from the end (right side) of the VDJ segment, using the segment's end coordinate and adding the RSS length to pinpoint the RSS.
+	- `start_minus`: Extracts the RSS from the start (left side) of the VDJ segment, utilizing the segment's start coordinates and subtracting the RSS length to locate the RSS.
+	- `end_plus`: Extracts the RSS from the end (right side) of the VDJ segment, using the segment's end coordinates and adding the RSS length to pinpoint the RSS.
 
 - **RSS_LENGTH**: Specifies the length of each RSS type, classified by the spacer length (`12`, `23`). This length is essential for correctly identifying and annotating the RSS within the genomic sequence. The numbers (e.g., `28`, `39`) represent the total length in base pairs for each RSS type.
 
@@ -317,33 +317,33 @@ RSS_MERS:
 
 ## Pipeline output
 
-The pipeline creates a lot of important files located in different directories. The next code sample shows the tree with all the directories that are created when running pipeline.
+The pipeline creates many important files located in different directories. The next code sample shows the tree with all the directories that are created when running pipeline. If the annotation tool is run by itself, most directories are not generated. The ones that are generated are depicted with `# annotation`. This means that they are generated for both pipeline and annotation.
 
 ```txt
 .
 ├── alignments
-├── annotation
+├── annotation # annotation
 ├── assembly
 ├── benchmarks
 ├── BUSCO
 ├── busco_downloads
 ├── chromosomes
-├── config
+├── config # annotation
 ├── converted
 ├── final
-├── flank_genes
+├── flank_genes # annotation
 ├── inspector
-├── library
+├── library # annotation
 ├── logs
-├── mapped_genes
-├── mapping
+├── mapped_genes # annotation
+├── mapping # annotation
 ├── merged
 ├── QC
 ├── quast
 ├── reference
-├── region
-├── RSS
-├── source/html
+├── region # annotation
+├── RSS # annotation
+├── source/html # annotation
 └── split_files
 ```
 
@@ -363,36 +363,36 @@ annotation/
 ```
 
 - **report.xlsx**: In the report file are all the initial mapping results, to get a initial understanding of the amount of VDJ gene segments that are identified. This includes non-novel and novel segments.
-- **blast_resutls.xlsx**: In the blast result are all the reevaluated segments. This includes the deviation between found segment and the most similar.
-- **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the intial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the known segments. Lastly, the long format is the uncondensed version, where the similar sequences are not combined in one row.
+- **blast_resutls.xlsx**: In the blast result are all the reevaluated segments. This includes the deviation between the found segment and the most similar.
+- **annotation_report.xlsx**, **annotation_report_100%.xlsx**, **annotation_report_long.xlsx**: In the initial annotation report are all the novel segments that are retained after the filtering of the segments. The 100% version of the annotation report is almost the same as the original report, but this includes only the known segments. Lastly, the long format is the non condensed version, where the similar sequences are not combined in one row.
 - **annotation_report_plus.xlsx** and **annotation_report_100%_plus.xlsx**: Lastly, the annotation report plus reports contain validation columns based on the RSS types of the segments. This indicates the found RSS heptamer and nonamer for a given segment and the RSS heptamer and nonamer that were used for comparison. The final report contains the flowing columns.
 
-| Column                        | Explanation                                                                                                                                                                                                                                   |
+| Column                    	| Explanation                                                                                                                                                                                                                               	|
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reference**                 | Name of the closest reference for the new segment.                                                                                                                                                                                            |
-| **Old name-like**             | New segment's name, derived from the closest reference, appended with "like" to indicate similarity.                                                                                                                                          |
-| **Mismatches & % Mismatches** | Number of mismatches with the reference and their percentage relative to the total length of the reference.                                                                                                                                   |
-| **Start and End coord**       | Coordinates of the segment within the target region.                                                                                                                                                                                     |
-| **Function**                  | The classification of the function of a segment. This is functional / open reading frame (F/ORF), potential functional / open reading frame if it is not possible to classify a segments funtion (P) or pseudogene if an early stop codon is detected.                                                                                                                             |
-| **Similar references**        | Other references for a segment with the same start and end coordinates; the best match is selected based on mutation count and reference name.                                                                                                |
-| **Path**                      | Path to the FASTA file of the region containing the segment.                                                                                                                                                                                  |
-| **Strand**                    | Orientation of the segment: 5' to 3' (`+`) or 3' to 5' (`-`).                                                                                                                                                                                 |
-| **Region and Segments**       | Type of region and segment identified.                                                                                                                                                                                                        |
-| **Haplotype**                 | Haplotype (1 or 2) on which the segment is found.                                                                                                                                                                                             |
-| **Sample**                    | Name of the sample providing the genetic data.                                                                                                                                                                                                |
-| **Short name**                | Only the part of the segment that includes the region, segment and variant.                                                                                                                                                                   |
-| **Messange**| Generated message for a segment when its stop codons is located on a critical positions.|
+| **Reference**             	| Name of the closest reference for the new segment.                                                                                                                                                                                        	|
+| **Old name-like**         	| New segment's name, derived from the closest reference, appended with "like" to indicate similarity.                                                                                                                                      	|
+| **Mismatches & % Mismatches** | Number of mismatches with the reference and their percentage relative to the total length of the reference.                                                                                                                               	|
+| **Start and End coord**   	| Coordinates of the segment within the target region.                                                                                                                                                                                 	|
+| **Function**              	| The classification of the function of a segment. This is functional / open reading frame (F/ORF), potential functional / open reading frame if it is not possible to classify a segments function (P) or pseudogene if an early stop codon is detected.                                                                                                                         	|
+| **Similar references**    	| Other references for a segment with the same start and end coordinates; the best match is selected based on mutation count and reference name.                                                                                            	|
+| **Path**                  	| Path to the FASTA file of the region containing the segment.                                                                                                                                                                              	|
+| **Strand**                	| Orientation of the segment: 5' to 3' (`+`) or 3' to 5' (`-`).                                                                                                                                                                             	|
+| **Region and Segments**   	| Type of region and segment identified.                                                                                                                                                                                                    	|
+| **Haplotype**             	| Haplotype (1 or 2) on which the segment is found.                                                                                                                                                                                         	|
+| **Sample**                	| Name of the sample providing the genetic data.                                                                                                                                                                                            	|
+| **Short name**            	| Only the part of the segment that includes the region, segment and variant.                                                                                                                                                               	|
+| **Messange**| Generated message for a segment when its stop codons are located on a critical position.|
 | **Old name-like seq**| The DNA sequence of the identified Old name-like segment. |
 | **Status**| Indication if the segment found is either classified **known** or **novel**. |
-| **RSS**                       | Each RSS spacer type includes six columns, with three dedicated to both the heptamer and nonamer segments. These columns represent the segment sequence, a reference sequence, and a boolean indicating if the segment matches the reference. |
+| **RSS**                   	| Each RSS spacer type includes six columns, with three dedicated to both the heptamer and nonamer segments. These columns represent the segment sequence, a reference sequence, and a boolean indicating if the segment matches the reference. |
 
 ## Plots
 
-This BPRC tool (pipeline) also creates individual plots and a interactive plot to showcase the V(D)J results. The individual plots are generated automatically using the pipeline. The interactive plot you need to run by yourself. Please see the [activation](#activation) documentation to know how to run it.
+This BPRC tool (pipeline) also creates individual plots and an interactive plot to showcase the V(D)J results. The individual plots are generated automatically using the pipeline. The interactive plot you need to run by yourself. Please refer to the [activation](#activation) documentation to know how to run it.
 
 ### Individual plots
 
-The individual plots are created with a custom V(D)J display tool using the **annotation_report_plus.xlsx** and **annotation_report_100%_plus.xlsx** Excel files. These plots are created for every target region and haplotype. There is a choice the show both haplotypes of a region at once or as individual plot per haplotype. For more information, please read the [README](https://github.com/BPRC-CGR/VDJ_display/tree/development) on its GitHub page.
+The individual plots are created with a custom V(D)J display tool using the **annotation_report_plus.xlsx** and **annotation_report_100%_plus.xlsx** Excel files. These plots are created for every target region and haplotype. There is a choice of showing both haplotypes of a region at once or as an individual plot per haplotype. For more information, please read the [README](https://github.com/BPRC-CGR/VDJ_display/tree/development) on its GitHub page.
 ![Logo](images/single.png)
 
 ### Interactive plot
@@ -439,3 +439,6 @@ The interactive plot includes several controls to customize the display:
 ## Acknowledgements
 
 I would like to thank [Jesse Bruijnesteijn](https://github.com/JesseBNL) and [Susan Ott](https://github.com/SusanOtt) for their contributions and insights, which have significantly enhanced the pipeline. Your expertise and suggestions have been really helpful in improving the pipelines functionality and effectiveness. Thank you both for your dedication and support.
+
+
+

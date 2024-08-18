@@ -8,3 +8,4 @@ dependencies:
   - beautifulsoup4=4.12.3
   - biopython=1.83
   - jinja2=3.1.3
+  

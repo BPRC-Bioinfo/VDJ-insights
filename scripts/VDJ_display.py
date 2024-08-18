@@ -3,7 +3,6 @@ from collections import deque
 from itertools import zip_longest
 import itertools
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -19,7 +18,7 @@ logger = custom_logger(__name__)
 
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
-plt.rcParams['svg.fonttype'] = 'none'
+
 
 class PlotGenerator:
     """
@@ -35,19 +34,40 @@ class PlotGenerator:
         output_dir (Path): Path to the output directory.
     """
 
-    def __init__(self) -> None:
-        """Initializes the PlotGenerator with default settings."""
-        self.legend_labels = {
-            "V": "V", "D": "D", "J": "J","C":"C", "Known_a1": "Known allele","Known_a2": "Known allele", "Novel_a1": "Novel allele","Novel_a2": "Novel allele"
-                                                                                                                      }
+    def __init__(self):
+        """
+        Initializes the PlotGenerator with default settings. Sets the current working directory (cwd).
+        Initializes default attributes for color themes and legend labels. Other attributes are defined
+        during runtime, such as the output directory, style, and footer flag.
+        """
         self.cwd = Path.cwd()
 
-    def add_filter(self, elements: List[str]) -> List[str]:
-        """Filters elements by removing characters after '*' and '-'."""
+    def add_filter(self, elements):
+        """
+        Filters elements by removing characters after '*' and '-'. Strips extra identifiers
+        from the input list of strings to retain the core segment names.
+
+        Args:
+            elements (list): List of segment strings to filter.
+
+        Returns:
+            filtered_elements (list): Filtered list of segment names.
+        """
         return [elem.split('*')[0].split("-")[0] for elem in elements]
 
-    def align_lists_by_matching(self, list1: List[str], list2: List[str]) -> Tuple[List[str], List[str]]:
-        """Aligns two lists by matching elements, inserting blanks for mismatches."""
+    def align_lists_by_matching(self, list1, list2):
+        """
+        Aligns two lists by matching elements, inserting blanks for mismatches. This function compares two lists,
+        aligns matching elements, and inserts empty strings ("") where elements do not match.
+
+        Args:
+            list1 (list): First list to align.
+            list2 (list): Second list to align.
+
+        Returns:
+            aligned_list1 (list): Aligned versions of list 1.
+            aligned_list2 (list): Aligned versions of list 2.
+        """
         aligned_list1, aligned_list2 = [], []
         i, j = 0, 0
         while i < len(list1) or j < len(list2):
@@ -81,8 +101,19 @@ class PlotGenerator:
                 j += 1
         return aligned_list1, aligned_list2
 
-    def update_df(self, df: pd.DataFrame, haplotype_list: List[str]) -> pd.DataFrame:
-        """Updates a DataFrame based on the provided haplotype list."""
+    def update_df(self, df, haplotype_list):
+        """
+        Updates a DataFrame by aligning it to a given haplotype list. This function updates
+        rows in the DataFrame based on the elements in the haplotype list, aligning rows 
+        or adding blank entries where needed.
+
+        Args:
+            df (pd.DataFrame): The DataFrame to update.
+            haplotype_list (list): List of haplotypes used for alignment.
+
+        Returns:
+            new_df (pd.DataFrame): Updated DataFrame aligned with the haplotype list.
+        """
         new_df = pd.DataFrame(columns=df.columns)
         row_counter = 0
         for value in haplotype_list:
@@ -95,16 +126,40 @@ class PlotGenerator:
                         df.iloc[row_counter]).T], ignore_index=True)
                     row_counter += 1
                 else:
-                    print(
+                    logger.warning(
                         f"Warning: Attempted to access row {row_counter} but only {len(df)} rows are available.")
         return new_df
 
     def add_to_dict(self, d, total_dict):
+        """
+        Adds key-value pairs from one dictionary to another, appending values to lists.
+
+        Args:
+            d (dict): The source dictionary.
+            total_dict (dict): The target dictionary where key-value pairs are appended.
+
+        Returns:
+            total_dict (dict): Updated total dictionary with appended values.
+        """
         for key, value in d.items():
             total_dict.setdefault(key, list()).append(value)
         return total_dict
 
     def generate_footer_lists(self, aligned_hap1, aligned_hap2, df_hap1, df_hap2):
+        """
+        Generates the footer lists for aligned haplotypes. Compares the two haplotypes and generates
+        two lists: one for the main haplotype and another for secondary elements where haplotypes differ.
+
+        Args:
+            aligned_hap1 (list): Aligned list for haplotype 1.
+            aligned_hap2 (list): Aligned list for haplotype 2.
+            df_hap1 (pd.DataFrame): DataFrame for haplotype 1.
+            df_hap2 (pd.DataFrame): DataFrame for haplotype 2.
+
+        Returns:
+            secondary (list): List of secondary elements from haplotype 1.
+            main (list): List of main elements from haplotype 2.
+        """
         main, secondary = list(), list()
         dict_hap1 = df_hap1.set_index('Start coord')['Short name'].to_dict()
         dict_hap2 = df_hap2.set_index('Start coord')['Short name'].to_dict()
@@ -119,8 +174,21 @@ class PlotGenerator:
 
         return secondary, main
 
-    def run_alignment(self, df_hap1: pd.DataFrame, df_hap2: pd.DataFrame, region: str) -> Tuple[pd.DataFrame, pd.DataFrame, List[str]]:
-        """Runs alignment on DataFrame based on the region and returns aligned DataFrames and merged haplotypes."""
+    def run_alignment(self, df_hap1, df_hap2, region):
+        """
+        Runs alignment on DataFrame based on the region and returns aligned DataFrames and merged haplotypes. 
+        Aligns haplotypes using their starting coordinates and generates aligned DataFrames for each haplotype.
+
+        Args:
+            df_hap1 (pd.DataFrame): DataFrame for haplotype 1.
+            df_hap2 (pd.DataFrame): DataFrame for haplotype 2.
+            region (str): The genomic region being processed.
+
+        Returns:
+            df_alignment_hap1 (pd.DataFrame): Aligned DataFrame for haplotype 1.
+            df_alignment_hap2 (pd.DataFrame): Aligned DataFrame for haplotype 2.
+            footer (list): List of merged haplotypes.
+        """
         hap1, hap2 = [i["Start coord"].to_list() for i in [df_hap1, df_hap2]]
         aligned_hap1, aligned_hap2 = self.align_lists_by_matching(hap1, hap2)
         footer = self.generate_footer_lists(
@@ -129,27 +197,63 @@ class PlotGenerator:
             df_hap1, aligned_hap1), self.update_df(df_hap2, aligned_hap2)
         return df_alignment_hap1, df_alignment_hap2, footer
 
-    def load_dataframe(self, filepath: str) -> pd.DataFrame:
-        """Loads a DataFrame from an Excel file located at the given filepath."""
+    def load_dataframe(self, filepath):
+        """
+        Loads a DataFrame from an Excel file located at the given filepath.
+
+        Args:
+            filepath (str): Path to the Excel file.
+
+        Returns:
+            df (pd.DataFrame): Loaded DataFrame.
+        """
         read_path = Path(self.cwd / filepath)
         return pd.read_excel(read_path)
 
-    def generate_product(self, regions: List[str], haplotypes: List[str]) -> List[Tuple[str, str]]:
-        """Generates a Cartesian product of regions and haplotypes."""
+    def generate_product(self, regions, haplotypes):
+        """
+        Generates a Cartesian product of regions and haplotypes.
+
+        Args:
+            regions (list): List of regions.
+            haplotypes (list): List of haplotypes.
+
+        Returns:
+            product (list): Cartesian product of regions and haplotypes as tuples.
+        """
         return list(itertools.product(regions, haplotypes))
 
-    def calculate_plot_size(self, num_segments: int) -> Tuple[int, float, float, int]:
-        """Calculates and returns plot size parameters based on the number of segments."""
+    def calculate_plot_size(self, num_segments):
+        """
+        Calculates and returns plot size parameters based on the number of segments.
+
+        Args:
+            num_segments (int): Number of segments to plot.
+
+        Returns:
+            block_size (int): Block size for the plot.
+            block_spacing (float): Spacing between blocks.
+            width_per_block (float): Width of each block.
+            font_size (int): Font size for the plot.
+        """
         if num_segments < 20:
-            return 1, 1.5, 0.2, 10  # block size, block spacing, width per block, font size
+            return 1, 1.5, 0.2, 10
         elif num_segments < 40:
             return 8, 3, 0.2, 8
         else:
             return 8, 1, 0.2, 6
 
-    def create_dual_color_features(self, ax: plt.Axes, start_pos: float, block_size: float,
-                                   segment_color: str, fcolor: str) -> None:
-        """Creates a dual-colored block feature on the plot."""
+    def create_dual_color_features(self, ax, start_pos, block_size, segment_color, fcolor):
+        """
+        Creates a dual-colored block feature on the plot.
+
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+            start_pos (float): Starting position of the block.
+            block_size (float): Size of the block.
+            segment_color (str): Color for the upper half of the block.
+            fcolor (str): Color for the lower half of the block.
+        """
         half_block_size = block_size / 10
         bottom_block_y = -half_block_size / 2
         top_block_y = half_block_size / 2
@@ -158,12 +262,32 @@ class PlotGenerator:
         ax.add_patch(patches.Rectangle((start_pos, top_block_y), block_size,
                      half_block_size, facecolor=segment_color, edgecolor='black', linewidth=0))
 
-    def calculate_total_width(self, df: pd.DataFrame, block_size: float, block_spacing: float) -> float:
-        """Calculates the total width of the plot based on DataFrame size, block size, and spacing."""
+    def calculate_total_width(self, df, block_size, block_spacing):
+        """
+        Calculates the total width of the plot based on DataFrame size, block size, and spacing.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the segments.
+            block_size (float): Size of each block in the plot.
+            block_spacing (float): Spacing between blocks.
+
+        Returns:
+            total_width (float): Total width of the plot.
+        """
         return len(df) * (block_size + block_spacing) - block_spacing
 
-    def initialize_plot(self, total_width: float, block_size: float) -> Tuple[plt.Figure, plt.Axes]:
-        """Initializes and returns a matplotlib plot with the specified dimensions."""
+    def initialize_plot(self, total_width, block_size):
+        """
+        Initializes and returns a matplotlib plot with the specified dimensions.
+
+        Args:
+            total_width (float): Total width of the plot.
+            block_size (float): Size of each block in the plot.
+
+        Returns:
+            fig (plt.Figure): The Figure object for the plot.
+            ax (plt.Axes): The Axes object for the plot.
+        """
         fig, ax = plt.subplots(figsize=(20, 3))
         y_padding = 2
         ax.set_xlim(0, total_width)
@@ -173,33 +297,65 @@ class PlotGenerator:
         ax.figure.set_tight_layout(True)
         return fig, ax
 
-    def add_segment_blocks(self, ax: plt.Axes, df: pd.DataFrame, block_size: float, block_spacing: float) -> None:
-        """Adds segment blocks to the plot based on DataFrame data."""
+    def add_segment_blocks(self, ax, df, block_size, block_spacing):
+        """
+        Adds segment blocks to the plot based on DataFrame data.
+
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+            df (pd.DataFrame): DataFrame containing the segments and their statuses.
+            block_size (float): Size of each block.
+            block_spacing (float): Spacing between blocks.
+        """
         current_position = 0
         for _, row in df.iterrows():
             self.create_dual_color_features(
-                ax, current_position, block_size, self.colors[row['Segment']], self.colors[row['Allele']])
-        #        ax, current_position, block_size, self.colors[row['Segment']], self.colors[row['Status']])
+                ax, current_position, block_size, self.colors[row['Segment']], self.colors[row['Status']])
             current_position += block_size + block_spacing
 
+    def segment_legend(self, ax):
+        """
+        Adds a segment legend to the plot.
 
-    def segment_legend(self, ax: plt.Axes) -> None:
-        """Adds a segment legend to the plot."""
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+        """
         color_legend_handles = [patches.Patch(
             color=self.colors[key], label=label) for key, label in self.legend_labels.items()]
         color_legend = ax.legend(handles=color_legend_handles, loc='best', bbox_to_anchor=(
             0.5, 1), ncol=len(color_legend_handles), handletextpad=1)
         ax.add_artist(color_legend)
 
-    def sample_haplotype_legend(self, ax: plt.Axes, region: str, haplotype: str, sample: str) -> plt.Axes:
-        """Adds a sample haplotype legend to the plot."""
+    def sample_haplotype_legend(self, ax, region, haplotype, sample):
+        """
+        Adds a sample haplotype legend to the plot.
+
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+            region (str): The genomic region of the plot.
+            haplotype (str): The haplotype identifier.
+            sample (str): The sample identifier.
+
+        Returns:
+            ax (plt.Axes): The updated Axes object with the added legend.
+        """
         region_haplotype_legend = ax.legend(handles=[patches.Patch(
             color='none', label=f"{region}-{haplotype} ({sample})")], loc='best', bbox_to_anchor=(1, 1), fontsize=10)
         region_haplotype_legend.get_title().set_fontsize('12')
         return ax
 
-    def add_footer(self, ax: plt.Axes, merged: List[str], step: float, block_size: float, block_spacing: float, haplotype: str) -> None:
-        """Adds a footer to the plot if specified in the style."""
+    def add_footer(self, ax, merged, step, block_size, block_spacing, haplotype):
+        """
+        Adds a footer to the plot if specified in the style.
+
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+            merged (list): List of merged haplotypes.
+            step (float): Step value for the footer.
+            block_size (float): Size of each block.
+            block_spacing (float): Spacing between blocks.
+            haplotype (str): The haplotype identifier.
+        """
         total_segments = len(merged)
         start_pos = 0
         for index, item in enumerate(merged):
@@ -208,18 +364,35 @@ class PlotGenerator:
             font_size = 8 if total_segments < 20 else 5
             if item:
                 ax.text(x_position, y_position, item, ha='center',
-                #        va='bottom', fontsize=font_size, rotation=90)
-                        va='top', fontsize=font_size, rotation=90)
+                        va='bottom', fontsize=font_size, rotation=90)
             start_pos += block_size + block_spacing
 
-    def add_legends(self, ax: plt.Axes, region: str, haplotype: str, seg_type: str, sample: str) -> None:
-        """Adds legends to the plot."""
+    def add_legends(self, ax, region, haplotype, seg_type, sample):
+        """
+        Adds legends to the plot.
+
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+            region (str): The genomic region of the plot.
+            haplotype (str): The haplotype identifier.
+            seg_type (str): The segment type.
+            sample (str): The sample identifier.
+        """
         if self.style == "combined" and haplotype == "hap1" or self.style == "single":
             self.segment_legend(ax)
         self.sample_haplotype_legend(ax, region, haplotype, sample)
 
-    def add_region_indicators(self, ax: plt.Axes, region: str, region_indicators: Dict[str, deque], block_size: float, block_spacing: float) -> None:
-        """Adds region indicators to the plot."""
+    def add_region_indicators(self, ax, region, region_indicators, block_size, block_spacing):
+        """
+        Adds region indicators to the plot.
+
+        Args:
+            ax (plt.Axes): The Axes object of the plot.
+            region (str): The genomic region of the plot.
+            region_indicators (dict): Dictionary mapping region indicators to positions.
+            block_size (float): Size of each block.
+            block_spacing (float): Spacing between blocks.
+        """
         for key, deq in region_indicators.items():
             if deq:
                 x_min = min(deq) * (block_size + block_spacing)
@@ -233,41 +406,48 @@ class PlotGenerator:
                 ax.text(x_mid, text_y_position, f'{region}{key}', horizontalalignment='center', verticalalignment='bottom', fontsize=10, color='black', bbox=dict(
                     facecolor='white', edgecolor='black', boxstyle='round,pad=0.3', linewidth=0.2))
 
-    def get_index(self, segments: List[str]) -> Dict[str, deque]:
-        """Generates indices for segment blocks."""
-        index_counter = {"V": deque(), "D": deque(), "J": deque(),"C": deque()}
+    def get_index(self, segments):
+        """
+        Generates indices for segment blocks.
+
+        Args:
+            segments (list): List of segments in the plot.
+
+        Returns:
+            index_counter (dict): Dictionary containing the segment block indices.
+        """
+        index_counter = {"V": deque(), "D": deque(), "J": deque()}
         counter = Counter([item for item in segments[0:3] if item != ""])
 
         most_common_element, count = counter.most_common(1)[0]
 
         collect = deque(most_common_element)
         for x, seg in enumerate(segments):
-            if seg not in collect and seg != '':
-                seq_check = segments[x+1] if x+1 < len(segments) else None
-                if seq_check not in collect:
-                    collect.append(seg)
+            if seg not in collect and seg != '' and segments[x+1] not in collect:
+                collect.append(seg)
             index_counter[collect[-1]].append(x)
         return index_counter
 
-    def configure_plot(self, df: pd.DataFrame, block_size: float, block_spacing: float,
-                       block_width: float, region: str, haplotype: str, seg_type: str,
-                       sample: str, merged: List[str]) -> Tuple[plt.Figure, plt.Axes]:
+    def configure_plot(self, df, block_size, block_spacing,
+                       block_width, region, haplotype, seg_type,
+                       sample, merged):
         """
         Configures the plot with segments, legends, and region indicators.
 
-        Parameters:
-            df: DataFrame containing the segments and their statuses.
-            block_size: The size of each block in the plot.
-            block_spacing: The spacing between blocks in the plot.
-            block_width: The width per block in the plot.
-            region: The genomic region being plotted.
-            haplotype: The haplotype identifier.
-            seg_type: The type of segment.
-            sample: The sample identifier.
-            merged: The list of merged haplotypes.
+        Args:
+            df (pd.DataFrame): DataFrame containing the segments and their statuses.
+            block_size (float): The size of each block in the plot.
+            block_spacing (float): The spacing between blocks in the plot.
+            block_width (float): The width per block in the plot.
+            region (str): The genomic region being plotted.
+            haplotype (str): The haplotype identifier.
+            seg_type (str): The type of segment.
+            sample (str): The sample identifier.
+            merged (list): The list of merged haplotypes.
 
         Returns:
-            A tuple containing the Figure and Axes objects for the plot.
+            fig (plt.Figure): The Figure object for the plot.
+            ax (plt.Axes): The Axes object for the plot.
         """
         all_list = list(df["Segment"])
         region_indicators = self.get_index(all_list)
@@ -282,107 +462,68 @@ class PlotGenerator:
                             block_size, block_spacing, haplotype)
         return fig, ax
 
-    def save_plot(self, fig: plt.Figure, output_dir: Path, region: str, haplotype: str) -> None:
+    def save_plot(self, fig, output_dir, region, haplotype):
         """
         Saves the generated plot to the specified directory.
 
-        Parameters:
-            fig: The Figure object of the plot to save.
-            output_dir: The directory path where the plot will be saved.
-            region: The genomic region of the plot.
-            haplotype: The haplotype identifier.
+        Args:
+            fig (plt.Figure): The Figure object of the plot to save.
+            output_dir (Path): The directory path where the plot will be saved.
+            region (str): The genomic region of the plot.
+            haplotype (str): The haplotype identifier.
         """
-        filename = f"{region}-{haplotype}.svg"
+        filename = f"{region}-{haplotype}.png"
         filepath = output_dir / filename
         logger.info(f"Generation plot {filename}, saving to {filepath}")
-        #fig.savefig(filepath, dpi=300, bbox_inches='tight', format='svg')
-        fig.savefig(filepath, bbox_inches='tight', format='svg')
+        fig.savefig(filepath, dpi=300, bbox_inches='tight', format='png')
 
-    def create_plot(self, df: pd.DataFrame, output_dir: Path, region: str,
-                    haplotype: str, sample: str, merged: List[str]) -> Tuple[plt.Figure, plt.Axes]:
+    def create_plot(self, df, output_dir, region,
+                    haplotype, sample, merged):
         """
         Creates a plot for the given DataFrame and parameters.
 
-        Parameters:
-            df: DataFrame containing the segments and their statuses.
-            output_dir: The directory path where the plot will be saved.
-            region: The genomic region of the plot.
-            haplotype: The haplotype identifier.
-            sample: The sample identifier.
-            merged: The list of merged haplotypes.
+        Args:
+            df (pd.DataFrame): DataFrame containing the segments and their statuses.
+            output_dir (Path): The directory path where the plot will be saved.
+            region (str): The genomic region of the plot.
+            haplotype (str): The haplotype identifier.
+            sample (str): The sample identifier.
+            merged (list): The list of merged haplotypes.
 
         Returns:
-            A tuple containing the Figure and Axes objects for the plot.
+            fig (plt.Figure): The Figure object for the plot.
+            ax (plt.Axes): The Axes object for the plot.
         """
         if not df.empty:
             block_size, block_spacing, base_width_per_block, font_size = self.calculate_plot_size(
                 len(df))
             return self.configure_plot(df, block_size, block_spacing, base_width_per_block, region, haplotype, 'test', sample, merged)
 
-
-    def load_and_combine_dataframes(self, files: List[str]) -> pd.DataFrame:
+    def load_and_combine_dataframes(self, files):
         """
         Loads multiple Excel files as DataFrames, assigns a status to each, and combines them into a single DataFrame.
 
-        Parameters:
-            files: A list of tuples, each containing the file path and the status to assign to its DataFrame.
+        Args:
+            files (list): A list of file paths to process.
 
         Returns:
-            A combined DataFrame containing all data from the files with assigned statuses.
+            combined_df (pd.DataFrame): A combined DataFrame containing all data from the files with assigned statuses.
         """
         dataframes = [self.load_dataframe(filename) for filename in files]
         combined_df = pd.concat(dataframes, ignore_index=True)
-
-        def determine_alleles(row):
-            # Check if Start coord and End coord appear double
-            if combined_df[(combined_df['Start coord'] == row['Start coord']) & (combined_df['stop'] == row['stop'])].shape[0] > 1:
-                # Find rows with same Start coord and End coord
-                same_coords = combined_df[(combined_df['Start coord'] == row['Start coord']) & (combined_df['stop'] == row['stop'])]
-                # Check if Old name-like seq is identical
-                if same_coords['sequence'].nunique() == 1:
-                    if row['Status'] == 'Known':
-                        # Alleles become Known_a1
-                        return 'Known_a1'
-                    else:
-                        return 'Novel_a1'
-                else:
-                    if same_coords['Status'].nunique() > 1:
-                        # Check if Status is known or novel
-                        if row['Status'] == 'Known':
-                            return 'Known_a1'
-                        else:
-                            return 'Novel_a1'
-                    else:
-                        if row['Haplotype'] == 'hap1':
-                            if row['Status'] == 'Known':
-                                return 'Known_a1'
-                            else:
-                                return 'Novel_a1'
-                        else:
-                            if row['Status'] == 'Known':
-                                return 'Known_a2'
-                            else:
-                                return 'Novel_a2'
-            else:
-                if row['Status'] == 'Known':
-                    return 'Known_a1'
-                else:
-                    return 'Novel_a1'
-        combined_df['Allele'] = combined_df.apply(determine_alleles, axis=1)
-
         return combined_df
 
-    def combine_and_save_plots_vertically(self, fig1: plt.Figure, fig2: plt.Figure, output_path: Path, dpi: int = 300) -> None:
+    def combine_and_save_plots_vertically(self, fig1, fig2, output_path, dpi=300):
         """
         Combines two matplotlib figures vertically and saves the combined figure to the specified path.
 
-        Parameters:
-            fig1: The first Figure object.
-            fig2: The second Figure object.
-            output_path: The path where the combined figure will be saved.
-            dpi: The resolution of the output image.
+        Args:
+            fig1 (plt.Figure): The first Figure object.
+            fig2 (plt.Figure): The second Figure object.
+            output_path (Path): The path where the combined figure will be saved.
+            dpi (int): The resolution of the output image.
         """
-        def fig_to_numpy(fig: plt.Figure) -> np.ndarray:
+        def fig_to_numpy(fig):
             """Converts a Figure to a NumPy array."""
             canvas = FigureCanvas(fig)
             canvas.draw()
@@ -407,11 +548,28 @@ class PlotGenerator:
         plt.close(combined_fig)
 
     def orientation_calculation(self, df):
+        """
+        Determines the orientation of the plot based on the first few segments.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing segment information.
+
+        Returns:
+            orientation (bool): Returns False if the segment starts with J or D, otherwise True.
+        """
         segment = df.sort_values(by="Start coord").head(n=3)
         single_segment = segment["Segment"].mode().iloc[0]
         return False if single_segment in ("J", "D") else True
 
-    def run_seperate_haplotype(self, df: pd.DataFrame, region, sample):
+    def run_seperate_haplotype(self, df, region, sample):
+        """
+        Generates and saves separate plots for each haplotype.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the segment information.
+            region (str): The genomic region of the plot.
+            sample (str): The sample identifier.
+        """
         for hap in ["hap1", "hap2"]:
             hap_df = df.query(f"Haplotype == '{hap}'")
             if not hap_df.empty:
@@ -419,15 +577,32 @@ class PlotGenerator:
                     hap_df) if self.rotate else True
                 hap_df = hap_df.sort_values(
                     by="Start coord", ascending=orientation_check)
-                merged = hap_df["Filtered"]
+                merged = hap_df["Short name"]
                 plot = self.create_plot(hap_df, self.output_dir,
                                         region, hap, sample, merged)
                 self.save_plot(plot[0], self.output_dir, region, hap)
 
     def get_haplotype(self, df):
+        """
+        Retrieves the most common haplotype from the DataFrame.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the segment information.
+
+        Returns:
+            haplotype (str): The most common haplotype.
+        """
         return df["Haplotype"].mode()[0]
 
-    def run_combined_haplotype(self, new_df: pd.DataFrame, region, sample):
+    def run_combined_haplotype(self, new_df, region, sample):
+        """
+        Generates and saves a combined plot for both haplotypes.
+
+        Args:
+            new_df (pd.DataFrame): DataFrame containing the segment information for both haplotypes.
+            region (str): The genomic region of the plot.
+            sample (str): The sample identifier.
+        """
         orientation_check = self.orientation_calculation(
             new_df) if self.rotate else True
         df_haplotypes = [new_df.query(f"Haplotype == '{i}'") for i in [
@@ -440,21 +615,36 @@ class PlotGenerator:
                 hap, self.output_dir, region, self.get_haplotype(hap),
                 sample, footer) for hap, footer in zip([hap1, hap2], merged)]
             self.combine_and_save_plots_vertically(
-                plots[0][0], plots[1][0], self.output_dir / f"{region}.svg")
+                plots[0][0], plots[1][0], self.output_dir / f"{region}.png")
 
     def process_region(self, df, references):
-        """Process references within a region, aligning haplotypes if conditions are met."""
+        """
+        Process references within a region, aligning haplotypes if conditions are met.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the segment information.
+            references (list): List of references to align.
+
+        Returns:
+            df (pd.DataFrame): Filtered DataFrame containing only the needed references.
+        """
         if len(references) > 2:
             return df[df['Path'].isin(references)]
         return df
 
-    def process_region_data(self, df: pd.DataFrame, region: str, sample: str) -> None:
-        """Process data for a specific region."""
+    def process_region_data(self, df, region, sample):
+        """
+        Process data for a specific region, running either single or combined plotting styles.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the segment information.
+            region (str): The genomic region to process.
+            sample (str): The sample identifier.
+        """
         region_df = df.query(f"Region == '{region}'")
         references = region_df['Path'].value_counts()
         needed_references = references.head(2).index.tolist()
         new_df = self.process_region(region_df, needed_references)
-        print(len(new_df))
         filtered = new_df.copy()
         filtered['Filtered'] = filtered['Short name'].apply(
             lambda x: self.add_filter([x])[0])
@@ -465,17 +655,18 @@ class PlotGenerator:
 
 
 def parse_arguments():
+    """
+    Parses command-line arguments for the plot generation script.
+
+    Returns:
+        args (argparse.Namespace): Parsed arguments object.
+    """
     cwd = Path.cwd()
     parser = argparse.ArgumentParser(
         description="Generate plots for VDJ segments.")
-    # Setting default file paths and statuses
-    default_files = [
-        "annotation_report_100%_plus.xlsx",
-        "annotation_report_plus.xlsx"
-    ]
-    parser.add_argument('-f', '--files', nargs='+', default=default_files,
+    parser.add_argument('-f', '--files', nargs='+', required=True,
                         help="List of file paths to process.")
-    parser.add_argument('-o', '--output_dir', type=str,
+    parser.add_argument('-o', '--output-dir', type=str,
                         help="Path to the output directory.", default=cwd / "VDJ_display")
     parser.add_argument('-s', '--style', choices=['single', 'combined'],
                         help="The plotting style: 'single' for separate haplotypes, 'combined' for combined haplotypes.", default='combined')
@@ -483,8 +674,8 @@ def parse_arguments():
                         help="Flag to not add footer to plots.", dest='footer')
     parser.add_argument('-r', '--rotate', action='store_true', default=False,
                         help="Set orientation to True, defaults to False if not provided.")
-    parser.add_argument('-c', '--color_theme', choices=[
-        'default', 'easy_eye', 'IBM', 'Wong', 'Tol','Susan'
+    parser.add_argument('-c', '--color-theme', choices=[
+        'default', 'easy_eye', 'IBM', 'Wong', 'Tol'
     ], help="Choose a color theme for the plots.", default='default')
     parser.add_argument('--re-evaluate', action='store_true', default=False,
                         help="Reevaluate the VDJ segments to better determine the order")
@@ -493,76 +684,59 @@ def parse_arguments():
 
 
 def main():
+    """
+    Main function for generating plots. Parses command-line arguments, sets up the plot generator,
+    and processes the data for plotting.
+
+    Steps:
+        1. Parses the arguments and retrieves the list of input files.
+        2. Initializes the PlotGenerator and sets its configuration based on the arguments.
+        3. Optionally re-evaluates the input files for VDJ segment order.
+        4. Loads and combines DataFrames from the input files.
+        5. For each unique genomic region, processes the data and generates plots.
+    """
     # Define color themes
     color_themes = {
         'default': {
             "V": '#ffdfba',
             "D": '#baffc9',
             "J": '#bae1ff',
-            "C": '#F3F29B',
-            "Known_a1": '#8287D4',
-            "Known_a2": '#CFD2FB',
-            "Novel_a1": '#FF8D98',
-            "Novel_a2": '#FFDDE0',
+            "Known": '#adb2fb',
+            "Novel": '#ffb3ba',
             "": '#ffffff'
         },
         'easy_eye': {
             'V': '#E69F00',
             'D': '#56B4E9',
             'J': '#009E73',
-            'C': '#008F00',
-            'Known_a1': '#DED227',
-            'Known_a2': '#F0E989',
-            'Novel_a1': '#0072B2',
-            'Novel_a2': '#77A8C3',
+            'Known': '#F0E442',
+            'Novel': '#0072B2',
             '': '#FFFFFF'
         },
         'IBM': {
             'V': '#785EF0',
             'D': '#DC267F',
             'J': '#FE6100',
-            'C': '#F0E442',
-            'Known_a1': '#FFB000',
-            'Known_a2': '#E69F00',
-            'Novel_a1': '#648FFF',
-            'Novel_a2': '#56B4E9',
+            'Known': '#FFB000',
+            'Novel': '#648FFF',
             '': '#FFFFFF'
         },
         'Wong': {
-            'V': '#CC79A7',
-            'D': '#009E73',
-            'J': '#D55E00',
-            'C': '#000000',
-            'Known_a1': '#E69F00',
-            'Known_a2': '#F0E442',
-            'Novel_a1': '#0072B2',
-            'Novel_a2': '#56B4E9',
+            'V': '#E69F00',
+            'D': '#F0E442',
+            'J': '#CC79A7',
+            'Known': '#009E73',
+            'Novel': '#D55E00',
             '': '#FFFFFF'
         },
         'Tol': {
-            'V': '#88CCEE',
-            'D': '#44AA99',
-            'J': '#117733',
-            'C': '#332288',
-            'Known_a1': '#882255',
-            'Known_a2': '#AA4499',
-            'Novel_a1': '#CC6677',
-            'Novel_a2': '#DDCC77',
+            'V': '#DDCC77',
+            'D': '#332288',
+            'J': '#88CCEE',
+            'Known': '#117733',
+            'Novel': '#882255',
             '': '#FFFFFF'
         },
-        'Susan': {
-            'V': '#BDB2CE',
-            'D': '#C8A588',
-            'J': '#C9E79F',
-            'C': '#B2D4E0',
-            'Known_a1': '#36753B',
-            'Known_a2': '#61A899',
-            'Novel_a1': '#C66526',
-            'Novel_a2': '#DCA237',
-            '': '#FFFFFF'
-        },
-
-        # Add more themes as needed
     }
     args = parse_arguments()
     input_files = [file.rstrip(' ,;.') for file in args.files]
@@ -573,6 +747,8 @@ def main():
     plot_generator.style = args.style
     plot_generator.footer = args.footer
     plot_generator.rotate = args.rotate
+    plot_generator.legend_labels = {
+        key: key for key in plot_generator.colors if key != ''}
     reevaluated_excel = Path(Path.cwd() / "reevaluated.xlsx")
     if args.re_evaluate:
         logger.info(
