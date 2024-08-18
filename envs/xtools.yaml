@@ -1,8 +1,0 @@
-name: xtools
-channels:
- - bioconda
- - conda-forge
-dependencies:
- - samtools
- - bedtools
-

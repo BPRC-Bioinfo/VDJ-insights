@@ -1,8 +1,0 @@
-name: kingfisher
-channels:
- - bioconda
- - conda-forge
-dependencies:
- - kingfisher
- - sra-tools
-

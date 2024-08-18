@@ -1,7 +1,0 @@
-name: fastqsplitter
-channels:
- - bioconda
- - conda-forge
-dependencies:
- - fastqsplitter
-

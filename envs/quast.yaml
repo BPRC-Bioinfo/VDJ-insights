@@ -3,5 +3,5 @@ channels:
  - bioconda
  - conda-forge
 dependencies:
- - quast
+ - quast=5.2.0
 

@@ -3,5 +3,5 @@ channels:
  - bioconda
  - conda-forge
 dependencies:
- - hifiasm
+ - hifiasm=0.19.8
 

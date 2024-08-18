@@ -1,7 +1,0 @@
-name: split 
-channels:
- - bioconda
- - conda-forge
-dependencies: 
- - jq
- - seqkit

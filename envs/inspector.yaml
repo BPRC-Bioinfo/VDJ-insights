@@ -6,4 +6,4 @@ channels:
 dependencies:
   - inspector=1.2
   - python=3.6
-  - matplotlib
+  - matplotlib=3.3.4

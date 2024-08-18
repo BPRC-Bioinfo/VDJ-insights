@@ -1,7 +1,0 @@
-name: flye
-channels:
- - bioconda
- - conda-forge
-dependencies:
- - flye
-

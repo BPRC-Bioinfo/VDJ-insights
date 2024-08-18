@@ -3,4 +3,4 @@ channels:
  - bioconda
  - conda-forge
 dependencies:
- - gfatools
+ - gfatools=0.5
