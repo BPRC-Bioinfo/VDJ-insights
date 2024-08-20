@@ -54,6 +54,8 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
     result = subprocess.run(
         ["conda", "env", "create", "--file",
             str(env_file), "--prefix", str(env_dir)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True
     )
     if result.returncode != 0:
