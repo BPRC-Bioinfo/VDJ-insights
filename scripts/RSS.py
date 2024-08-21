@@ -7,14 +7,14 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 from logger import custom_logger
-
+pd.set_option('display.max_rows', None)
 """
 Used CLI packages:
     1. yaml
     2. pandas
     3. openpyxl
     4. biopython
-    5. meme 
+    5. meme
     6. imagemagick
 
 Used Python packages:
@@ -717,7 +717,74 @@ def update_df(df, ref_rss_dict):
     return df
 
 
-def create_rss_excel_file(cwd, df, filename):
+def find_non_best_rows(df: pd.DataFrame) -> pd.Index:
+    """
+    Identify and return the indices of rows that are not the 'best' in overlapping segments.
+    'Best' is determined based on the row with the highest count of True values in the boolean columns.
+    """
+    boolean_columns = ["12_heptamer_matched", "12_nonamer_matched",
+                       "23_heptamer_matched", "23_nonamer_matched"]
+
+    # Ensure boolean columns are correctly handled
+    df[boolean_columns] = df[boolean_columns].apply(
+        pd.to_numeric, errors='coerce').fillna(0).astype(bool)
+
+    # Sort the DataFrame by Haplotype, Region, and Start coord
+    df = df.sort_values(
+        by=["Haplotype", "Region", "Start coord"]).reset_index(drop=True)
+
+    # Create a column to track overlap groupings
+    df['Group'] = (df['Start coord'] > df['End coord'].shift()).cumsum()
+
+    # Select non-best rows for each group
+    non_best_indices = df.groupby(['Haplotype', 'Region', 'Group']).apply(
+        lambda group: select_non_best_rows(group, boolean_columns)).explode()
+
+    # Return as a pandas Index object
+    return pd.Index(non_best_indices.dropna())
+
+
+def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index:
+    """
+    Select the non-best rows in a group based on the sum of True values in the boolean columns.
+    """
+    # Calculate True count for each row
+    group['True_Count'] = group[boolean_columns].sum(axis=1)
+
+    # Determine the maximum True count
+    max_true_count = group['True_Count'].max()
+
+    # Return the indices of rows that do not have the max True count
+    non_best_rows = group[group['True_Count'] != max_true_count]
+
+    return non_best_rows.index
+
+
+def remove_non_best_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove non-best rows based on overlapping segments and boolean conditions.
+    """
+    non_best_indices = find_non_best_rows(df)
+    df = df.sort_values(
+        by=["Haplotype", "Region", "Start coord"]).reset_index(drop=True)
+    df_cleaned = df.drop(
+        non_best_indices, errors='ignore').reset_index(drop=True)
+
+    return df_cleaned
+
+
+def create_rss_excel_file(cwd, final_df):
+    """
+    Process the DataFrame to remove non-best overlapping rows and export
+    the remaining data into separate Excel files for 'Novel' and 'Known' statuses.
+    """
+    novel_df = final_df.query("Status == 'Novel'")
+    known_df = final_df.query("Status == 'Known'")
+    for df, filename in zip([novel_df, known_df], ["annotation_report", "annotation_report_100%"]):
+        wrtie_rss_excel_file(cwd, df, filename)
+
+
+def wrtie_rss_excel_file(cwd, df, filename):
     """
     Creates an extended Excel file with the updated DataFrame.
     Merges the original annotation report with the new RSS data and saves it as an Excel file.
@@ -732,9 +799,7 @@ def create_rss_excel_file(cwd, df, filename):
     """
     try:
         logger.info(f"Generating {filename}_plus.xlsx!")
-        final_df = combine_df(df, pd.read_excel(
-            cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
-        final_df.to_excel(cwd / 'annotation' /
+        df.to_excel(cwd / 'annotation' /
                           f'{filename}_plus.xlsx', index=False)
     except OSError as e:
         logger.error(f"Failed to create Excel file: {e}")
@@ -781,6 +846,7 @@ def RSS_main():
         Exception: If any step fails, logs the error and raises an exception.
     """
     try:
+        complete_df = pd.DataFrame()
         cwd = Path.cwd()
         load_config(cwd)
         df1 = pd.read_excel(check_if_exists(
@@ -789,10 +855,14 @@ def RSS_main():
             cwd / 'annotation' / 'annotation_report_100%.xlsx'))
         ref_meme_directory = create_all_RSS_meme_files(cwd, df1)
         ref_rss_dict = make_reference_rss(ref_meme_directory)
-
         for df, filename in zip([df1, df2], ["annotation_report", "annotation_report_100%"]):
             df = update_df(df, ref_rss_dict)
-            create_rss_excel_file(cwd, df, filename)
+            reference_df = combine_df(df, pd.read_excel(
+                cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
+            complete_df = pd.concat(
+                [complete_df, reference_df], ignore_index=True)
+        final_df = remove_non_best_rows(complete_df)
+        create_rss_excel_file(cwd, final_df)
     except Exception as e:
         logger.error(f"Failed in RSS_main: {e}")
         raise
