@@ -1,4 +1,5 @@
 import argparse
+import os
 import re
 import shutil
 import sys
@@ -42,9 +43,20 @@ def load_config(config_file):
         sys.exit()
 
 
+def cwd_setup(output_dir):
+    settings_dir = Path.cwd()
+    output_dir = Path(output_dir).resolve()
+    make_dir(output_dir)
+    if not (output_dir / 'source').is_dir():
+        shutil.copytree(str(settings_dir / "source"),
+                        str(output_dir / "source"))
+    os.chdir(str(output_dir))
+    return settings_dir, output_dir
+
+
 def validate_read_files(file_path):
     """
-    Validates a file path to ensure it points to a valid .fastq.gz file. 
+    Validates a file path to ensure it points to a valid .fastq.gz file.
     This function checks that the file exists and has the correct extension.
 
     Args:
@@ -69,8 +81,8 @@ def validate_read_files(file_path):
 
 def validate_files(file_path):
     """
-    Validates that the given file path points to an existing file. 
-    If the path is invalid or points to a directory, an error is logged 
+    Validates that the given file path points to an existing file.
+    If the path is invalid or points to a directory, an error is logged
     and an exception is raised.
 
     Args:
@@ -93,10 +105,10 @@ def validate_files(file_path):
 
 def validate_reference(value):
     """
-    Validates a reference genome input, ensuring it is either a valid 
-    .fasta/.fna file or a valid accession code. The function checks the 
-    file extension against known FASTA extensions and validates the 
-    presence of the file. If the input is an accession code, it is checked 
+    Validates a reference genome input, ensuring it is either a valid
+    .fasta/.fna file or a valid accession code. The function checks the
+    file extension against known FASTA extensions and validates the
+    presence of the file. If the input is an accession code, it is checked
     against known accession patterns.
 
     Args:
@@ -132,9 +144,9 @@ def validate_reference(value):
 
 def validate_flanking_genes(value):
     """
-    Validates a comma-separated list of flanking genes, ensuring that the 
-    list is composed of uppercase gene names and contains an even number 
-    of elements. If the list is odd, an error is logged and an exception 
+    Validates a comma-separated list of flanking genes, ensuring that the
+    list is composed of uppercase gene names and contains an even number
+    of elements. If the list is odd, an error is logged and an exception
     is raised.
 
     Args:
@@ -159,9 +171,9 @@ def validate_flanking_genes(value):
 
 def validate_chromosome(value):
     """
-    Validates a comma-separated list of chromosome identifiers, ensuring 
-    that each identifier is a valid chromosome number between 1-22, or 
-    'X' or 'Y'. If any identifier is invalid, an error is logged and an 
+    Validates a comma-separated list of chromosome identifiers, ensuring
+    that each identifier is a valid chromosome number between 1-22, or
+    'X' or 'Y'. If any identifier is invalid, an error is logged and an
     exception is raised.
 
     Args:
@@ -188,14 +200,14 @@ def validate_chromosome(value):
 
 def setup_pipeline_args(subparsers):
     """
-    Configures the argument parser for the 'pipeline' command. This command 
-    processes sequencing data, and the function sets up various argument groups 
-    including reads, reference genome, and analysis settings. It also sets up 
-    validation to ensure that the '--default' option is mutually exclusive with 
+    Configures the argument parser for the 'pipeline' command. This command
+    processes sequencing data, and the function sets up various argument groups
+    including reads, reference genome, and analysis settings. It also sets up
+    validation to ensure that the '--default' option is mutually exclusive with
     '--flanking-genes' and '--chromosomes'.
 
     Args:
-        subparsers (argparse._SubParsersAction): The subparsers object to add 
+        subparsers (argparse._SubParsersAction): The subparsers object to add
         the 'pipeline' command to.
 
     Raises:
@@ -243,9 +255,9 @@ def setup_pipeline_args(subparsers):
 
     def validate_pipeline_args(args):
         """
-        Validates the arguments provided to the pipeline command, ensuring 
-        that '--default' is not used together with '--flanking-genes' or 
-        '--chromosomes', and that both '--flanking-genes' and '--chromosomes' 
+        Validates the arguments provided to the pipeline command, ensuring
+        that '--default' is not used together with '--flanking-genes' or
+        '--chromosomes', and that both '--flanking-genes' and '--chromosomes'
         are provided together unless '--default' is used.
 
         Args:
@@ -268,14 +280,14 @@ def setup_pipeline_args(subparsers):
 
 def setup_annotation_args(subparsers):
     """
-    Configures the argument parser for the 'annotation' command. This command 
-    is used for VDJ segment analysis, and the function sets up various argument 
-    groups including the library, receptor type, and species. It also sets up 
-    validation to ensure that the '--default' option is mutually exclusive with 
+    Configures the argument parser for the 'annotation' command. This command
+    is used for VDJ segment analysis, and the function sets up various argument
+    groups including the library, receptor type, and species. It also sets up
+    validation to ensure that the '--default' option is mutually exclusive with
     '--flanking-genes'.
 
     Args:
-        subparsers (argparse._SubParsersAction): The subparsers object to add 
+        subparsers (argparse._SubParsersAction): The subparsers object to add
         the 'annotation' command to.
     """
     parser_annotation = subparsers.add_parser(
@@ -302,7 +314,7 @@ def setup_annotation_args(subparsers):
     parser_annotation.add_argument('-s', '--species', type=str,
                                    help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     parser_annotation.add_argument('-o', '--output', type=str,
-                                   default='annotation',
+                                   default='annotation_results',
                                    help='Output directory for the results.')
     mapping_options = ['minimap2', 'bowtie', 'bowtie2']
     parser_annotation.add_argument('-m', '--mapping-tool', nargs='*',
@@ -316,9 +328,9 @@ def setup_annotation_args(subparsers):
 
 def run_pipeline(args):
     """
-    Executes the main pipeline process for sequencing data processing. This 
-    function orchestrates various steps such as filtering and moving files, 
-    splitting chromosomes, running Snakemake for the pipeline, and generating 
+    Executes the main pipeline process for sequencing data processing. This
+    function orchestrates various steps such as filtering and moving files,
+    splitting chromosomes, running Snakemake for the pipeline, and generating
     HTML reports.
 
     Args:
@@ -349,25 +361,25 @@ def run_pipeline(args):
 
 def run_annotation(args):
     """
-    Executes the annotation process for VDJ segment analysis. This function 
-    handles tasks such as generating or validating the library file, creating 
-    configuration files, running the main annotation process, and generating 
+    Executes the annotation process for VDJ segment analysis. This function
+    handles tasks such as generating or validating the library file, creating
+    configuration files, running the main annotation process, and generating
     HTML reports.
 
     Args:
         args (argparse.Namespace): The parsed arguments for the annotation command.
     """
+    settings_dir, output_dir = cwd_setup(args.output)
     cwd = Path.cwd()
     logger.info('Running the annotation program')
     library = cwd / 'library' / 'library.fasta'
-
     if not args.library:
         if not library.is_file():
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python scripts/IMGT_scrape.py -S "{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
-                create_and_activate_env(Path('envs/IMGT.yaml'))
+                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+                create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
                     f"Downloaded the library from the IMGT for {args.species}")
@@ -378,9 +390,9 @@ def run_annotation(args):
                 args.library = library
         else:
             args.library = library
-    create_config(cwd, args)
+    create_config(output_dir, settings_dir, args)
     try:
-        create_and_activate_env(Path('envs/scripts.yaml'))
+        create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
         annotation_main(args)
     except Exception as e:
         logger.error(f"Annotation failed with error: {str(e)}")
@@ -391,21 +403,33 @@ def run_annotation(args):
     html_main('Annotation')
 
 
-def make_dir(dir):
+def make_dir(dir) -> Path:
     """
-    Creates a directory and any necessary parent directories. If the 
-    directory already exists, no error is raised.
+    Ensures the specified directory exists by creating it if necessary. Checks if the directory exists, 
+    and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation 
+    or existence of the directory. If an error occurs during the directory creation, raises an `OSError`.
 
     Args:
-        dir (str or Path): Path to the directory to create.
+        dir (str): The path of the directory to be created.
+
+    Returns:
+        Path: The path of the created or existing directory.
+
+    Raises:
+        OSError: If the directory cannot be created due to a system-related error.
     """
-    Path(dir).mkdir(parents=True, exist_ok=True)
-    logger.info(f"Created directory: {dir}")
+    try:
+        Path(dir).mkdir(parents=True, exist_ok=True)
+        logger.info(f"Directory created or already exists: {dir}")
+    except Exception as e:
+        logger.error(f"Failed to create directory {dir}: {e}")
+        raise OSError(f"Failed to create directory {dir}") from e
+    return Path(dir)
 
 
 def key_sort(s):
     """
-    Sorts strings with numbers in a natural order (e.g., "chr1", "chr2", 
+    Sorts strings with numbers in a natural order (e.g., "chr1", "chr2",
     "chr10" instead of "chr1", "chr10", "chr2").
 
     Args:
@@ -419,9 +443,9 @@ def key_sort(s):
 
 def split_chromosomes(cwd, fasta_path):
     """
-    Splits the chromosomes from a reference genome FASTA file into 
-    individual files for each chromosome. The function creates an 
-    output directory for the chromosome files and a new reference 
+    Splits the chromosomes from a reference genome FASTA file into
+    individual files for each chromosome. The function creates an
+    output directory for the chromosome files and a new reference
     genome file, and logs the process.
 
     Args:
@@ -443,8 +467,8 @@ def split_chromosomes(cwd, fasta_path):
 
 def write_chromosomes(fasta_path, output_dir, new_genome_file):
     """
-    Writes each chromosome from a reference genome FASTA file to 
-    individual files and a combined reference genome file. It logs 
+    Writes each chromosome from a reference genome FASTA file to
+    individual files and a combined reference genome file. It logs
     the file paths and saves each chromosome as a separate FASTA file.
 
     Args:
@@ -462,8 +486,8 @@ def write_chromosomes(fasta_path, output_dir, new_genome_file):
 
 def process_record(record, output_dir, files):
     """
-    Processes a single record from a FASTA file, extracting chromosome 
-    information and writing it to the appropriate chromosome file. The 
+    Processes a single record from a FASTA file, extracting chromosome
+    information and writing it to the appropriate chromosome file. The
     function updates the CONFIG dictionary with chromosome numbers.
 
     Args:
@@ -492,8 +516,8 @@ def process_record(record, output_dir, files):
 
 def extract_chromosome_info(splitted):
     """
-    Extracts chromosome information from a split description string 
-    of a FASTA record. The function identifies the chromosome number 
+    Extracts chromosome information from a split description string
+    of a FASTA record. The function identifies the chromosome number
     and creates a chromosome identifier.
 
     Args:
@@ -523,8 +547,8 @@ def close_files(files):
 
 def rename_files(cwd: Path, file: Path, read_type: str):
     """
-    Renames a sequencing read file to a standard format based on the 
-    read type (e.g., nanopore or pacbio) and moves it to the downloads 
+    Renames a sequencing read file to a standard format based on the
+    read type (e.g., nanopore or pacbio) and moves it to the downloads
     directory. The function returns the sample name and the new file path.
 
     Args:
@@ -544,7 +568,7 @@ def rename_files(cwd: Path, file: Path, read_type: str):
 
 def get_new_file_path(file, read_type, moved_dir):
     """
-    Constructs a new file path for a sequencing read file based on the 
+    Constructs a new file path for a sequencing read file based on the
     read type and sample name. The file is moved to the downloads directory.
 
     Args:
@@ -565,8 +589,8 @@ def get_new_file_path(file, read_type, moved_dir):
 
 def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: Path):
     """
-    Filters and moves sequencing read files (nanopore and pacbio) to 
-    standard locations in the working directory. It updates the CONFIG 
+    Filters and moves sequencing read files (nanopore and pacbio) to
+    standard locations in the working directory. It updates the CONFIG
     dictionary with the original and moved file paths.
 
     Args:
@@ -920,7 +944,7 @@ def extract_chromosome_number_and_trailing(chromosome_info):
     return number, trailing
 
 
-def create_config(cwd: Path, args):
+def create_config(output_dir, settings_dir, args):
     """
     Creates a configuration file based on the provided arguments 
     and species-specific settings. The configuration is saved as a 
@@ -931,11 +955,11 @@ def create_config(cwd: Path, args):
         args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
     """
     global CONFIG
-    species_config = load_config(cwd / '_config' / 'species.yaml')
+    species_config = load_config(settings_dir / '_config' / 'species.yaml')
     initialize_config(args, species_config)
-    rss_config = load_config(cwd / '_config' / 'rss.yaml')
+    rss_config = load_config(settings_dir / '_config' / 'rss.yaml')
     deep_merge(CONFIG, rss_config.get(args.receptor_type, {}))
-    config_file = cwd / 'config' / 'config.yaml'
+    config_file = output_dir / 'config' / 'config.yaml'
     make_dir(config_file.parent)
     save_config_to_file(config_file)
 

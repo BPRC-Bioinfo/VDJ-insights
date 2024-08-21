@@ -424,7 +424,7 @@ def annotation(df, annotation_folder, file_name):
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Short name', 'Message', 'Old name-like seq']]
+             'Short name', 'Message', 'Old name-like seq', 'Reference seq',]]
     df["Status"] = "Known" if "100%" in file_name else "Novel"
     df.to_excel(annotation_folder / file_name, index=False)
 

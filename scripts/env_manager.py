@@ -9,9 +9,10 @@ from logger import custom_logger
 logger = custom_logger(__name__)
 
 # Default directory to save the environments
-DEFAULT_ENV_ROOT_DIR = Path('.tool/conda')
-ARCHIVE_DIR = Path('.tool/conda_archive')
-SAVED_ENV_YAML_DIR = Path('.tool/saved_envs')
+cwd = Path.cwd()
+DEFAULT_ENV_ROOT_DIR = cwd / '.tool/conda'
+ARCHIVE_DIR = cwd / '.tool/conda_archive'
+SAVED_ENV_YAML_DIR = cwd / '.tool/saved_envs'
 
 
 def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_env_yaml_dir=SAVED_ENV_YAML_DIR):

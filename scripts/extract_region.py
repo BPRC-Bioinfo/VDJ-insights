@@ -224,7 +224,7 @@ def create_name(filename: Path):
             - str: Haplotype identifier.
     """
     name_part = filename.stem.split("_")
-    chrom, sample, haplotype = "", "", ""
+    chrom, sample, haplotype = "", "", "hap1"
 
     for part in name_part:
         if part.startswith("hap"):

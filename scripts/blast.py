@@ -72,7 +72,8 @@ def make_blast_db(cwd: Path, library: str) -> Path:
         make_dir(blast_db_path)
         command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
         try:
-            subprocess.run(command, shell=True, check=True)
+            subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE,)
             logger.info("BLAST database created successfully.")
         except subprocess.CalledProcessError as e:
             logger.error(f"Error creating BLAST database: {e}")

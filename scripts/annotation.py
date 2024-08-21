@@ -1,3 +1,4 @@
+import shutil
 from mapping import mapping_main
 from RSS import RSS_main
 from report import report_main
@@ -192,7 +193,8 @@ def validate_input(input_path: str) -> str:
     Raises:
         argparse.ArgumentTypeError: If the directory is empty or contains no FASTA files.
     """
-    input_path = Path(input_path)
+
+    input_path = Path(input_path).resolve()
     validate_directory(str(input_path))
     if not any(entry.is_file() for ext in ["*.fasta", "*.fa", "*.fna"] for entry in input_path.glob(ext)):
         raise argparse.ArgumentTypeError(
@@ -346,7 +348,7 @@ def main(args=None):
     if args.input:
         region_dir = args.input
 
-    annotation_folder = cwd / args.output
+    annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
 
     if args.assembly:
@@ -363,7 +365,7 @@ def main(args=None):
     report_main(annotation_folder, blast_file, args.receptor_type, args.library)
     RSS_main()
     logger.info(
-        f"Annotation process completed. Results are available in {args.output}."
+        f"Annotation process completed. Results are available in {annotation_folder}."
     )
 
 
