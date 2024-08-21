@@ -262,7 +262,11 @@ def region_main(flanking_genes, assembly_dir=""):
                 chrom, sample, haplotype = create_name(assembly)
                 extract(cwd, assembly, directory, first,
                         second, sample, haplotype, config)
-        logger.info("Region extraction completed successfully")
+        if any(directory.iterdir()):
+            logger.info("Region extraction completed successfully")
+        else:
+            logger.error("No regions where extracted")
+            raise
     except Exception as e:
         logger.error(f"Failed in region_main: {e}")
         raise
