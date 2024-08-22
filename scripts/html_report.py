@@ -66,4 +66,13 @@ def open_browser():
 
 
 if __name__ == '__main__':
+    # Parse the base directory from command-line arguments
+    if len(sys.argv) > 1:
+        set_base_dir(sys.argv[1])
+    else:
+        print("Error: No base directory provided")
+        sys.exit(1)
+
+    # Start the Flask app
+    app.run(debug=True, port=8000)
     pass
