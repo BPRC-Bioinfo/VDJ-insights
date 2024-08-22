@@ -3,6 +3,8 @@ import os
 import re
 import shutil
 import sys
+import threading
+import webbrowser
 import zipfile
 from time import sleep
 from Bio import SeqIO
@@ -12,7 +14,7 @@ from logger import custom_logger
 import yaml
 from create_html import html_main
 from annotation import main as annotation_main
-from annotation import validate_file, validate_input
+from annotation import validate_file, validate_input, validate_directory
 from env_manager import create_and_activate_env, deactivate_env
 
 # Method for logging the current states of the program.
@@ -326,6 +328,29 @@ def setup_annotation_args(subparsers):
     parser_annotation.set_defaults(func=run_annotation)
 
 
+def validate_html(value):
+    input_path = Path(value).resolve()
+    if input_path.name == 'source':
+        validate_directory(str(input_path))
+    else:
+        source_path = input_path / 'source'
+        validate_directory(str(source_path))
+    return input_path / 'source'
+
+
+def setup_html(subparsers):
+    parser_html = subparsers.add_parser(
+        'html', help='Display the generated HTML report.')
+
+    parser_html.add_argument('--show', action='store_true', required=True,
+                             help='Open the HTML report in your default web browser.')
+
+    parser_html.add_argument('-i', '--input', required=True, type=validate_html,
+                             help='Path to the directory containing the HTML report.')
+
+    parser_html.set_defaults(func=run_html)
+
+
 def run_pipeline(args):
     """
     Executes the main pipeline process for sequencing data processing. This
@@ -378,7 +403,8 @@ def run_annotation(args):
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{
+                    args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
@@ -401,6 +427,22 @@ def run_annotation(args):
 
     logger.info('Creating HTML file!')
     html_main('Annotation')
+
+
+def open_browser():
+    webbrowser.open_new('http://127.0.0.1:8000/html/index.html')
+
+
+def run_html(args):
+    logger.info("Running the HTML report...")
+    settings_dir = Path(__file__).resolve().parent / 'html_report.py'
+    try:
+        threading.Timer(1, open_browser).start()
+        subprocess.run(['python', str(settings_dir), args.input],
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except KeyboardInterrupt:
+        logger.info(
+            "Process interrupted by user (Ctrl + C), HTML report closed!")
 
 
 def make_dir(dir) -> Path:
@@ -698,7 +740,8 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
         Exception: If any unexpected error occurs during file processing.
     """
     try:
-        command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+        command = f'datasets download gene symbol {
+            gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process_downloaded_files(output_zip, dir, output_fna)
@@ -796,7 +839,8 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
         Exception: If any unexpected error occurs during file processing.
     """
     try:
-        command = f'datasets download genome accession {genome_code} --include genome --filename {output_zip}'
+        command = f'datasets download genome accession {
+            genome_code} --include genome --filename {output_zip}'
         logger.info(f"Running command: {command}")
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1084,7 +1128,7 @@ def main():
 
     setup_pipeline_args(subparsers)
     setup_annotation_args(subparsers)
-
+    setup_html(subparsers)
     args = parser.parse_args()
     if args.command == 'pipeline':
         args.validate_pipeline_args(args)
