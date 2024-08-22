@@ -333,9 +333,9 @@ def validate_html(value):
     if input_path.name == 'source':
         validate_directory(str(input_path))
     else:
-        source_path = input_path / 'source'
-        validate_directory(str(source_path))
-    return input_path / 'source'
+        input_path = input_path / 'source'
+        validate_directory(str(input_path))
+    return input_path
 
 
 def setup_html(subparsers):
