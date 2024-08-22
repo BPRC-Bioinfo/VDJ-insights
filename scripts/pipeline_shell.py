@@ -403,8 +403,8 @@ def run_annotation(args):
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{
-                    args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} - S "{
+                    args.species}" - T {args.receptor_type} - -create-library - -cleanup - -simple-headers'
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
@@ -434,7 +434,10 @@ def open_browser():
 
 
 def run_html(args):
-    logger.info("Running the HTML report...")
+    logger.info(
+        "Running the HTML report, which will automatically open in your browser.")
+    logger.info(
+        "If it doesn't, please enter this address manually: http://127.0.0.1:8000/html/index.html")
     settings_dir = Path(__file__).resolve().parent / 'html_report.py'
     try:
         threading.Timer(1, open_browser).start()
@@ -741,7 +744,7 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
     """
     try:
         command = f'datasets download gene symbol {
-            gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+            gene} - -taxon "{species.capitalize()}" - -include gene - -filename {output_zip}'
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process_downloaded_files(output_zip, dir, output_fna)
@@ -840,7 +843,7 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
     """
     try:
         command = f'datasets download genome accession {
-            genome_code} --include genome --filename {output_zip}'
+            genome_code} - -include genome - -filename {output_zip}'
         logger.info(f"Running command: {command}")
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
