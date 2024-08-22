@@ -43,7 +43,6 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
     # Calculate directories based on the current CWD
     env_root_dir = env_root_dir or get_default_env_root_dir()
     saved_env_yaml_dir = saved_env_yaml_dir or get_saved_env_yaml_dir()
-    print(env_root_dir)
     # Ensure directories exist
     env_root_dir.mkdir(parents=True, exist_ok=True)
     get_archive_dir().mkdir(parents=True, exist_ok=True)
