@@ -44,7 +44,7 @@ def load_config(config_file):
 
 
 def cwd_setup(output_dir):
-    settings_dir = Path.cwd()
+    settings_dir = Path(__file__).resolve().parent.parent
     output_dir = Path(output_dir).resolve()
     make_dir(output_dir)
     if not (output_dir / 'source').is_dir():

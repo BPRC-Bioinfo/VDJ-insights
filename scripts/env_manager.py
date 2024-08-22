@@ -9,13 +9,21 @@ from logger import custom_logger
 logger = custom_logger(__name__)
 
 # Default directory to save the environments
-cwd = Path.cwd()
-DEFAULT_ENV_ROOT_DIR = cwd / '.tool/conda'
-ARCHIVE_DIR = cwd / '.tool/conda_archive'
-SAVED_ENV_YAML_DIR = cwd / '.tool/saved_envs'
 
 
-def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_env_yaml_dir=SAVED_ENV_YAML_DIR):
+def get_default_env_root_dir():
+    return Path.cwd() / '.tool' / 'conda'
+
+
+def get_archive_dir():
+    return Path.cwd() / '.tool' / 'conda_archive'
+
+
+def get_saved_env_yaml_dir():
+    return Path.cwd() / '.tool' / 'saved_envs'
+
+
+def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None):
     """
     Creates and activates a conda environment from a given environment YAML file.
     If the environment already exists and matches the YAML file, it is simply activated.
@@ -23,20 +31,29 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
 
     Args:
         env_file (Path): The path to the environment YAML file.
-        env_root_dir (Path, optional): The root directory where environments are stored. Defaults to DEFAULT_ENV_ROOT_DIR.
-        saved_env_yaml_dir (Path, optional): The directory where environment YAML files are saved for future comparison. Defaults to SAVED_ENV_YAML_DIR.
+        env_root_dir (Path, optional): The root directory where environments are stored.
+                                       Defaults to the CWD's DEFAULT_ENV_ROOT_DIR.
+        saved_env_yaml_dir (Path, optional): The directory where environment YAML files are saved 
+                                             for future comparison. Defaults to SAVED_ENV_YAML_DIR.
 
     Returns:
         Path: The full path to the created or activated conda environment, or None if creation failed.
     """
+
+    # Calculate directories based on the current CWD
+    env_root_dir = env_root_dir or get_default_env_root_dir()
+    saved_env_yaml_dir = saved_env_yaml_dir or get_saved_env_yaml_dir()
+    print(env_root_dir)
+    # Ensure directories exist
+    env_root_dir.mkdir(parents=True, exist_ok=True)
+    get_archive_dir().mkdir(parents=True, exist_ok=True)
+    saved_env_yaml_dir.mkdir(parents=True, exist_ok=True)
+
     env_name = env_file.stem
     env_dir = env_root_dir / env_name
     saved_env_yaml_file = saved_env_yaml_dir / f"{env_name}.yaml"
 
-    env_root_dir.mkdir(parents=True, exist_ok=True)
-    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    saved_env_yaml_dir.mkdir(parents=True, exist_ok=True)
-
+    # Check if the environment already exists and matches the saved YAML
     if env_dir.exists() and saved_env_yaml_file.exists():
         if filecmp.cmp(env_file, saved_env_yaml_file, shallow=False):
             logger.environment(
@@ -46,11 +63,12 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
         else:
             logger.environment(
                 f"Environment {env_name} has changed. Recreating it.")
-            archive_path = ARCHIVE_DIR / env_name
+            archive_path = get_archive_dir() / env_name
             if archive_path.exists():
                 shutil.rmtree(archive_path)
             shutil.move(env_dir, archive_path)
 
+    # Create the environment using conda
     logger.environment(f"Creating environment {env_name}.")
     result = subprocess.run(
         ["conda", "env", "create", "--file",
@@ -63,8 +81,10 @@ def create_and_activate_env(env_file, env_root_dir=DEFAULT_ENV_ROOT_DIR, saved_e
         logger.error(f"Error creating environment: {result.stderr}")
         return None
 
+    # Save the environment YAML file for future comparison
     shutil.copy(env_file, saved_env_yaml_file)
 
+    # Activate the new environment
     logger.environment(f"Activating environment {env_name}.")
     activate_env(env_dir, env_name)
 
