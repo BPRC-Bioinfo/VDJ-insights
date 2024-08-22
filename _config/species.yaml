@@ -18,6 +18,27 @@ Macaca_mulatta:
       - EPDR1
       - VPS41
 
+Macaca_fascicularis:
+  TR:
+    FLANKING_GENES:
+      - SALL2
+      - DAD1
+      - MGAM
+      - EPHB6
+      - EPDR1
+      - VPS41
+
+Mus_musculus:
+  TR:
+    FLANKING_GENES:
+      - SALL2
+      - DAD1
+      - MGAM2-PS
+      - EPHB6
+      - VPS41
+      - EPDR1
+
+
 Homo_sapiens:
   TR:
     FLANKING_GENES:
