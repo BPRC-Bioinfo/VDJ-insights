@@ -316,7 +316,8 @@ def setup_annotation_args(subparsers):
     parser_annotation.add_argument('-s', '--species', type=str,
                                    help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     parser_annotation.add_argument('-o', '--output', type=str,
-                                   default='annotation_results',
+                                   default=str(
+                                       Path.cwd() / 'annotation_results'),
                                    help='Output directory for the results.')
     mapping_options = ['minimap2', 'bowtie', 'bowtie2']
     parser_annotation.add_argument('-m', '--mapping-tool', nargs='*',
