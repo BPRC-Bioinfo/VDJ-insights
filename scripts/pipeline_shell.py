@@ -404,8 +404,8 @@ def run_annotation(args):
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} - S "{
-                    args.species}" - T {args.receptor_type} - -create-library - -cleanup - -simple-headers'
+                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{
+                    args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
