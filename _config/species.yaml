@@ -7,7 +7,15 @@ default:
       - EPHB6
       - EPDR1
       - VPS41
-    
+  IG:
+     FLANKING_GENES:
+      - TMEM121
+      - - 
+      - PAX8
+      - RPIA
+      - GNAZ
+      - TOP3B
+
 Macaca_mulatta:
   TR:
     FLANKING_GENES:
@@ -17,6 +25,14 @@ Macaca_mulatta:
       - EPHB6
       - EPDR1
       - VPS41
+  IG:
+     FLANKING_GENES:
+      - TMEM121
+      - - 
+      - PAX8
+      - RPIA
+      - GNAZ
+      - TOP3B
 
 Macaca_fascicularis:
   TR:
@@ -27,6 +43,14 @@ Macaca_fascicularis:
       - EPHB6
       - EPDR1
       - VPS41
+  IG:
+     FLANKING_GENES:
+      - TMEM121
+      - - 
+      - PAX8
+      - RPIA
+      - GNAZ
+      - TOP3B
 
 Mus_musculus:
   TR:
@@ -37,7 +61,14 @@ Mus_musculus:
       - EPHB6
       - VPS41
       - EPDR1
-
+  IG:
+     FLANKING_GENES:
+      - TMEM121
+      - - 
+      - Tacstd2
+      - RPIA
+      - Hira
+      - Or2n12
 
 Homo_sapiens:
   TR:
@@ -48,4 +79,11 @@ Homo_sapiens:
       - EPHB6
       - EPDR1
       - VPS41
-    
+  IG:
+     FLANKING_GENES:
+      - TMEM121
+      - - 
+      - PAX8
+      - RPIA
+      - GNAZ
+      - TOP3B
