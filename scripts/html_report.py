@@ -73,6 +73,8 @@ if __name__ == '__main__':
         print("Error: No base directory provided")
         sys.exit(1)
 
+    # Open the browser only after the first request, ensuring the server is ready
+    threading.Timer(1, open_browser).start()
+
     # Start the Flask app
     app.run(debug=True, port=8000)
-    pass

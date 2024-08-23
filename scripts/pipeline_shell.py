@@ -404,8 +404,8 @@ def run_annotation(args):
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{
-                    args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} - S "{
+                    args.species}" - T {args.receptor_type} - -create-library - -cleanup - -simple-headers'
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
@@ -440,10 +440,16 @@ def run_html(args):
     logger.info(
         "If it doesn't, please enter this address manually: http://127.0.0.1:8000/html/index.html")
     settings_dir = Path(__file__).resolve().parent / 'html_report.py'
+
     try:
+        # Use Popen instead of subprocess.run to make the call non-blocking
         threading.Timer(1, open_browser).start()
-        subprocess.run(['python', str(settings_dir), args.input],
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            ['python', str(settings_dir), args.input],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        process.communicate()  # To capture the output and ensure it runs
     except KeyboardInterrupt:
         logger.info(
             "Process interrupted by user (Ctrl + C), HTML report closed!")
