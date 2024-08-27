@@ -445,9 +445,7 @@ def run_html(args):
         # Use Popen instead of subprocess.run to make the call non-blocking
         threading.Timer(1, open_browser).start()
         process = subprocess.Popen(
-            ['python', str(settings_dir), args.input],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            ['python', str(settings_dir), args.input]
         )
         process.communicate()  # To capture the output and ensure it runs
     except KeyboardInterrupt:

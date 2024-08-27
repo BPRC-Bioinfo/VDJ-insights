@@ -22,7 +22,7 @@
             <div class="report-main-content">
                 {% if show_known %}
                 <h2 class="report-heading">Known Matches</h2>
-                <button class="show-more-btn column-toggle-btn">Toggle Columns</button>
+                <button class="modal-btn column-toggle-btn">Toggle Columns</button>
                 <div class="table-container">
                     <table class="report-table" id="annotationTable">
                         <thead>
@@ -47,14 +47,26 @@
                 </div>
                 {% else %}
                 <h2 class="report-heading">Novel Segments</h2>
-                <button class="show-more-btn column-toggle-btn">Toggle Columns</button>
+                <button class="modal-btn column-toggle-btn">Toggle Columns</button>
+
+                <!-- New buttons for Novel Segments: Select All and Save to Library -->
+                <div class="button-row">
+                    <button class="action-btn" id="selectAllBtn">Select All</button>
+                    <button class="action-btn" id="saveToLibraryBtn">Save to Library</button>
+                </div>
+
                 <div class="table-container">
                     <table class="report-table" id="annotationTable">
                         <thead>
                             <tr>
+                                <!-- Checkbox column header, always displayed -->
+                                <th>Select</th>
+                                <th class="sortable">Reference</th>
                                 {% if annotation_data_plus %}
                                 {% for column in annotation_data_plus[0].keys() %}
+                                {% if column != "Reference" %}
                                 <th class="sortable">{{ column }}</th>
+                                {% endif %}
                                 {% endfor %}
                                 {% endif %}
                             </tr>
@@ -62,8 +74,13 @@
                         <tbody>
                             {% for row in annotation_data_plus %}
                             <tr>
-                                {% for value in row.values() %}
+                                <!-- Checkbox column for each row, always displayed -->
+                                <td><input type="checkbox" class="row-checkbox"></td>
+                                <td>{{ row.Reference }}</td>
+                                {% for key, value in row.items() %}
+                                {% if key != "Reference" %}
                                 <td>{{ value }}</td>
+                                {% endif %}
                                 {% endfor %}
                             </tr>
                             {% endfor %}
@@ -75,35 +92,52 @@
         </div>
     </div>
 
-    <!-- Modal for column toggle -->
-    <div id="columnToggleModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Select Columns to Display</h2>
-            <form id="columnToggleForm" class="modal-form">
+<!-- Modal for column toggle -->
+<div id="columnToggleModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Select Columns to Display</h2>
+        <form id="columnToggleForm" class="modal-form">
+            <div class="labels-container">
                 {% if show_known %}
                     {% if annotation_data_100_plus %}
                         {% for column in annotation_data_100_plus[0].keys() %}
-                        <label>
-                            <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
-                            {{ column }}
-                        </label>
+                        <div class="label-item">
+                            <label title="{{ column }}">
+                                <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
+                                {{ column }}
+                            </label>
+                        </div>
                         {% endfor %}
                     {% endif %}
                 {% else %}
                     {% if annotation_data_plus %}
                         {% for column in annotation_data_plus[0].keys() %}
-                        <label>
-                            <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
-                            {{ column }}
-                        </label>
+                        <!-- Exclude "Select" column from the modal, include "Reference" -->
+                        {% if column != "Select" %}
+                        <div class="label-item">
+                            <label title="{{ column }}">
+                                <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
+                                {{ column }}
+                            </label>
+                        </div>
+                        {% endif %}
                         {% endfor %}
                     {% endif %}
                 {% endif %}
-                <button type="button" id="applyColumns">Apply</button>
-            </form>
-        </div>
+            </div>
+            
+            <!-- Separate div for the button -->
+            <div class="button-container">
+                <button class="action-btn" type="button" id="applyColumns">Apply</button>
+            </div>
+        </form>
     </div>
+</div>
+
+
+
+
 
     <script src="../js/loadSidebar.js"></script>
     <script src="../js/annotation.js"></script>

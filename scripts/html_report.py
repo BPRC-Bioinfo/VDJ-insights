@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, redirect
+from flask import Flask, send_from_directory, redirect, request, jsonify
 from pathlib import Path
 import webbrowser
 import threading
@@ -58,6 +58,60 @@ def serve_images(filename):
     if base_dir is None:
         return "Base directory not set", 500
     return send_from_directory(base_dir / 'images', filename)
+
+# New endpoint to handle sequence saving
+
+
+@app.route('/save_sequences', methods=['POST'])
+def save_sequences():
+    new_sequences = request.json.get('sequences', {})
+    fasta_file_path = base_dir.parent / ".tool/library/library.fasta"
+
+    if not new_sequences:
+        return jsonify({"error": "No sequences provided"}), 400
+
+    total_new = append_to_fasta(fasta_file_path, new_sequences)
+    if total_new > 0:
+        message = f"Added a total of {total_new} new sequences to the library"
+    else:
+        message = "No new sequences found to add"
+    return jsonify({"message": message}), 200
+
+# Read existing FASTA file and return a dictionary of {header: sequence}
+
+
+def read_fasta(file_path):
+    sequences = {}
+    header = None
+    sequence = []
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line.startswith('>'):
+                if header:
+                    sequences[header] = ''.join(sequence)
+                header = line
+                sequence = []
+            else:
+                sequence.append(line)
+        if header:
+            sequences[header] = ''.join(sequence)  # Add the last sequence
+
+    return sequences
+
+# Append new sequences to FASTA file only if not already present
+
+
+def append_to_fasta(file_path, new_sequences):
+    existing_sequences = read_fasta(file_path)
+    total_new = 0
+    with open(file_path, 'a') as file:
+        for header, sequence in new_sequences.items():
+            if header not in existing_sequences and sequence not in existing_sequences.values():
+                total_new += 1
+                file.write(f"{header}\n{sequence}\n")
+    return total_new
 
 
 def open_browser():
