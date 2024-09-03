@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports Dashboard{% endblock %}
+
+{% block content %}
+<div class="main-content" id="main-content">
+    <div class="header-index">
+        <h1 class="title">Reports Dashboard</h1>
+        <p class="subtitle">Welcome to the reports dashboard. Select a report below to view detailed analysis and insights.</p>
+        <div class="divider"></div>
+    </div>    
+
+    <div class="content">
+        <div class="card-grid">
+            
+            <!-- Full Report Card -->
+            <div class="card card-1">
+                <div class="card-header">
+                    <h3>Report</h3>
+                </div>
+                <div class="card-body">
+                    <p class="date">Generated on: <span> {{ date_time }}</span></p>
+                    <p>The full report provides comprehensive analysis across multiple data sources, offering a holistic view.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('report') }}" class="btn btn-primary">View report</a>
+                </div>
+            </div>
+            
+            <!-- IMGT Scrape Report Card -->
+            <div class="card card-2">
+                <div class="card-header">
+                    <h3>IMGT Report</h3>
+                </div>
+                <div class="card-body">
+                    <p class="date">Generated on: <span>{{ date_time }}</span></p>
+                    <p>This report contains data scraped from the IMGT database, offering insights into the latest sequences.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('imgt_report') }}" class="btn btn-primary">View report</a>
+                </div>
+            </div>
+
+            <!-- Placeholder for Future Reports -->
+            <div class="card card-3">
+                <div class="card-header">
+                    <h3>Known report</h3>
+                </div>
+                <div class="card-body">
+                    <p class="date">Generated on: <span>{{ date_time }}</span></p>
+                    <p>This section is reserved for future reports that will be added to the dashboard.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('annotation', annotation_type='known') }}" class="btn btn-primary">View report</a>
+                </div>
+            </div>
+
+            <!-- Placeholder for Future Reports -->
+            <div class="card card-4">
+                <div class="card-header">
+                    <h3>Novel report</h3>
+                </div>
+                <div class="card-body">
+                    <p class="date">Generated on: <span>{{ date_time }}</span></p>
+                    <p>This section is reserved for future reports that will be added to the dashboard.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('annotation', annotation_type='novel') }}" class="btn btn-primary">View report</a>
+                </div>
+            </div>
+
+            <!-- Placeholder for Future Reports -->
+            <div class="card card-5">
+                <div class="card-header">
+                    <h3>Complete library</h3>
+                </div>
+                <div class="card-body">
+                    <p class="date">Generated on: <span>{{ date_time }}</span></p>
+                    <p>This section is reserved for future reports that will be added to the dashboard.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('view_library') }}" class="btn btn-primary">View report</a>
+                </div>
+            </div>
+
+            <!-- Placeholder for Future Reports -->
+            <div class="card card-6">
+                <div class="card-header">
+                    <h3>Found sequences</h3>
+                </div>
+                <div class="card-body">
+                    <p class="date">Generated on: <span>{{ date_time }}</span></p>
+                    <p>This section is reserved for future reports that will be added to the dashboard.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('sequence_library') }}" class="btn btn-primary">View report</a>
+                </dir>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}

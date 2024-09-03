@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Annotation Details
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/annotation.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="main-content" id="main-content">
+        <div class="header">
+            <h1 class="report-title">Annotation Details</h1>
+            <p class="report-date"><strong>Date and Time:</strong> {{ date_time }}</p>
+        </div>
+        <div class="report-main-content">
+            {% if show_known %}
+            <h2 class="report-heading">Known Matches</h2>
+            <button class="modal-btn column-toggle-btn">Toggle Columns</button>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
+            </div>
+            <div class="table-container">
+                <table class="report-table" id="annotationTable">
+                    <thead>
+                        <tr>
+                            {% if annotation_data_100_plus %}
+                            {% for column in annotation_data_100_plus[0].keys() %}
+                            <th class="sortable">{{ column }}</th>
+                            {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in annotation_data_100_plus %}
+                        <tr>
+                            {% for value in row.values() %}
+                            <td>{{ value }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <h2 class="report-heading">Novel Segments</h2>
+            <button class="modal-btn column-toggle-btn">Toggle Columns</button>
+
+            <div class="button-row">
+                <button class="action-btn" id="selectAllBtn">Select All</button>
+                <button class="action-btn" id="saveToLibraryBtn">Save to Library</button>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
+            </div>
+            <div class="table-container">
+                <table class="report-table" id="annotationTable">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th class="sortable">Reference</th>
+                            {% if annotation_data_plus %}
+                            {% for column in annotation_data_plus[0].keys() %}
+                            {% if column != "Reference" %}
+                            <th class="sortable">{{ column }}</th>
+                            {% endif %}
+                            {% endfor %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in annotation_data_plus %}
+                        <tr>
+                            <td><input type="checkbox" class="row-checkbox"></td>
+                            <td>{{ row.Reference }}</td>
+                            {% for key, value in row.items() %}
+                            {% if key != "Reference" %}
+                            <td>{{ value }}</td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal for column toggle -->
+    <div id="columnToggleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Select Columns to Display</h2>
+            <form id="columnToggleForm" class="modal-form">
+                <div class="labels-container">
+                    {% if show_known %}
+                        {% if annotation_data_100_plus %}
+                            {% for column in annotation_data_100_plus[0].keys() %}
+                            <div class="label-item">
+                                <label title="{{ column }}">
+                                    <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
+                                    {{ column }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% else %}
+                        {% if annotation_data_plus %}
+                            {% for column in annotation_data_plus[0].keys() %}
+                            {% if column != "Select" %}
+                            <div class="label-item">
+                                <label title="{{ column }}">
+                                    <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
+                                    {{ column }}
+                                </label>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endif %}
+                </div>
+                
+                <div class="button-row">
+                    <button class="action-btn simplify" type="button" id="applySimplifiedColumns">Simplify</button>
+                    <button class="action-btn apply" type="button" id="applyColumns">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tablesorter@2.31.3/dist/js/jquery.tablesorter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tablesorter@2.31.3/dist/js/jquery.tablesorter.widgets.min.js"></script>
+    <script src="{{ url_for('static', filename='js/annotation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/report.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/library.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/search_table.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sequence-cell.js') }}"></script>
+{% endblock %}

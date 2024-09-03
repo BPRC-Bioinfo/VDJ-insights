@@ -1,0 +1,287 @@
+/* Sidebar Styling */
+.sidebar {
+    width: 200px;
+    height: 100vh;
+    background: #0063a5;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+}
+
+.sidebar.minimized {
+    width: 70px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    margin: 10px;
+    color: #0063a5;
+    transition: padding 0.3s ease;
+}
+
+.logo {
+    max-width: 70%;
+    height: auto;
+    padding-left: 10px;
+    transition: opacity 0.3s ease, max-width 0.3s ease;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #0063a5;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: background 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar-content {
+    flex: 1;
+    padding: 10px 0;
+    overflow-y: auto;
+}
+
+.sidebar-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-content ul li {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    transition: padding 0.3s ease;
+    position: relative;
+    height: 50px;
+    cursor: pointer;
+}
+
+.sidebar-content ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.sidebar-content ul li a i {
+    font-size: 1.2em;
+    color: #fff;
+    margin-right: 10px;
+}
+
+.sidebar-content ul li a span {
+    transition: opacity 0.3s ease, width 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar-content ul li:hover::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #044167;
+    z-index: -1;
+}
+
+.sidebar.minimized .sidebar-content ul li {
+    padding: 5px;
+}
+
+.sidebar.minimized .sidebar-content ul li a {
+    justify-content: center;
+}
+
+.sidebar.minimized .sidebar-content ul li a span {
+    display: none;
+    opacity: 0;
+    width: 0;
+}
+
+/* Custom Dropdown Styles */
+.sidebar-content .sidebar-dropdown {
+    position: relative;
+}
+
+.sidebar-content .sidebar-dropdown .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.1em;
+    cursor: pointer;
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    transition: color 0.3s ease;
+}
+
+.sidebar-content .sidebar-dropdown .dropdown-toggle i {
+    margin-right: 10px;
+}
+
+.sidebar-content .sidebar-dropdown .dropdown-toggle .dropdown-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+.sidebar.minimized .sidebar-content .sidebar-dropdown .dropdown-toggle .dropdown-icon {
+    margin-left: 0; /* Remove margin in minimized state */
+}
+
+.sidebar-content .sidebar-dropdown.active .dropdown-toggle .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.sidebar-content .sidebar-dropdown .dropdown-menu {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #3279B2;
+    min-width: 200px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+    font-family: 'Poppins', sans-serif;
+}
+
+.sidebar-content .sidebar-dropdown.active .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, visibility 0s linear 0s, transform 0.3s ease;
+}
+
+.sidebar-content .sidebar-dropdown .dropdown-menu li a {
+    color: #fff;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-size: 1em;
+    display: flex;
+    align-items: center; /* Ensure icon is inline with text */
+    transition: background-color 0.3s ease;
+}
+
+.sidebar-content .sidebar-dropdown .dropdown-menu li a i {
+    margin-right: 10px; /* Ensure the icon is inline with the text */
+}
+
+
+/* Highlight Active Menu Item */
+.sidebar-content ul li a.active {
+    background-color: #004a80;
+    font-weight: bold;
+}
+
+.sidebar-content ul li a.active i {
+    color: #fff;
+}
+
+.sidebar.minimized .sidebar-content .sidebar-dropdown .dropdown-menu {
+    min-width: 70px; /* Match the minimized sidebar width */
+}
+.sidebar-content .sidebar-dropdown .dropdown-menu li a {
+    justify-content: center; /* Center the text and icons */
+    padding: 0px;
+}
+
+
+
+.sidebar-dropdown.active {
+    background-color: #044167;
+    border-bottom: 1px solid #fff;
+}
+/* Responsive Media Queries */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 160px;
+    }
+
+    .sidebar.minimized {
+        width: 60px;
+    }
+
+    .sidebar-content ul li {
+        padding: 8px 10px;
+    }
+
+    .sidebar-content ul li a {
+        font-size: 1em;
+    }
+
+    .sidebar-content .sidebar-dropdown .dropdown-menu {
+        min-width: 140px;
+        left: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 140px;
+    }
+
+    .sidebar.minimized {
+        width: 50px;
+    }
+
+    .sidebar-content ul li {
+        padding: 6px 8px;
+    }
+
+    .sidebar-content ul li a {
+        font-size: 0.9em;
+    }
+
+    .sidebar-content .sidebar-dropdown .dropdown-menu {
+        min-width: 120px;
+        left: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 120px;
+    }
+
+    .sidebar.minimized {
+        width: 50px;
+    }
+
+    .sidebar-content ul li {
+        padding: 4px 6px;
+    }
+
+    .sidebar-content ul li a {
+        font-size: 0.8em;
+    }
+
+    .sidebar-content .sidebar-dropdown .dropdown-menu {
+        min-width: 100px;
+        left: 0;
+    }
+}
+

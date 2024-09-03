@@ -1,0 +1,200 @@
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px; /* Rounded corners */
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 1200px; /* Increase max-width for more space */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.close {
+    align-self: flex-end; /* Position close button to the top right */
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+@keyframes slideIn {
+    from {
+        top: -300px;
+        opacity: 0;
+    }
+
+    to {
+        top: 0;
+        opacity: 1;
+    }
+}
+
+/* Form layout inside the modal */
+.modal-form {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 20px; /* Space above form */
+}
+
+.labels-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 equal-width columns */
+    gap: 10px; /* Space between items */
+    margin-top: 20px;
+}
+
+.label-item {
+    display: flex;
+    align-items: center; /* Align checkbox and text vertically */
+    overflow: hidden; /* Hide overflow */
+    white-space: nowrap; /* Prevent text from wrapping */
+    text-overflow: ellipsis; /* Truncate text with ellipsis */
+    cursor: pointer; /* Show pointer cursor on hover */
+    width: 100%; /* Ensure labels take full width of the container */
+}
+
+.label-item label {
+    overflow: hidden; /* Make sure the text inside the label is truncated */
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+    width: 100%; /* Ensure the text container takes up full width */
+}
+
+.label-item input {
+    margin-right: 5px; /* Add spacing between checkbox and label */
+}
+
+.label-item:hover {
+    text-decoration: none;
+}
+
+/* Button styling */
+.modal-form button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    margin-top: 10px;
+    align-self: flex-end; /* Align button to the bottom right */
+    width: auto; /* Adjust button width */
+}
+
+.modal-form button:hover {
+    background-color: #2980b9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-btn {
+    background-color: #ff5733;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 1em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.modal-btn:hover {
+    background-color: #c44123;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-btn:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+/* Labels inside modal */
+#columnToggleModal .action-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    background-color: #1abc9c;
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    width: 100%;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#columnToggleModal .action-btn:hover {
+    background-color: #16a085;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+#columnToggleModal .apply {
+    background-color: #4CAF50; /* Nice green */
+    transition: background-color 0.3s ease; /* Smooth transition for hover */
+}
+
+#columnToggleModal .apply:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+#columnToggleModal .simplify {
+    background-color: #2196F3; /* Nice blue */
+    transition: background-color 0.3s ease; /* Smooth transition for hover */
+}
+
+#columnToggleModal .simplify:hover {
+    background-color: #1976D2; /* Darker blue on hover */
+}
+
+#columnToggleModal .reset {
+    background-color: #c44123; /* Nice blue */
+    transition: background-color 0.3s ease; /* Smooth transition for hover */
+}
+
+#columnToggleModal .reset:hover {
+    background-color: #ff5733; /* Darker blue on hover */
+}
+/* Button container */
+.button-container {
+    width: 100%;
+    text-align: center; /* Center the button horizontally */
+    margin-top: 20px;   /* Add some space above the button */
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%; /* Adjust modal width for smaller screens */
+        max-width: none; /* Remove the max-width constraint */
+    }
+
+    .labels-container {
+        grid-template-columns: repeat(2, 1fr); /* Reduce to 2 columns on small screens */
+    }
+}

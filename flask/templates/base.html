@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <title>{% block title %}Full Report{% endblock %}</title>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <button class="toggle-btn" id="toggle-btn">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <img src="{{ url_for('static', filename='images/BPRC_logo.png') }}" alt="logo" class="logo">
+        </div>
+        <div class="sidebar-content">
+            <ul class="sidebar-menu">
+                <li title="Home"><a href="{{ url_for('home') }}"><i class="fas fa-home"></i><span>Home</span></a></li>
+                <li title"Report"><a href="{{ url_for('report') }}"><i class="fa-solid fa-folder"></i><span>Report</span></a></li>
+                <li title="IMGT report"><a href="{{ url_for('imgt_report') }}"><i class="fa-solid fa-globe"></i><span>IMGT Report</span></a></li>
+                <!-- Redesigned Dropdown -->
+                <li title="Library" class="sidebar-dropdown">
+                    <a href="javascript:void(0)" class="dropdown-toggle">
+                        <i class="fa-solid fa-ellipsis-h"></i><span>Library</span>
+                        <i class="fa-solid fa-angle-down dropdown-icon"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li title="Complete library"><a href="{{ url_for('view_library') }}"><i class="fa-solid fa-file"></i><span>Complete library</span></a></li>
+                        <li title="Found sequences" ><a href="{{ url_for('sequence_library') }}"><i class="fa-solid fa-search"></i><span>Found sequences</span></a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div id="main-content" class="container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/loadSidebar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

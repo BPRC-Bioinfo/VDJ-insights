@@ -49,9 +49,9 @@ def cwd_setup(output_dir):
     settings_dir = Path(__file__).resolve().parent.parent
     output_dir = Path(output_dir).resolve()
     make_dir(output_dir)
-    if not (output_dir / 'source').is_dir():
-        shutil.copytree(str(settings_dir / "source"),
-                        str(output_dir / "source"))
+    if not (output_dir / 'flask').is_dir():
+        shutil.copytree(str(settings_dir / "flask"),
+                        str(output_dir / "flask"))
     os.chdir(str(output_dir))
     return settings_dir, output_dir
 
@@ -331,10 +331,10 @@ def setup_annotation_args(subparsers):
 
 def validate_html(value):
     input_path = Path(value).resolve()
-    if input_path.name == 'source':
+    if input_path.name == 'flask':
         validate_directory(str(input_path))
     else:
-        input_path = input_path / 'source'
+        input_path = input_path / 'flask'
         validate_directory(str(input_path))
     return input_path
 
@@ -404,8 +404,8 @@ def run_annotation(args):
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} - S "{
-                    args.species}" - T {args.receptor_type} - -create-library - -cleanup - -simple-headers'
+                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{
+                    args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
@@ -426,26 +426,29 @@ def run_annotation(args):
     finally:
         deactivate_env()
 
-    logger.info('Creating HTML file!')
-    html_main('Annotation')
+    # logger.info('Creating HTML file!')
+    # html_main('Annotation')
 
 
 def open_browser():
-    webbrowser.open_new('http://127.0.0.1:8000/html/index.html')
+    webbrowser.open_new('http://127.0.0.1:5000/')
 
 
 def run_html(args):
     logger.info(
         "Running the HTML report, which will automatically open in your browser.")
     logger.info(
-        "If it doesn't, please enter this address manually: http://127.0.0.1:8000/html/index.html")
-    settings_dir = Path(__file__).resolve().parent / 'html_report.py'
+        "If it doesn't, please enter this address manually: http://127.0.0.1:5000")
 
+    settings_dir = args.input
+    os.chdir(settings_dir.parent)
     try:
         # Use Popen instead of subprocess.run to make the call non-blocking
         threading.Timer(1, open_browser).start()
         process = subprocess.Popen(
-            ['python', str(settings_dir), args.input]
+            ['python', str(settings_dir / 'app.py')],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
         process.communicate()  # To capture the output and ensure it runs
     except KeyboardInterrupt:

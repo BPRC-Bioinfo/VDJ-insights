@@ -1,0 +1,80 @@
+.library-card {
+    background: #fff;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    transition: transform 0.3s;
+}
+
+.library-card:hover {
+    transform: translateY(-5px);
+}
+
+.library-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #eaeaea;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.library-card-header h3 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #2c3e50;
+}
+
+.number-tag {
+    background-color: #004080; /* Dark blue color matching the sidebar */
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.8em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Softer shadow for consistency */
+    font-family: 'Poppins', sans-serif; /* Keep the font consistent */
+}
+
+.number-text {
+    margin: 0;
+    font-weight: 500;
+    color: #ffffff; /* White color to match the number tag */
+}
+
+.number {
+    background-color: #0066cc; /* Lighter blue matching the overall app style */
+    display: inline-flex;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1em;
+    margin-left: 10px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Softer shadow */
+    font-family: 'Poppins', sans-serif;
+}
+
+
+.library-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1em;
+}
+
+.library-table th, .library-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.library-table th {
+    background-color: #4d96fb;
+    color: #fff;
+}
+

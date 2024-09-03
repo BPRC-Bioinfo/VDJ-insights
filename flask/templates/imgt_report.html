@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    IMGT Scrape Report
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" 
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" 
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="main-content" id="main-content">
+        <div class="header">
+            <h1 class="report-title">IMGT Scrape Report</h1>
+            <p class="report-date"><strong>Date and Time:</strong> {{ date_time }}</p>
+        </div>
+        <div class="report-main-content">
+            <p class="report-intro"><strong>IMGT/V-QUEST reference directory sets release:</strong> {{ set_release }}</p>
+            <h2 class="report-heading">Summary</h2>
+            <ul class="report-list">
+                <li><strong>Species:</strong> {{ species }}</li>
+                <li><strong>Type:</strong> {{ type }}</li>
+                <li><strong>Output Directory:</strong> {{ output }}</li>
+                <li><strong>Frame Selection:</strong> {{ frame_selection }}</li>
+                <li><strong>Create Library:</strong> {{ create_library }}</li>
+                <li><strong>Cleanup:</strong> {{ cleanup }}</li>
+                <li><strong>Simple Headers:</strong> {{ simple_headers }}</li>
+            </ul>
+            <h2 class="report-heading">FASTA File Entries</h2>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Segments found</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in fasta_files %}
+                    <tr>
+                        <td>{{ file.name }}</td>
+                        <td>{{ file.entries }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+{% endblock %}

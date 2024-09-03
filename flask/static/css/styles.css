@@ -1,0 +1,385 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    background-color: #ffffff;
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* The .container class will resize dynamically */
+.container {
+    margin-left: 200px; /* Offset by the sidebar width */
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+}
+
+.container.shifted {
+    margin-left: 100px; /* Adjust when sidebar is minimized */
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 1024px) {
+    .container {
+        margin-left: 240px;
+    }
+
+    .container.shifted {
+        margin-left: 80px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin-left: 220px;
+    }
+
+    .container.shifted {
+        margin-left: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        margin-left: 180px;
+    }
+
+    .container.shifted {
+        margin-left: 50px;
+    }
+}
+
+/* Header styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 100%;
+    border-bottom: 1px solid #34495e;
+}
+
+
+.header .report-title {
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin: 0;
+    padding-bottom: 0.2em;
+    flex: 1; /* Allow title to take up available space */
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column; /* Stack the date and mode vertically */
+    align-items: flex-end; /* Align to the right */
+    color: #7f8c8d;
+    font-size: 1em;
+    white-space: nowrap; /* Prevents text wrapping */
+}
+
+.header-info p {
+    margin: 0;
+    line-height: 1.2; /* Consistent spacing between lines */
+}
+
+/* Flexbox for main content */
+.report-main-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Ensures it takes full width of parent */
+}
+
+/* Styling for headings */
+.report-title,
+.report-heading {
+    color: #2c3e50;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.report-title {
+    font-size: 2.5em;
+    padding-bottom: 0.2em;
+}
+
+.report-heading {
+    font-size: 2em;
+    margin-top: 1.5em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #34495e;
+}
+
+/* Media Queries for responsiveness */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column; /* Stack items vertically */
+        align-items: center; /* Center align items */
+        text-align: center; /* Center text */
+    }
+
+    .header .report-title {
+        font-size: 2em; /* Slightly smaller for mobile */
+        margin-bottom: 10px;
+    }
+
+    .header-info {
+        align-items: center; /* Center align for smaller screens */
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header .report-title {
+        font-size: 1.8em; /* Further reduce font size for very small screens */
+    }
+
+    .header-info {
+        font-size: 0.9em; /* Reduce the font size for date and mode */
+    }
+}
+
+
+/* Styling for paragraphs */
+.report-intro {
+    margin-bottom: 1em;
+    line-height: 1.8;
+    text-align: justify;
+    color: #333;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+/* Styling for lists */
+.report-list {
+    line-height: 1.8;
+    margin-bottom: 1.5em;
+    padding-left: 1.5em;
+    color: #333;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.report-list li {
+    margin-bottom: 0.5em;
+}
+
+/* Styling for tables */
+.report-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 1.5em;
+    background-color: #ffffff;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.5s ease-in-out;
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.report-table th,
+.report-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+    width: calc(100% / 12);
+}
+
+.report-table th {
+    background-color: #0063a5;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.report-table th:hover {
+    background-color: #005287;
+}
+
+.report-table td {
+    background-color: #ffffff;
+    color: #333;
+    font-size: 14px;
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Rounded corners for table */
+.report-table tr:first-child th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.report-table tr:first-child th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.report-table tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+.report-table tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+/* Table container */
+.table-container {
+    overflow-x: auto; /* Horizontal scrolling if content overflows */
+    width: 100%; /* Ensure it takes full width of parent container */
+    margin-top: 20px; /* Add some space above */
+}
+/* Keyframes for animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Button styling */
+.report-button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 1em;
+    animation: fadeInUp 0.5s ease-in-out;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.report-button:hover {
+    background-color: #2980b9;
+}
+
+.button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+    margin-bottom: 1em;
+    width: 100%;
+}
+
+/* Apply button styling */
+.action-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    background-color: #1abc9c;
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.action-btn:hover {
+    background-color: #16a085;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.warning {
+    background-color: #FF4C4C;
+}
+.warning:hover {
+    background-color: #CC3B3B;
+}
+
+/* Base style for the search bar */
+.search-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.search-bar {
+    padding: 12px 15px;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    color: #333333;
+    outline: none;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar:hover {
+    border-color: #007acc;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 122, 204, 0.2);
+}
+
+.search-bar:focus {
+    border-color: #005fa3;
+    background-color: #f0f8ff;
+    box-shadow: 0 6px 12px rgba(0, 122, 204, 0.3);
+}
+
+.search-bar:active {
+    border-color: #004080;
+    background-color: #e6f3ff;
+    box-shadow: 0 4px 10px rgba(0, 95, 163, 0.25);
+    transform: translateY(-1px);
+}
+
+.shortcut-indicator {
+    position: absolute;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    background-color: #007acc;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 1.2em;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shortcut-key {
+    font-weight: bold;
+    font-family: "Source Code Pro", monospace;
+}
+
+@media (max-width: 600px) {
+    .shortcut-indicator {
+        display: none;
+    }
+}
+
+
+.sequence-cell {
+    font-family: 'Courier New', Courier, monospace;
+    color: #e74c3c;
+    max-width: 200px; /* Adjust this width as needed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sequence-cell:hover {
+    cursor: pointer;
+}
