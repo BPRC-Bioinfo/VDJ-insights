@@ -459,7 +459,6 @@ def load_library_from_json(json_file_path):
 def save_library_to_json(library, json_file_path):
     with open(json_file_path, 'w') as json_file:
         json.dump(library, json_file, indent=4)
-    print(f"Updated library saved to {json_file_path}")
 
 
 def load_annotation_data(cwd):
@@ -528,6 +527,8 @@ def run_html(args):
         threading.Timer(1, open_browser).start()
         process = subprocess.Popen(
             ['python', str(output_dir / 'app.py')],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
         process.communicate()  # To capture the output and ensure it runs
     except KeyboardInterrupt:
