@@ -210,11 +210,7 @@ def report():
 
 @app.route('/annotation/<string:annotation_type>')
 def annotation(annotation_type):
-    # Log the incoming request
-    print(f"Received request for annotation_type: {annotation_type}")
-
     cwd = Path.cwd()
-
     if annotation_type == 'known':
         annotation_summary, annotation_data = summarize_annotation_data(
             cwd / 'annotation' / 'annotation_report_100%_plus.xlsx')
@@ -361,11 +357,8 @@ def imgt_report():
 @app.route('/library')
 def view_library():
     base_dir = Path.cwd()
-    print(base_dir)
     fasta_file_path = base_dir / ".tool/library/library.fasta"
-    # Reuse the read_fasta function from before
     sequences = read_fasta(fasta_file_path)
-    print(fasta_file_path)
     date_time = datetime.datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S")  # Get current date and time
     context = {

@@ -35,6 +35,7 @@
                                     <th>End Coord</th>
                                     <th>Status</th>
                                     <th>Sample</th>
+                                    <th>Haplotype</th>
                                     <th>Sequence</th>
                                 </tr>
                             </thead>
@@ -47,6 +48,7 @@
                                         <td>{{ sub_value['End coord'] }}</td>
                                         <td>{{ sub_value.Status }}</td>
                                         <td>{{ sub_value.Sample }}</td>
+                                        <td>{{ sub_value.Haplotype }}</td>
                                         <td class="sequence-cell" data-sequence="{{ sub_value.Sequence }}" title="Click to view full sequence">{{ sub_value.Sequence }}</td>
                                     </tr>
                                 {% endfor %}

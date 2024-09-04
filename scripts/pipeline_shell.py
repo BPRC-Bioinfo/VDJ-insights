@@ -8,10 +8,14 @@ import webbrowser
 import zipfile
 from time import sleep
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from pathlib import Path
 import subprocess
 from logger import custom_logger
 import yaml
+import pandas as pd
+import json
 from create_html import html_main
 from annotation import main as annotation_main
 from annotation import validate_file, validate_input, validate_directory
@@ -49,11 +53,16 @@ def cwd_setup(output_dir):
     settings_dir = Path(__file__).resolve().parent.parent
     output_dir = Path(output_dir).resolve()
     make_dir(output_dir)
-    if not (output_dir / 'flask').is_dir():
-        shutil.copytree(str(settings_dir / "flask"),
-                        str(output_dir / "flask"))
+    copy_flask(output_dir / 'flask', settings_dir)
     os.chdir(str(output_dir))
     return settings_dir, output_dir
+
+
+def copy_flask(output_dir, reset=False):
+    settings_dir = Path(__file__).resolve().parent.parent
+    if not output_dir.is_dir() or reset:
+        shutil.copytree(str(settings_dir / "flask"),
+                        str(output_dir), dirs_exist_ok=True)
 
 
 def validate_read_files(file_path):
@@ -348,6 +357,8 @@ def setup_html(subparsers):
 
     parser_html.add_argument('-i', '--input', required=True, type=validate_html,
                              help='Path to the directory containing the HTML report.')
+    parser_html.add_argument('--reset-flask', required=False, default=False,
+                             action='store_true', help="Reset the flask directory.")
 
     parser_html.set_defaults(func=run_html)
 
@@ -430,6 +441,74 @@ def run_annotation(args):
     # html_main('Annotation')
 
 
+def generate_fasta_library():
+    fasta_library = Path.cwd() / ".tool" / "library"
+    ref_fasta = Path.cwd() / "library" / "library.fasta"
+    make_dir(fasta_library)
+    if not (fasta_library / 'library.fasta').is_file():
+        shutil.copy(str(ref_fasta), str(fasta_library / 'library.fasta'))
+
+
+def load_library_from_json(json_file_path):
+    if json_file_path.is_file():
+        with open(json_file_path, 'r') as json_file:
+            return json.load(json_file)
+    return {}
+
+
+def save_library_to_json(library, json_file_path):
+    with open(json_file_path, 'w') as json_file:
+        json.dump(library, json_file, indent=4)
+    print(f"Updated library saved to {json_file_path}")
+
+
+def load_annotation_data(cwd):
+    novel = pd.read_excel(cwd / 'annotation' / 'annotation_report_plus.xlsx')
+    known = pd.read_excel(cwd / 'annotation' /
+                          'annotation_report_100%_plus.xlsx')
+    return pd.concat([novel, known])[["Start coord", "End coord", "Reference", "Old name-like", "Status",
+                                      "Sample", "Haplotype", "Old name-like seq"]].apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+
+
+def update_library_with_row(library, row, status_filter):
+    if status_filter != "Both" and row["Status"] != status_filter:
+        return
+
+    ref = row["Reference"]
+    if ref not in library:
+        library[ref] = {"Number": 0}  # Initialize the reference with a count
+
+    unique_key = f"{row['Old name-like']}_{row['Start coord']
+                                           }_{row['End coord']}_{row['Sample']}"
+    if unique_key not in library[ref]:  # Check to avoid double-counting
+        library[ref][unique_key] = {
+            "Start coord": row["Start coord"],
+            "End coord": row["End coord"],
+            "Reference": row["Reference"],
+            "Old name-like": row["Old name-like"],
+            "Status": row["Status"],
+            "Sample": row["Sample"],
+            "Haplotype": row["Haplotype"],
+            "Sequence": row["Old name-like seq"]
+        }
+        # Increment count only when a new unique entry is added
+        library[ref]["Number"] += 1
+
+
+def update_library_from_dataframe(library, df, status_filter):
+    df.apply(lambda row: update_library_with_row(
+        library, row, status_filter), axis=1)
+
+
+def generate_json_library(status_filter="Novel"):
+    cwd = Path.cwd()
+    json_file_path = cwd / '.tool' / 'library' / 'library.json'
+    library = load_library_from_json(json_file_path)
+    df = load_annotation_data(cwd)
+    update_library_from_dataframe(library, df, status_filter)
+    save_library_to_json(library, json_file_path)
+
+
 def open_browser():
     webbrowser.open_new('http://127.0.0.1:5000/')
 
@@ -439,16 +518,16 @@ def run_html(args):
         "Running the HTML report, which will automatically open in your browser.")
     logger.info(
         "If it doesn't, please enter this address manually: http://127.0.0.1:5000")
-
-    settings_dir = args.input
-    os.chdir(settings_dir.parent)
+    output_dir = args.input
+    copy_flask(output_dir, args.reset_flask)
+    os.chdir(output_dir.parent)
+    generate_fasta_library()
+    generate_json_library(status_filter="Both")
     try:
         # Use Popen instead of subprocess.run to make the call non-blocking
         threading.Timer(1, open_browser).start()
         process = subprocess.Popen(
-            ['python', str(settings_dir / 'app.py')],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            ['python', str(output_dir / 'app.py')],
         )
         process.communicate()  # To capture the output and ensure it runs
     except KeyboardInterrupt:
@@ -458,8 +537,8 @@ def run_html(args):
 
 def make_dir(dir) -> Path:
     """
-    Ensures the specified directory exists by creating it if necessary. Checks if the directory exists, 
-    and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation 
+    Ensures the specified directory exists by creating it if necessary. Checks if the directory exists,
+    and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation
     or existence of the directory. If an error occurs during the directory creation, raises an `OSError`.
 
     Args:
@@ -672,8 +751,8 @@ def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: P
 
 def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio, ont_sample, pb_sample):
     """
-    Moves the original nanopore and pacbio read files to their new 
-    locations in the downloads directory. If the sample names differ, 
+    Moves the original nanopore and pacbio read files to their new
+    locations in the downloads directory. If the sample names differ,
     the files are renamed with a standard naming convention.
 
     Args:
@@ -695,8 +774,8 @@ def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio,
 
 def unzip_file(file_path, dir):
     """
-    Unzips a file to a specified directory. The function logs the 
-    extraction process and handles exceptions that may occur during 
+    Unzips a file to a specified directory. The function logs the
+    extraction process and handles exceptions that may occur during
     extraction.
 
     Args:
@@ -717,8 +796,8 @@ def unzip_file(file_path, dir):
 
 def download_flanking_genes(gene, dir: Path, species):
     """
-    Downloads the flanking genes for a given gene and species using 
-    the NCBI datasets command-line tool. The downloaded files are 
+    Downloads the flanking genes for a given gene and species using
+    the NCBI datasets command-line tool. The downloaded files are
     extracted and processed into a FASTA file.
 
     Args:
@@ -735,8 +814,8 @@ def download_flanking_genes(gene, dir: Path, species):
 
 def run_download_command(gene, species, output_zip, output_fna, dir):
     """
-    Executes the command to download flanking genes for a given gene 
-    and species. The function logs the command and processes the 
+    Executes the command to download flanking genes for a given gene
+    and species. The function logs the command and processes the
     downloaded files.
 
     Args:
@@ -765,8 +844,8 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
 
 def process_downloaded_files(output_zip, dir, output_fna):
     """
-    Processes the downloaded zip file by extracting its contents and 
-    renaming the gene FASTA file. The function then cleans up the 
+    Processes the downloaded zip file by extracting its contents and
+    renaming the gene FASTA file. The function then cleans up the
     downloaded files and logs the process.
 
     Args:
@@ -782,7 +861,7 @@ def process_downloaded_files(output_zip, dir, output_fna):
 
 def cleanup_downloaded_files(output_zip, dir):
     """
-    Cleans up the downloaded files by deleting the zip file, README file, 
+    Cleans up the downloaded files by deleting the zip file, README file,
     and the extracted directory. The function logs the cleanup process.
 
     Args:
@@ -799,8 +878,8 @@ def cleanup_downloaded_files(output_zip, dir):
 
 def log_subprocess_error(e):
     """
-    Logs the error information from a failed subprocess command. The 
-    function captures the standard output and error streams and logs 
+    Logs the error information from a failed subprocess command. The
+    function captures the standard output and error streams and logs
     them for debugging.
 
     Args:
@@ -813,7 +892,7 @@ def log_subprocess_error(e):
 
 def download_reference_genome(genome_code, reference_dir: Path):
     """
-    Downloads a reference genome using the NCBI datasets command-line tool, 
+    Downloads a reference genome using the NCBI datasets command-line tool,
     extracts the genome FASTA file, and saves it to the specified directory.
 
     Args:
@@ -835,8 +914,8 @@ def download_reference_genome(genome_code, reference_dir: Path):
 
 def run_reference_download_command(genome_code, output_zip, reference_dir, output_fna):
     """
-    Executes the command to download a reference genome based on the 
-    accession code. The function logs the command and processes the 
+    Executes the command to download a reference genome based on the
+    accession code. The function logs the command and processes the
     downloaded files.
 
     Args:
@@ -865,8 +944,8 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
 
 def process_reference_files(output_zip, reference_dir, output_fna, genome_code):
     """
-    Processes the downloaded reference genome zip file by extracting its 
-    contents and renaming the genome FASTA file. The function then cleans 
+    Processes the downloaded reference genome zip file by extracting its
+    contents and renaming the genome FASTA file. The function then cleans
     up the downloaded files and logs the process.
 
     Args:
@@ -886,8 +965,8 @@ def process_reference_files(output_zip, reference_dir, output_fna, genome_code):
 
 def deep_merge(d1, d2):
     """
-    Deep merges two dictionaries. If there are nested dictionaries, the 
-    function recursively merges them. If there are conflicting keys, the 
+    Deep merges two dictionaries. If there are nested dictionaries, the
+    function recursively merges them. If there are conflicting keys, the
     values from the second dictionary overwrite those in the first.
 
     Args:
@@ -906,8 +985,8 @@ def deep_merge(d1, d2):
 
 def loop_flanking_genes(cwd, args):
     """
-    Processes flanking genes by downloading them and determining their 
-    associated chromosomes. The function updates the argument namespace 
+    Processes flanking genes by downloading them and determining their
+    associated chromosomes. The function updates the argument namespace
     with the downloaded flanking genes and their chromosomes.
 
     Args:
@@ -928,7 +1007,7 @@ def loop_flanking_genes(cwd, args):
 
 def prepare_flanking_genes_directory(cwd):
     """
-    Prepares the directory for storing downloaded flanking genes. 
+    Prepares the directory for storing downloaded flanking genes.
     If the directory does not exist, it is created.
 
     Args:
@@ -945,8 +1024,8 @@ def prepare_flanking_genes_directory(cwd):
 
 def get_species_dict(cwd, args):
     """
-    Retrieves the species-specific configuration dictionary from the 
-    species YAML file. If a species-specific configuration is not found, 
+    Retrieves the species-specific configuration dictionary from the
+    species YAML file. If a species-specific configuration is not found,
     the default configuration is returned.
 
     Args:
@@ -964,7 +1043,7 @@ def get_species_dict(cwd, args):
 
 def process_flanking_gene(gene, flanking_genes_dir, species, receptor_chromosomes):
     """
-    Downloads the flanking gene for a given species and adds the 
+    Downloads the flanking gene for a given species and adds the
     associated chromosome information to the receptor_chromosomes set.
 
     Args:
@@ -985,7 +1064,7 @@ def process_flanking_gene(gene, flanking_genes_dir, species, receptor_chromosome
 
 def extract_chromosome_number_and_trailing(chromosome_info):
     """
-    Extracts the chromosome number and any trailing characters 
+    Extracts the chromosome number and any trailing characters
     (e.g., 'X', 'Y') from a chromosome description string.
 
     Args:
@@ -1001,8 +1080,8 @@ def extract_chromosome_number_and_trailing(chromosome_info):
 
 def create_config(output_dir, settings_dir, args):
     """
-    Creates a configuration file based on the provided arguments 
-    and species-specific settings. The configuration is saved as a 
+    Creates a configuration file based on the provided arguments
+    and species-specific settings. The configuration is saved as a
     YAML file in the config directory.
 
     Args:
@@ -1021,9 +1100,9 @@ def create_config(output_dir, settings_dir, args):
 
 def initialize_config(args, species_config):
     """
-    Initializes the global CONFIG dictionary based on the provided 
-    arguments and species-specific settings. It populates the 
-    CONFIG dictionary with species name, receptor type, flanking genes, 
+    Initializes the global CONFIG dictionary based on the provided
+    arguments and species-specific settings. It populates the
+    CONFIG dictionary with species name, receptor type, flanking genes,
     and other relevant information.
 
     Args:
@@ -1076,8 +1155,8 @@ def save_config_to_file(file_name):
 
 def run_snakemake(args, snakefile="Snakefile"):
     """
-    Runs the Snakemake workflow using the provided number of threads. 
-    The function first performs a dry-run to check the workflow and 
+    Runs the Snakemake workflow using the provided number of threads.
+    The function first performs a dry-run to check the workflow and
     then runs the complete pipeline if the dry-run is successful.
 
     Args:
@@ -1108,8 +1187,8 @@ def run_snakemake(args, snakefile="Snakefile"):
 
 def cleanup():
     """
-    Cleans up by moving the original sequencing read files back 
-    to their original locations from the downloads directory, 
+    Cleans up by moving the original sequencing read files back
+    to their original locations from the downloads directory,
     and removes the downloads directory.
 
     """
@@ -1124,9 +1203,9 @@ def cleanup():
 
 def main():
     """
-    The main entry point of the script. It sets up the argument 
-    parsers for the 'pipeline' and 'annotation' commands, parses 
-    the command-line arguments, and invokes the corresponding 
+    The main entry point of the script. It sets up the argument
+    parsers for the 'pipeline' and 'annotation' commands, parses
+    the command-line arguments, and invokes the corresponding
     function based on the command provided.
 
     Raises:

@@ -15,9 +15,12 @@ body {
     margin-left: 200px; /* Offset by the sidebar width */
     padding: 20px;
     transition: margin-left 0.3s ease;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow-y: hidden; /* Disable vertical scrolling on the container */
+    overflow-x: hidden; /* Remove horizontal scrolling */
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ensure the container takes up full height */
 }
 
 .container.shifted {
@@ -169,18 +172,33 @@ body {
 }
 
 /* Styling for tables */
+.table-container {
+    flex: 1; /* Make table container grow to fill the remaining space */
+    overflow: auto;
+    width: 100%; /* Make sure the container takes the full width */
+    margin-top: 20px;
+}
+/* Keyframes for animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 .report-table {
-    width: 100%;
-    border-collapse: separate;
+    width: 100%; /* Ensure the table takes full width of the container */
+    min-width: 800px; /* Minimum width to trigger horizontal scrolling */
+    border-collapse: collapse;
     border-spacing: 0;
-    margin-bottom: 1.5em;
     background-color: #ffffff;
     color: #333;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    animation: fadeInUp 0.5s ease-in-out;
     border-radius: 10px;
     overflow: hidden;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
 .report-table th,
@@ -199,10 +217,18 @@ body {
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    white-space: nowrap;
 }
 
 .report-table th:hover {
     background-color: #005287;
+}
+
+
+.report-table th, .report-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .report-table td {
@@ -230,23 +256,6 @@ body {
 
 .report-table tr:last-child td:last-child {
     border-bottom-right-radius: 10px;
-}
-/* Table container */
-.table-container {
-    overflow-x: auto; /* Horizontal scrolling if content overflows */
-    width: 100%; /* Ensure it takes full width of parent container */
-    margin-top: 20px; /* Add some space above */
-}
-/* Keyframes for animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 /* Button styling */
@@ -353,8 +362,8 @@ body {
     align-items: center;
     background-color: #007acc;
     border-radius: 4px;
-    padding: 5px 8px;
-    font-size: 1.2em;
+    padding: 2px 12px;
+    font-size: 0.8em;
     color: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }

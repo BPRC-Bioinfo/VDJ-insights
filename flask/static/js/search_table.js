@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const shortcutIndicator = document.createElement('div');
     shortcutIndicator.classList.add('shortcut-indicator');
-    shortcutIndicator.innerHTML = `<span class="shortcut-key">${isMac ? '⌘K' : 'CtrlK'}</span>`;
+    shortcutIndicator.innerHTML = `<span class="shortcut-key">${isMac ? '⌘ K' : 'Ctrl K'}</span>`;
     
     // Insert the shortcut indicator into the DOM
     const searchContainer = document.querySelector('.search-container');
