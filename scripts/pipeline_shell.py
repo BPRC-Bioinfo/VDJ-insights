@@ -832,7 +832,7 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
     """
     try:
         command = f'datasets download gene symbol {
-            gene} - -taxon "{species.capitalize()}" - -include gene - -filename {output_zip}'
+            gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process_downloaded_files(output_zip, dir, output_fna)
@@ -931,7 +931,7 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
     """
     try:
         command = f'datasets download genome accession {
-            genome_code} - -include genome - -filename {output_zip}'
+            genome_code} --include genome --filename {output_zip}'
         logger.info(f"Running command: {command}")
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

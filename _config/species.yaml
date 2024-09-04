@@ -10,7 +10,7 @@ default:
   IG:
      FLANKING_GENES:
       - TMEM121
-      - - 
+      - "-" 
       - PAX8
       - RPIA
       - GNAZ
@@ -28,7 +28,7 @@ Macaca_mulatta:
   IG:
      FLANKING_GENES:
       - TMEM121
-      - - 
+      - "-" 
       - PAX8
       - RPIA
       - GNAZ
@@ -46,7 +46,7 @@ Macaca_fascicularis:
   IG:
      FLANKING_GENES:
       - TMEM121
-      - - 
+      - "-" 
       - PAX8
       - RPIA
       - GNAZ
@@ -64,7 +64,7 @@ Mus_musculus:
   IG:
      FLANKING_GENES:
       - TMEM121
-      - - 
+      - "-" 
       - Tacstd2
       - RPIA
       - Hira
@@ -82,7 +82,7 @@ Homo_sapiens:
   IG:
      FLANKING_GENES:
       - TMEM121
-      - - 
+      - "-" 
       - PAX8
       - RPIA
       - GNAZ
