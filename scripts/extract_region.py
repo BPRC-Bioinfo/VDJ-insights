@@ -134,6 +134,7 @@ def get_best_coords(sam_list):
 def get_positions_and_name(sam, first, second, record_dict):
     """
     Extracts the positions and contig name from a SAM file for given flanking genes.
+    Handles reverse strand mapping and assigns missing genes to the telomere if necessary.
 
     Args:
         sam (Path): Path to the SAM file.
@@ -143,7 +144,7 @@ def get_positions_and_name(sam, first, second, record_dict):
 
     Returns:
         tuple: A tuple containing:
-            - list: A list of coordinates for the flanking genes.
+            - list: A list of coordinates for the flanking genes or telomeres.
             - list: A list of contig names associated with these coordinates.
 
     Raises:
@@ -151,23 +152,51 @@ def get_positions_and_name(sam, first, second, record_dict):
     """
     try:
         coords, name, best_coords, contig_name = [], [], [], ""
-        for c, gene in enumerate([first, second]):
-            awk = r"awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $2, $3, $4, $4 + length($10) - 1}}'"
-            command = f"cat {sam} |  egrep '{gene}' | {awk}"
-            if c == 0 and not gene:
-                coords.append(0)
-            elif c == 1 and not gene:
-                record = record_dict[contig_name]
-                coords.append(len(record.seq))
+        awk = r"awk '{if($1 !~ /^@/ && $6 !~ /\*/){print $2, $3, $4, $4 + length($10) - 1}}'"
+        genes = [first, second]
+        commands = [
+            f"egrep '{first}' {sam} | {awk}" if first != "-" else None,
+            f"egrep '{second}' {sam} | {awk}" if second != "-" else None
+        ]
+
+        flag = None
+
+        for i, gene in enumerate(genes):
+            if gene == "-":
+                if i == 0:
+                    if flag is not None and flag & 16:
+                        record = record_dict[contig_name]
+                        coords.append(len(record.seq))
+                    else:
+                        coords.append(0)
+                else:
+                    if flag is not None and flag & 16:
+                        coords.append(0)
+                    else:
+                        record = record_dict[contig_name]
+                        coords.append(len(record.seq))
             else:
-                line = subprocess.run(command, shell=True,
-                                      capture_output=True, text=True)
-                sam_list = line.stdout.strip().split()
-                if sam_list:
-                    best_coords, contig_name = get_best_coords(sam_list)
-                coords.extend([int(i) for i in best_coords]
-                              ), name.append(contig_name)
+                if commands[i]:
+                    line = subprocess.run(
+                        commands[i], shell=True, capture_output=True, text=True)
+                    if line.returncode != 0:
+                        logger.error(f"Failed to run command: {commands[i]}")
+                        continue
+                    sam_list = line.stdout.strip().split()
+                    if sam_list:
+                        flag = int(sam_list[0])
+                        best_coords, contig_name = get_best_coords(sam_list)
+                        coords.extend([int(coord) for coord in best_coords])
+                        name.append(contig_name)
+        if len(coords) == 2:
+            region_length = abs(coords[1] - coords[0])
+            if region_length < 100:
+                logger.warning(f"Region is too short: {
+                               region_length} base pairs")
+                return [], []
+
         return coords, name
+
     except Exception as e:
         logger.error(f"Failed to get positions and name from SAM file: {e}")
         raise

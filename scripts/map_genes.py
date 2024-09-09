@@ -71,12 +71,14 @@ def download_flanking_genes(gene, dir: Path, species="homo sapiens"):
         subprocess.CalledProcessError: If the command to download the genes fails.
         Exception: If an unexpected error occurs during file processing, logs the error and raises an exception.
     """
+
     dir = Path(dir)
     output_zip = dir / f"{gene}.zip"
     output_fna = dir / f"{gene}.fna"
     if not output_fna.is_file():
         try:
-            command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+            command = f'datasets download gene symbol {
+                gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
             result = subprocess.run(
                 command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             unzip_file(output_zip, dir)
@@ -199,7 +201,8 @@ def map_main(flanking_genes, assembly_dir, species):
         flanking_genes_dir = cwd / "flanking_genes"
         make_dir(flanking_genes_dir)
         for gene in flanking_genes:
-            download_flanking_genes(gene, flanking_genes_dir, species)
+            if gene != "-":
+                download_flanking_genes(gene, flanking_genes_dir, species)
         gene_output = combine_genes(
             flanking_genes_dir, flanking_genes_dir / "all_genes.fna")
         assembly_dir = cwd / assembly_dir

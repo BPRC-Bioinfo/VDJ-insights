@@ -448,9 +448,9 @@ def main():
     logger.info("Scrape completed successfully.")
 
     # Save log to HTML
-    make_dir(Path.cwd() / 'source' / 'html')
-    save_log_to_html(set_release(), fasta_files_info,
-                     "source/html/scrape_report.html", args)
+    # make_dir(Path.cwd() / 'source' / 'html')
+    # save_log_to_html(set_release(), fasta_files_info,
+    #                  "source/html/scrape_report.html", args)
 
 
 if __name__ == '__main__':

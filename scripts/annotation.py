@@ -1,3 +1,4 @@
+import os
 import shutil
 from mapping import mapping_main
 from RSS import RSS_main
@@ -152,7 +153,8 @@ def validate_directory(directory_path: str) -> str:
     """
     if not Path(directory_path).is_dir():
         raise argparse.ArgumentTypeError(
-            f"The directory {directory_path} does not exist. Try another directory!"
+            f"The directory {
+                directory_path} does not exist. Try another directory!"
         )
     return directory_path
 
@@ -198,7 +200,8 @@ def validate_input(input_path: str) -> str:
     validate_directory(str(input_path))
     if not any(entry.is_file() for ext in ["*.fasta", "*.fa", "*.fna"] for entry in input_path.glob(ext)):
         raise argparse.ArgumentTypeError(
-            f"The directory {input_path} is empty or does not contain any FASTA files!"
+            f"The directory {
+                input_path} is empty or does not contain any FASTA files!"
         )
     return str(input_path)
 
@@ -220,11 +223,12 @@ def validate_flanking_genes(value: str) -> list:
         argparse.ArgumentTypeError: If the number of flanking genes is odd.
     """
     flanking_genes = [
-        gene.strip().upper() if gene.strip() != '-' else '' for gene in value.split(',')
+        gene.strip().upper() for gene in value.split(',')
     ]
     if len(flanking_genes) % 2 == 1:
         raise argparse.ArgumentTypeError(
-            f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5)."
+            f"The specified flanking genes: {
+                flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5)."
         )
     return flanking_genes
 
@@ -272,7 +276,7 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
 
     exclusive_group = parser.add_argument_group('Exclusive Options')
     exclusive_mutually_exclusive = exclusive_group.add_mutually_exclusive_group()
-    exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=str,
+    exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
                                               help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
     exclusive_mutually_exclusive.add_argument('--default', action='store_true',
                                               help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
@@ -325,7 +329,6 @@ def main(args=None):
     update_args = argparser_setup()
     region_dir = "region"
     cwd = Path.cwd()
-
     if args is None:
         args = update_args.parse_args()
     elif isinstance(args, list):
@@ -333,6 +336,8 @@ def main(args=None):
     elif not isinstance(args, argparse.Namespace):
         raise ValueError("Invalid arguments passed to the main function")
 
+    # os.chdir(args.output)
+    # print(Path.cwd())
     if args.assembly:
         if not args.flanking_genes or not args.species:
             update_args.error(
@@ -365,7 +370,8 @@ def main(args=None):
     report_main(annotation_folder, blast_file, args.receptor_type, args.library)
     RSS_main()
     logger.info(
-        f"Annotation process completed. Results are available in {annotation_folder}."
+        f"Annotation process completed. Results are available in {
+            annotation_folder}."
     )
 
 
