@@ -3,7 +3,9 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python=3.10
-  - pandas=2.2.1
-  - matplotlib=3.3.4
-  - numpy=2.0.1
+  - pandas
+  - matplotlib
+  - numpy
+  - biopython
+  - pyyaml
+  - openpyxl

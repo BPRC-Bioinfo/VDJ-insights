@@ -191,8 +191,8 @@ def get_positions_and_name(sam, first, second, record_dict):
         if len(coords) == 2:
             region_length = abs(coords[1] - coords[0])
             if region_length < 100:
-                logger.warning(f"Region is too short: {
-                               region_length} base pairs")
+                logger.warning(
+                    f"Region is too short: {region_length} base pairs")
                 return [], []
 
         return coords, name

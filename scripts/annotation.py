@@ -153,8 +153,8 @@ def validate_directory(directory_path: str) -> str:
     """
     if not Path(directory_path).is_dir():
         raise argparse.ArgumentTypeError(
-            f"The directory {
-                directory_path} does not exist. Try another directory!"
+            f"The directory {directory_path} does not exist. "
+            "Try another directory!"
         )
     return directory_path
 
@@ -200,8 +200,8 @@ def validate_input(input_path: str) -> str:
     validate_directory(str(input_path))
     if not any(entry.is_file() for ext in ["*.fasta", "*.fa", "*.fna"] for entry in input_path.glob(ext)):
         raise argparse.ArgumentTypeError(
-            f"The directory {
-                input_path} is empty or does not contain any FASTA files!"
+            f"""The directory {
+                input_path} is empty or does not contain any FASTA files!"""
         )
     return str(input_path)
 
@@ -227,8 +227,8 @@ def validate_flanking_genes(value: str) -> list:
     ]
     if len(flanking_genes) % 2 == 1:
         raise argparse.ArgumentTypeError(
-            f"The specified flanking genes: {
-                flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5)."
+            f"""The specified flanking genes: {
+                flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5)."""
         )
     return flanking_genes
 
@@ -370,8 +370,8 @@ def main(args=None):
     report_main(annotation_folder, blast_file, args.receptor_type, args.library)
     RSS_main()
     logger.info(
-        f"Annotation process completed. Results are available in {
-            annotation_folder}."
+        f"""Annotation process completed. Results are available in {
+            annotation_folder}.xlsx"""
     )
 
 

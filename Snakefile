@@ -2,13 +2,9 @@ import os
 from pathlib import Path
 import pandas as pd
 
-# Setting up the global config object. 
-configfile: 'config/config.yaml'
 
-# Setup. Loading Accession, machine, flanking.
 ACCESSION, MACHINE = glob_wildcards("downloads/{accession}_{machine}.fastq.gz")
 ACCESSION, MACHINE = list(set(ACCESSION)), list(set(MACHINE))
-
 
 wildcard_constraints:
     accession = "|".join(ACCESSION),
@@ -285,7 +281,7 @@ rule rejoinChrs:
     input:
         combineChrFragments
     output:
-        "merged/{accession}_{machine}_chr{all_chrs}.bam",
+        "merged/{accession}_{machine}_chr{all_chrs}.bam"
     benchmark: 
         "benchmarks/rejoinChrs_{accession}_{machine}_{all_chrs}.txt"
     log:
@@ -297,8 +293,9 @@ rule rejoinChrs:
     shell:
         """
         ulimit -Sn 4096
-        samtools merge -@ {threads} -o {output} {input} 2> {log}
+        samtools merge -@ {threads} {output} {input} 2> {log}
         """
+
 
 
 rule chrFastq:
@@ -472,13 +469,14 @@ rule getLibrary:
     log:
         "logs/getLibrary.log"
     params:
+        settings = config["SETTINGS"],
         species = config["SPECIES"]["name"],
         cell_type = config["SPECIES"]["cell"],
     conda:
         "envs/IMGT.yaml"
     shell:
         """
-        python scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup --simple-headers 2> {log}
+        python {params.settings}/scripts/IMGT_scrape.py -S "{params.species}" -T {params.cell_type} --create-library --cleanup --simple-headers 2> {log}
         """
 
 
@@ -493,6 +491,7 @@ rule annotation:
     log:
         "logs/annotation.log"
     params:
+        settings = config["SETTINGS"],
         species = config["SPECIES"]["name"],
         cell_type = config["SPECIES"]["cell"],
         flanking_genes = ",".join(config["FLANKING_GENES"])
@@ -502,29 +501,31 @@ rule annotation:
         24
     shell:
         """
-        python scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -r {params.cell_type} -f "{params.flanking_genes}" -t {threads} 2> {log}
+        python {params.settings}/scripts/annotation.py -a converted/gfatofasta -l library/library.fasta -s "{params.species}" -r {params.cell_type} -f "{params.flanking_genes}" -t {threads} 2> {log}
         """
 
 rule VDJ_display:
     input:
         "annotation/annotation_report_plus.xlsx"
     output:
-        touch("VDJ_visualization/generated.txt")
+        directory("VDJ_visualization"),
     benchmark: 
         "benchmarks/vdj_display.txt"
     log:
         "logs/vdj_display.log"
+    params:
+        settings = config["SETTINGS"]
     conda:
         "envs/display.yaml"
     shell:
         """
-        python scripts/VDJ_display.py -f "annotation_report_100%_plus.xlsx" "annotation_report_plus.xlsx" -o "VDJ_visualization" -s "combined" 2> {log}
+        python {params.settings}/scripts/VDJ_display.py -f "annotation/annotation_report_100%_plus.xlsx" "annotation/annotation_report_plus.xlsx" -o "VDJ_visualization" -s "combined" 2> {log}
         """
 
 rule fetchAllInput:
     input:
         ancient("annotation/annotation_report_plus.xlsx"),
-        ancient("VDJ_visualization/generated.txt"),
+        ancient("VDJ_visualization"),
         ancient("QC/raw/{accession}_{machine}.stats"),
         ancient("QC/filtered/filtered_{accession}_{machine}.stats"),
         ancient("quast/hifiasm/chr{assembly_chrs}_{accession}"),

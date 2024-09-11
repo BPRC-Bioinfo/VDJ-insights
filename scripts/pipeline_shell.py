@@ -79,7 +79,7 @@ def validate_read_files(file_path):
     Raises:
         argparse.ArgumentTypeError: If the file is not a .fastq.gz file or does not exist.
     """
-    data_path = Path(file_path)
+    data_path = Path(file_path).resolve()
     validate_files(file_path)
     if data_path.suffixes != ['.fastq', '.gz']:
         logger.error(
@@ -261,6 +261,10 @@ def setup_pipeline_args(subparsers):
                                 'TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
     analysis_group.add_argument('-t', '--threads', type=int,
                                 required=False, default=8, help='Amount of threads to run the analysis.')
+    analysis_group.add_argument('-o', '--output', type=str,
+                                default=str(
+                                    Path.cwd() / 'annotation_results'),
+                                help='Output directory for the results.')
 
     parser_pipeline.set_defaults(func=run_pipeline)
 
@@ -373,27 +377,35 @@ def run_pipeline(args):
     Args:
         args (argparse.Namespace): The parsed arguments for the pipeline command.
     """
-    cwd = Path.cwd()
-    final_output = cwd / 'annotation' / 'annotation_report_plus.xlsx'
-    logger.info("Starting main process")
-    filter_and_move_files(cwd, args.nanopore, args.pacbio)
-    if args.reference and Path(args.reference).suffix in {'.fasta', '.fna'}:
-        fasta_path = cwd / args.reference
-        split_chromosomes(cwd, fasta_path)
-    else:
-        genome_dir = cwd / 'reference' / 'genome'
-        genome = download_reference_genome(args.reference, genome_dir)
-        split_chromosomes(cwd, genome)
-    if args.default:
+
+    try:
+        settings_dir, output_dir = cwd_setup(args.output)
+        os.chdir(output_dir)
         cwd = Path.cwd()
-        loop_flanking_genes(cwd, args)
-    create_config(cwd, args)
-    if not final_output.is_file():
-        run_snakemake(args)
-    cleanup()
-    logger.info('Creating HTML file!')
-    html_main('Pipeline')
-    logger.info("Main process completed")
+        final_output = cwd / 'final'
+        logger.info("Starting main process")
+
+        filter_and_move_files(cwd, args.nanopore, args.pacbio)
+        if args.reference and Path(args.reference).suffix in {'.fasta', '.fna', 'fa'}:
+            fasta_path = cwd / args.reference
+            split_chromosomes(cwd, fasta_path)
+        else:
+            genome_dir = cwd / 'reference' / 'genome'
+            genome = download_reference_genome(args.reference, genome_dir)
+            split_chromosomes(cwd, genome)
+        if args.default:
+            loop_flanking_genes(settings_dir, output_dir, args)
+        create_config(output_dir, settings_dir, args)
+        if not final_output.is_dir():
+            snakefile = Path(settings_dir / 'Snakefile')
+            run_snakemake(args, output_dir, str(snakefile))
+    except Exception as e:
+        logger.error(f"Pipeline execution failed: {str(e)}")
+    finally:
+        cleanup()
+        logger.info("Cleanup completed")
+
+    logger.info("Main process completed successfully")
 
 
 def run_annotation(args):
@@ -984,7 +996,7 @@ def deep_merge(d1, d2):
             d1[key] = value
 
 
-def loop_flanking_genes(cwd, args):
+def loop_flanking_genes(settings_dir, output_dir, args):
     """
     Processes flanking genes by downloading them and determining their
     associated chromosomes. The function updates the argument namespace
@@ -995,8 +1007,9 @@ def loop_flanking_genes(cwd, args):
         args (argparse.Namespace): The parsed arguments for the pipeline command.
     """
     receptor_chromosomes = set()
-    flanking_genes_dir = prepare_flanking_genes_directory(cwd)
-    species_dict = get_species_dict(cwd, args)
+    flanking_genes_dir = prepare_flanking_genes_directory(
+        settings_dir, output_dir)
+    species_dict = get_species_dict(settings_dir, args)
     flanking_genes = species_dict.get(
         args.receptor_type, {}).get('FLANKING_GENES', [])
     args.flanking_genes = flanking_genes
@@ -1006,7 +1019,7 @@ def loop_flanking_genes(cwd, args):
     args.chromosomes = list(receptor_chromosomes)
 
 
-def prepare_flanking_genes_directory(cwd):
+def prepare_flanking_genes_directory(settings_dir, output_dir):
     """
     Prepares the directory for storing downloaded flanking genes.
     If the directory does not exist, it is created.
@@ -1017,13 +1030,13 @@ def prepare_flanking_genes_directory(cwd):
     Returns:
         Path: The path to the flanking genes directory.
     """
-    default_setting_file = cwd / '_config' / 'species.yaml'
-    flanking_genes_dir = cwd / "flanking_genes"
+    default_setting_file = settings_dir / '_config' / 'species.yaml'
+    flanking_genes_dir = output_dir / "flanking_genes"
     make_dir(flanking_genes_dir)
     return flanking_genes_dir
 
 
-def get_species_dict(cwd, args):
+def get_species_dict(settings_dir, args):
     """
     Retrieves the species-specific configuration dictionary from the
     species YAML file. If a species-specific configuration is not found,
@@ -1036,7 +1049,7 @@ def get_species_dict(cwd, args):
     Returns:
         dict: The species-specific or default configuration dictionary.
     """
-    default_setting_file = cwd / '_config' / 'species.yaml'
+    default_setting_file = settings_dir / '_config' / 'species.yaml'
     default_dict = load_config(default_setting_file)
     species_key = args.species.replace(' ', '_')
     return default_dict.get(species_key, default_dict.get('default', {}))
@@ -1091,7 +1104,7 @@ def create_config(output_dir, settings_dir, args):
     """
     global CONFIG
     species_config = load_config(settings_dir / '_config' / 'species.yaml')
-    initialize_config(args, species_config)
+    initialize_config(args, species_config, settings_dir)
     rss_config = load_config(settings_dir / '_config' / 'rss.yaml')
     deep_merge(CONFIG, rss_config.get(args.receptor_type, {}))
     config_file = output_dir / 'config' / 'config.yaml'
@@ -1099,7 +1112,7 @@ def create_config(output_dir, settings_dir, args):
     save_config_to_file(config_file)
 
 
-def initialize_config(args, species_config):
+def initialize_config(args, species_config, settings_dir):
     """
     Initializes the global CONFIG dictionary based on the provided
     arguments and species-specific settings. It populates the
@@ -1115,6 +1128,7 @@ def initialize_config(args, species_config):
         'name': args.species,
         'cell': args.receptor_type
     })
+    CONFIG["SETTINGS"] = str(settings_dir)
     if hasattr(args, 'reference') and args.reference is not None:
         CONFIG['SPECIES']['genome'] = args.reference
         CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
@@ -1154,7 +1168,7 @@ def save_config_to_file(file_name):
         yaml.dump(CONFIG, f, default_flow_style=False)
 
 
-def run_snakemake(args, snakefile="Snakefile"):
+def run_snakemake(args, output_dir, snakefile="Snakefile"):
     """
     Runs the Snakemake workflow using the provided number of threads.
     The function first performs a dry-run to check the workflow and
@@ -1167,17 +1181,18 @@ def run_snakemake(args, snakefile="Snakefile"):
     Raises:
         SystemExit: If the Snakemake workflow fails.
     """
+    config_file = Path(output_dir / 'config' / 'config.yaml')
     try:
         result = subprocess.run(
-            f"snakemake -s {snakefile} --cores {args.threads} --use-conda -prn",
-            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-        )
+            f"snakemake -s {snakefile} --cores {
+                args.threads} --use-conda --configfile {config_file} -prn",
+            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         logger.info("Snakemake check ran successfully.")
         logger.info("Running the complete pipeline.")
         subprocess.run(
-            f"snakemake -s {snakefile} --cores {args.threads} --use-conda -pr",
-            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-        )
+            f"snakemake -s {snakefile} --cores {
+                args.threads} --use-conda --configfile {config_file} -pr",
+            shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         logger.error(f"Snakemake failed with return code {e.returncode}.")
         logger.error(f"Snakemake output: {e.stdout.decode()}")

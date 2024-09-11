@@ -77,8 +77,7 @@ def download_flanking_genes(gene, dir: Path, species="homo sapiens"):
     output_fna = dir / f"{gene}.fna"
     if not output_fna.is_file():
         try:
-            command = f'datasets download gene symbol {
-                gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+            command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
             result = subprocess.run(
                 command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             unzip_file(output_zip, dir)
