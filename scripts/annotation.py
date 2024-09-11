@@ -1,15 +1,16 @@
-import os
-import shutil
 from mapping import mapping_main
 from RSS import RSS_main
 from report import report_main
 from pathlib import Path
 import pandas as pd
 import argparse
-from logger import custom_logger
+
 from blast import blast_main
 from map_genes import map_main
 from extract_region import region_main
+from util import make_dir
+from logger import custom_logger
+
 
 """
 Used Python packages:
@@ -19,30 +20,6 @@ Used Python packages:
 
 # Method for logging current states of the program.
 logger = custom_logger(__name__)
-
-
-def make_dir(dir: str) -> Path:
-    """
-    Ensures the specified directory exists by creating it if necessary. Checks if the directory exists, 
-    and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation 
-    or existence of the directory. If an error occurs during the directory creation, raises an `OSError`.
-
-    Args:
-        dir (str): The path of the directory to be created.
-
-    Returns:
-        Path: The path of the created or existing directory.
-
-    Raises:
-        OSError: If the directory cannot be created due to a system-related error.
-    """
-    try:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Directory created or already exists: {dir}")
-    except Exception as e:
-        logger.error(f"Failed to create directory {dir}: {e}")
-        raise OSError(f"Failed to create directory {dir}") from e
-    return Path(dir)
 
 
 def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str, threads: int) -> pd.DataFrame:

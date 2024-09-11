@@ -1,8 +1,7 @@
-import subprocess
-from typing import List, Tuple
 from mapping import mapping_main
 from pathlib import Path
 import pandas as pd
+
 from logger import custom_logger
 
 # Method for logger current states of the program.

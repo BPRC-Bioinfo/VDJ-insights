@@ -1,10 +1,9 @@
 import re
-import yaml
 import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
-import sys
+
 from logger import custom_logger
 
 """
@@ -25,34 +24,8 @@ Used CLI packages:
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
-# Global configuration dictionary, loaded from config.yaml.
-CONFIG = None
-
 # Enable copy-on-write mode to improve performance and reduce memory usage.
 pd.options.mode.copy_on_write = True
-
-
-def load_config(cwd):
-    """
-    Loads the configuration file 'config.yaml' located in the specified directory.
-    This function sets the global CONFIG variable to a dictionary containing
-    the configuration settings. If the file does not exist, the program logs
-    an error and exits.
-
-    Args:
-        cwd (Path): Path object representing the current working directory.
-
-    Raises:
-        SystemExit: If the configuration file is not found.
-    """
-    global CONFIG
-    config_file = Path(cwd / 'config' / 'config.yaml')
-    if config_file.exists():
-        with open(config_file, 'r') as file:
-            CONFIG = yaml.safe_load(file)
-    else:
-        logger.error("No configuration file provided, closing application!")
-        sys.exit()
 
 
 def make_record_dict(fasta):
@@ -447,7 +420,6 @@ def report_main(annotation_folder, blast_file, cell_type, library):
         Exception: If any step fails, logs the error and raises an exception.
     """
     cwd = Path.cwd()
-    load_config(cwd)
     record = make_record_dict(cwd / library)
     df = pd.read_excel(blast_file)
     df = add_values(df)

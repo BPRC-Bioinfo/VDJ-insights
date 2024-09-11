@@ -3,7 +3,10 @@ import subprocess
 from tempfile import NamedTemporaryFile as NTF
 from pathlib import Path
 import pandas as pd
+
 from logger import custom_logger
+from util import make_dir
+
 
 """
 Used Python packages:
@@ -17,29 +20,6 @@ Used CLI packages:
 # Method for logging current states of the program.
 logger = custom_logger(__name__)
 
-
-def make_dir(dir: str) -> Path:
-    """
-    Checks if the directory exists. If it does not, creates the directory.
-    Logs a message if the directory is created or already exists.
-    If an error occurs, logs the exception.
-
-    Args:
-        dir (str): Path of the directory to create.
-
-    Returns:
-        Path: The path of the created or existing directory.
-
-    Raises:
-        OSError: If the directory cannot be created due to a system-related error.
-    """
-    try:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Directory created or already exists: {dir}")
-    except Exception as e:
-        logger.error(f"Failed to create directory {dir}: {e}")
-        raise OSError(f"Failed to create directory {dir}") from e
-    return Path(dir)
 
 
 def make_blast_db(cwd: Path, library: str) -> Path:

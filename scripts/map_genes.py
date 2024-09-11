@@ -4,6 +4,8 @@ import subprocess
 from time import sleep
 import zipfile
 from Bio import SeqIO
+
+from util import make_dir
 from logger import custom_logger
 
 """
@@ -17,23 +19,6 @@ Used CLI packages:
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
-
-def make_dir(dir):
-    """
-    Creates a directory and any necessary parent directories if they do not already exist.
-
-    Args:
-        dir (str or Path): Path of the directory to create.
-
-    Raises:
-        Exception: If the directory cannot be created, logs the error and raises an exception.
-    """
-    try:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Directory created or already exists: {dir}")
-    except Exception as e:
-        logger.error(f"Failed to create directory {dir}: {e}")
-        raise
 
 
 def unzip_file(file_path, dir):
