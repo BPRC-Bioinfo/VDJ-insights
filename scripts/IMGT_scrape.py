@@ -8,21 +8,14 @@ from urllib.parse import urlencode
 from Bio import SeqIO
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
+
+from util import make_dir
 from logger import custom_logger
 
 logger = custom_logger(__name__)
 log_info = []  # List to collect log information
 fasta_files_info = []  # List to collect fasta file information
 
-
-def make_dir(dir):
-    """
-    Create a directory when not existing.
-
-    Args:
-        location (str): Path of the directory to create.
-    """
-    Path(dir).mkdir(parents=True, exist_ok=True)
 
 
 def cleanup(directory):

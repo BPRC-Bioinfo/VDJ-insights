@@ -1,7 +1,8 @@
 from pathlib import Path
-import yaml
 import subprocess
 from Bio import SeqIO
+
+from util import make_dir, load_config
 from logger import custom_logger
 
 """
@@ -12,23 +13,6 @@ Used Python packages:
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
-
-def make_dir(dir):
-    """
-    Creates a directory and any necessary parent directories if they do not already exist.
-
-    Args:
-        dir (str or Path): Path of the directory to create.
-
-    Raises:
-        Exception: If the directory cannot be created, logs the error and raises an exception.
-    """
-    try:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Directory created or already exists: {dir}")
-    except Exception as e:
-        logger.error(f"Failed to create directory {dir}: {e}")
-        raise
 
 
 def make_record_dict(fasta):
@@ -53,28 +37,6 @@ def make_record_dict(fasta):
         logger.error(f"Failed to create record dictionary for {fasta}: {e}")
         raise
 
-
-def load_config(cwd):
-    """
-    Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
-
-    Args:
-        cwd (Path): The current working directory.
-
-    Returns:
-        dict: Dictionary containing the configuration settings, including chromosomes of interest and their respective flanking genes.
-
-    Raises:
-        Exception: If the configuration file cannot be loaded, logs the error and raises an exception.
-    """
-    try:
-        with open(cwd / "config" / "config.yaml") as f:
-            config = yaml.safe_load(f)
-            logger.info("Config file loaded successfully")
-            return config
-    except Exception as e:
-        logger.error(f"Failed to load config file: {e}")
-        raise
 
 
 def write_seq(record_dict, name, start, stop, out):

@@ -1,6 +1,4 @@
 import re
-import sys
-import yaml
 import subprocess
 import pandas as pd
 from Bio import SeqIO
@@ -22,34 +20,8 @@ Used CLI packages:
     5. bedtools
 """
 
-CONFIG = None
-
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
-
-
-def load_config(cwd):
-    """
-    Loads the configuration file from the specified directory.
-
-    This function reads a YAML configuration file located at 
-    'config/config.yaml' in the current working directory and 
-    stores its contents in the global `CONFIG` variable.
-
-    Args:
-        cwd (Path): The current working directory.
-
-    Raises:
-        SystemExit: If the configuration file does not exist.
-    """
-    global CONFIG
-    config_file = Path(cwd / 'config' / 'config.yaml')
-    if config_file.exists():
-        with open(config_file, 'r') as file:
-            CONFIG = yaml.safe_load(file)
-    else:
-        logger.error("No configuration file provided, closing application!")
-        sys.exit()
 
 
 class MappingFiles:
@@ -398,7 +370,6 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
         pd.DataFrame: A DataFrame containing all entries from the mapping process.
     """
     cwd = Path.cwd()
-    load_config(cwd)
     outdir = cwd / "mapping" / f"{mapping_type}_db"
     indir = cwd / input_dir
     rfasta = cwd / library

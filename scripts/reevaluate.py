@@ -5,18 +5,11 @@ import pandas as pd
 from Bio import SeqIO
 from order_segments import order_main
 
+from util import make_dir
+
+
 # Define the current working directory
 cwd = Path.cwd()
-
-
-def create_directory(location):
-    """
-    Create an directory when not existing.
-
-    Args:
-        location (str): Path of the directory to create.
-    """
-    Path(location).mkdir(parents=True, exist_ok=True)
 
 
 def read_excel_files(filenames):
@@ -62,7 +55,7 @@ def rename(files: Path, sample_directory: Path) -> None:
     sorted_files = sorted(list(files.glob("*.fasta")))
     if combined.exists():
         shutil.rmtree(combined)
-    create_directory(combined)
+    make_dir(combined)
     for file_path in sorted_files:
         path = Path(file_path)
         name = path.stem
@@ -84,7 +77,7 @@ def write_read_to_file(read_data, header, seperated):
 
 
 def seperate_fasta(aligned_path, seperated):
-    create_directory(seperated)
+    make_dir(seperated)
     """Splits a FASTA file into multiple files based on each read, naming files after the read headers."""
     try:
         with open(aligned_path, 'r') as file:
@@ -112,7 +105,7 @@ def MAFFT(sample_directory: Path):
     combined = sample_directory / "combined"
     aligned = sample_directory / "aligned"
     seperated = sample_directory / "seperated"
-    create_directory(aligned)
+    make_dir(aligned)
     for file in combined.glob("*.fasta"):
         aligened_path = aligned / f"{file.stem}_aligned.fasta"
         if not aligened_path.is_file():
