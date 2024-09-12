@@ -16,37 +16,13 @@ from logger import custom_logger
 import yaml
 import pandas as pd
 import json
-from create_html import html_main
 from annotation import main as annotation_main
 from annotation import validate_file, validate_input, validate_directory
 from env_manager import create_and_activate_env, deactivate_env
+from util import make_dir, load_config, load_config2
 
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
-
-CONFIG = {}
-
-
-def load_config(config_file):
-    """
-    Loads a YAML configuration file if it exists. If the file does not exist,
-    the function logs an error and terminates the application.
-
-    Args:
-        config_file (Path): Path to the configuration file.
-
-    Returns:
-        dict: Parsed YAML configuration as a dictionary.
-
-    Raises:
-        SystemExit: If the configuration file does not exist.
-    """
-    if config_file.exists():
-        with open(config_file, 'r') as file:
-            return yaml.safe_load(file)
-    else:
-        logger.error("No configuration file provided, closing application!")
-        sys.exit()
 
 
 def cwd_setup(output_dir):
@@ -382,27 +358,28 @@ def run_pipeline(args):
         settings_dir, output_dir = cwd_setup(args.output)
         os.chdir(output_dir)
         cwd = Path.cwd()
+        config = {}
         final_output = cwd / 'final'
         logger.info("Starting main process")
 
-        filter_and_move_files(cwd, args.nanopore, args.pacbio)
+        filter_and_move_files(cwd, args.nanopore, args.pacbio, config)
         if args.reference and Path(args.reference).suffix in {'.fasta', '.fna', 'fa'}:
             fasta_path = cwd / args.reference
-            split_chromosomes(cwd, fasta_path)
+            split_chromosomes(cwd, fasta_path, config)
         else:
             genome_dir = cwd / 'reference' / 'genome'
             genome = download_reference_genome(args.reference, genome_dir)
-            split_chromosomes(cwd, genome)
+            split_chromosomes(cwd, genome, config)
         if args.default:
             loop_flanking_genes(settings_dir, output_dir, args)
-        create_config(output_dir, settings_dir, args)
+        create_config(output_dir, settings_dir, args, config)
         if not final_output.is_dir():
             snakefile = Path(settings_dir / 'Snakefile')
             run_snakemake(args, output_dir, str(snakefile))
     except Exception as e:
         logger.error(f"Pipeline execution failed: {str(e)}")
     finally:
-        cleanup()
+        cleanup(config)
         logger.info("Cleanup completed")
 
     logger.info("Main process completed successfully")
@@ -420,6 +397,7 @@ def run_annotation(args):
     """
     settings_dir, output_dir = cwd_setup(args.output)
     cwd = Path.cwd()
+    config = {}
     logger.info('Running the annotation program')
     library = cwd / 'library' / 'library.fasta'
     if not args.library:
@@ -440,7 +418,7 @@ def run_annotation(args):
                 args.library = library
         else:
             args.library = library
-    create_config(output_dir, settings_dir, args)
+    create_config(output_dir, settings_dir, args, config)
     try:
         create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
         annotation_main(args)
@@ -448,9 +426,6 @@ def run_annotation(args):
         logger.error(f"Annotation failed with error: {str(e)}")
     finally:
         deactivate_env()
-
-    # logger.info('Creating HTML file!')
-    # html_main('Annotation')
 
 
 def generate_fasta_library():
@@ -548,30 +523,6 @@ def run_html(args):
             "Process interrupted by user (Ctrl + C), HTML report closed!")
 
 
-def make_dir(dir) -> Path:
-    """
-    Ensures the specified directory exists by creating it if necessary. Checks if the directory exists,
-    and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation
-    or existence of the directory. If an error occurs during the directory creation, raises an `OSError`.
-
-    Args:
-        dir (str): The path of the directory to be created.
-
-    Returns:
-        Path: The path of the created or existing directory.
-
-    Raises:
-        OSError: If the directory cannot be created due to a system-related error.
-    """
-    try:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Directory created or already exists: {dir}")
-    except Exception as e:
-        logger.error(f"Failed to create directory {dir}: {e}")
-        raise OSError(f"Failed to create directory {dir}") from e
-    return Path(dir)
-
-
 def key_sort(s):
     """
     Sorts strings with numbers in a natural order (e.g., "chr1", "chr2",
@@ -586,7 +537,7 @@ def key_sort(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 
-def split_chromosomes(cwd, fasta_path):
+def split_chromosomes(cwd, fasta_path, config):
     """
     Splits the chromosomes from a reference genome FASTA file into
     individual files for each chromosome. The function creates an
@@ -597,20 +548,19 @@ def split_chromosomes(cwd, fasta_path):
         cwd (Path): The current working directory.
         fasta_path (Path): Path to the reference genome FASTA file.
     """
-    global CONFIG
     output_dir = cwd / 'reference' / 'chromosomes'
     genome_dir = cwd / 'reference' / 'genome'
     new_genome_file = genome_dir / 'new_reference.fasta'
     if not new_genome_file.is_file():
         [make_dir(i) for i in [output_dir, genome_dir]]
-        write_chromosomes(fasta_path, output_dir, new_genome_file)
+        write_chromosomes(fasta_path, output_dir, new_genome_file, config)
     else:
         for chromosome in sorted(output_dir.glob("reference_chr*.fasta"), key=lambda x: key_sort(x.stem)):
             chromosome_number = chromosome.stem.replace('reference_chr', '')
-            CONFIG.setdefault('ALL_CHROMOSOMES', []).append(chromosome_number)
+            config.setdefault('ALL_CHROMOSOMES', []).append(chromosome_number)
 
 
-def write_chromosomes(fasta_path, output_dir, new_genome_file):
+def write_chromosomes(fasta_path, output_dir, new_genome_file, config):
     """
     Writes each chromosome from a reference genome FASTA file to
     individual files and a combined reference genome file. It logs
@@ -624,28 +574,27 @@ def write_chromosomes(fasta_path, output_dir, new_genome_file):
     files = {}
     files["all"] = new_genome_file.open('a')
     for record in SeqIO.parse(fasta_path, 'fasta'):
-        process_record(record, output_dir, files)
+        process_record(record, output_dir, files, config)
     close_files(files)
     logger.info(f"Files have been written to: {output_dir}")
 
 
-def process_record(record, output_dir, files):
+def process_record(record, output_dir, files, config):
     """
     Processes a single record from a FASTA file, extracting chromosome
     information and writing it to the appropriate chromosome file. The
-    function updates the CONFIG dictionary with chromosome numbers.
+    function updates the config dictionary with chromosome numbers.
 
     Args:
         record (SeqRecord): A single record from the FASTA file.
         output_dir (Path): Directory to save the chromosome file.
         files (dict): A dictionary of open file handles for writing.
     """
-    global CONFIG
     splitted = record.description.split(' ')
     try:
         chromosome, chromosome_number = extract_chromosome_info(splitted)
         if chromosome not in files:
-            CONFIG.setdefault('ALL_CHROMOSOMES', []).append(
+            config.setdefault('ALL_CHROMOSOMES', []).append(
                 chromosome_number.rstrip(","))
             file_path = output_dir / f"{chromosome}.fasta"
             file_path_txt = output_dir / f"{chromosome}.txt"
@@ -732,10 +681,10 @@ def get_new_file_path(file, read_type, moved_dir):
     return moved_dir / f"{new_sample_name}_{read_type}.fastq.gz"
 
 
-def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: Path):
+def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: Path, config):
     """
     Filters and moves sequencing read files (nanopore and pacbio) to
-    standard locations in the working directory. It updates the CONFIG
+    standard locations in the working directory. It updates the config
     dictionary with the original and moved file paths.
 
     Args:
@@ -743,11 +692,10 @@ def filter_and_move_files(cwd: Path, original_nanopore: Path, original_pacbio: P
         original_nanopore (Path): Path to the original nanopore read file.
         original_pacbio (Path): Path to the original pacbio read file.
     """
-    global CONFIG
     ont_sample, moved_nanopore = rename_files(
         cwd, original_nanopore, 'nanopore')
     pb_sample, moved_pacbio = rename_files(cwd, original_pacbio, 'pacbio')
-    CONFIG.setdefault('DATA', {
+    config.setdefault('DATA', {
         'ORIGINAL': {
             'pacbio': str(original_pacbio),
             'nanopore': str(original_nanopore)
@@ -1007,8 +955,8 @@ def loop_flanking_genes(settings_dir, output_dir, args):
         args (argparse.Namespace): The parsed arguments for the pipeline command.
     """
     receptor_chromosomes = set()
-    flanking_genes_dir = prepare_flanking_genes_directory(
-        settings_dir, output_dir)
+    flanking_genes_dir = output_dir / "flanking_genes"
+    make_dir(flanking_genes_dir)
     species_dict = get_species_dict(settings_dir, args)
     flanking_genes = species_dict.get(
         args.receptor_type, {}).get('FLANKING_GENES', [])
@@ -1018,22 +966,6 @@ def loop_flanking_genes(settings_dir, output_dir, args):
                               args.species, receptor_chromosomes)
     args.chromosomes = list(receptor_chromosomes)
 
-
-def prepare_flanking_genes_directory(settings_dir, output_dir):
-    """
-    Prepares the directory for storing downloaded flanking genes.
-    If the directory does not exist, it is created.
-
-    Args:
-        cwd (Path): The current working directory.
-
-    Returns:
-        Path: The path to the flanking genes directory.
-    """
-    default_setting_file = settings_dir / '_config' / 'species.yaml'
-    flanking_genes_dir = output_dir / "flanking_genes"
-    make_dir(flanking_genes_dir)
-    return flanking_genes_dir
 
 
 def get_species_dict(settings_dir, args):
@@ -1050,7 +982,7 @@ def get_species_dict(settings_dir, args):
         dict: The species-specific or default configuration dictionary.
     """
     default_setting_file = settings_dir / '_config' / 'species.yaml'
-    default_dict = load_config(default_setting_file)
+    default_dict = load_config2(default_setting_file)
     species_key = args.species.replace(' ', '_')
     return default_dict.get(species_key, default_dict.get('default', {}))
 
@@ -1092,7 +1024,7 @@ def extract_chromosome_number_and_trailing(chromosome_info):
     return number, trailing
 
 
-def create_config(output_dir, settings_dir, args):
+def create_config(output_dir, settings_dir, args, config):
     """
     Creates a configuration file based on the provided arguments
     and species-specific settings. The configuration is saved as a
@@ -1102,42 +1034,40 @@ def create_config(output_dir, settings_dir, args):
         cwd (Path): The current working directory.
         args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
     """
-    global CONFIG
-    species_config = load_config(settings_dir / '_config' / 'species.yaml')
-    initialize_config(args, species_config, settings_dir)
-    rss_config = load_config(settings_dir / '_config' / 'rss.yaml')
-    deep_merge(CONFIG, rss_config.get(args.receptor_type, {}))
+    species_config = load_config2(settings_dir / '_config' / 'species.yaml')
+    initialize_config(args, species_config, settings_dir, config)
+    rss_config = load_config2(settings_dir / '_config' / 'rss.yaml')
+    deep_merge(config, rss_config.get(args.receptor_type, {}))
     config_file = output_dir / 'config' / 'config.yaml'
     make_dir(config_file.parent)
-    save_config_to_file(config_file)
+    save_config_to_file(config_file, config)
 
 
-def initialize_config(args, species_config, settings_dir):
+def initialize_config(args, species_config, settings_dir, config):
     """
-    Initializes the global CONFIG dictionary based on the provided
+    Initializes the global config dictionary based on the provided
     arguments and species-specific settings. It populates the
-    CONFIG dictionary with species name, receptor type, flanking genes,
+    config dictionary with species name, receptor type, flanking genes,
     and other relevant information.
 
     Args:
         args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
         species_config (dict): The species-specific configuration dictionary.
     """
-    global CONFIG
-    CONFIG.setdefault('SPECIES', {
+    config.setdefault('SPECIES', {
         'name': args.species,
         'cell': args.receptor_type
     })
-    CONFIG["SETTINGS"] = str(settings_dir)
+    config["SETTINGS"] = str(settings_dir)
     if hasattr(args, 'reference') and args.reference is not None:
-        CONFIG['SPECIES']['genome'] = args.reference
-        CONFIG.setdefault("BUSCO_DATASET", "primates_odb10")
-        CONFIG.setdefault("HAPLOTYPES", [1, 2])
+        config['SPECIES']['genome'] = args.reference
+        config.setdefault("BUSCO_DATASET", "primates_odb10")
+        config.setdefault("HAPLOTYPES", [1, 2])
     if hasattr(args, 'chromosomes') and args.chromosomes is not None:
-        CONFIG.setdefault("ASSEMBLY_CHROMOSOMES", sorted(
+        config.setdefault("ASSEMBLY_CHROMOSOMES", sorted(
             args.chromosomes, key=lambda x: key_sort(x)))
     if hasattr(args, 'flanking_genes') and args.flanking_genes is not None:
-        CONFIG.setdefault("FLANKING_GENES", args.flanking_genes)
+        config.setdefault("FLANKING_GENES", args.flanking_genes)
 
     # Handling flanking genes based on default settings
     flanking_genes = getattr(args, 'flanking_genes', None)
@@ -1148,27 +1078,26 @@ def initialize_config(args, species_config, settings_dir):
         ).get(args.receptor_type, {}).get("FLANKING_GENES")
 
     if flanking_genes:
-        CONFIG.setdefault("FLANKING_GENES", flanking_genes)
+        config.setdefault("FLANKING_GENES", flanking_genes)
         args.flanking_genes = flanking_genes
 
     if hasattr(args, 'assembly') and args.assembly is not None:
-        CONFIG.setdefault('DATA', {})['library'] = str(args.library)
-        CONFIG.setdefault('DATA', {})['assembly'] = str(args.assembly)
+        config.setdefault('DATA', {})['library'] = str(args.library)
+        config.setdefault('DATA', {})['assembly'] = str(args.assembly)
 
 
-def save_config_to_file(file_name):
+def save_config_to_file(file_name, config):
     """
-    Saves the global CONFIG dictionary to a YAML configuration file.
+    Saves the global config dictionary to a YAML configuration file.
 
     Args:
         file_name (Path): The path to the YAML configuration file.
     """
-    global CONFIG
     with open(file_name, 'w') as f:
-        yaml.dump(CONFIG, f, default_flow_style=False)
+        yaml.dump(config, f, default_flow_style=False)
 
 
-def run_snakemake(args, output_dir, snakefile="Snakefile"):
+def run_snakemake(args, output_dir, config, snakefile="Snakefile"):
     """
     Runs the Snakemake workflow using the provided number of threads.
     The function first performs a dry-run to check the workflow and
@@ -1197,21 +1126,21 @@ def run_snakemake(args, output_dir, snakefile="Snakefile"):
         logger.error(f"Snakemake failed with return code {e.returncode}.")
         logger.error(f"Snakemake output: {e.stdout.decode()}")
         logger.error(f"Application is shutting down.")
-        cleanup()
+        cleanup(config)
         sys.exit(e.returncode)
 
 
-def cleanup():
+def cleanup(config):
     """
     Cleans up by moving the original sequencing read files back
     to their original locations from the downloads directory,
     and removes the downloads directory.
 
     """
-    pacbio_original = CONFIG['DATA']['ORIGINAL'].get('pacbio')
-    nanopore_original = CONFIG['DATA']['ORIGINAL'].get('nanopore')
-    nanopore_moved = CONFIG['DATA']['MOVED'].get('nanopore')
-    pacbio_moved = CONFIG['DATA']['MOVED'].get('pacbio')
+    pacbio_original = config['DATA']['ORIGINAL'].get('pacbio')
+    nanopore_original = config['DATA']['ORIGINAL'].get('nanopore')
+    nanopore_moved = config['DATA']['MOVED'].get('nanopore')
+    pacbio_moved = config['DATA']['MOVED'].get('pacbio')
     shutil.move(nanopore_moved, nanopore_original)
     shutil.move(pacbio_moved, pacbio_original)
     Path('downloads').rmdir()
