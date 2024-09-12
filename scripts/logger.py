@@ -50,7 +50,7 @@ def custom_logger(name=__name__):
     logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
     handler.setLevel(logging.DEBUG)
-    formatter = CustomFormatter('%(asctime)s - %(levelname)s - %(message)s')
+    formatter = CustomFormatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     logger.handlers = []
     logger.addHandler(handler)
@@ -68,4 +68,5 @@ def custom_logger(name=__name__):
 
 
 if __name__ == "__main__":
-    pass
+    logger = custom_logger(__name__)
+    logger.warning(f"test")

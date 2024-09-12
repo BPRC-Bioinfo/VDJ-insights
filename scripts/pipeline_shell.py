@@ -5,7 +5,6 @@ import shutil
 import sys
 import threading
 import webbrowser
-import zipfile
 from time import sleep
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -19,9 +18,9 @@ import json
 from annotation import main as annotation_main
 from annotation import validate_file, validate_input, validate_directory
 from env_manager import create_and_activate_env, deactivate_env
-from util import make_dir, load_config, load_config2
+from util import make_dir, load_config, unzip_file
 
-# Method for logging the current states of the program.
+
 logger = custom_logger(__name__)
 
 
@@ -733,28 +732,6 @@ def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio,
         f"Moved {original_nanopore} to {moved_nanopore} and {original_pacbio} to {moved_pacbio}")
 
 
-def unzip_file(file_path, dir):
-    """
-    Unzips a file to a specified directory. The function logs the
-    extraction process and handles exceptions that may occur during
-    extraction.
-
-    Args:
-        file_path (Path): Path to the zip file to extract.
-        dir (Path): Directory to extract the contents to.
-
-    Raises:
-        Exception: If extraction fails, logs the error and raises an exception.
-    """
-    extract_to_path = Path(dir)
-    try:
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_to_path)
-        logger.info(f'Extracted {file_path} to {extract_to_path}')
-    except Exception as e:
-        logger.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
-
-
 def download_flanking_genes(gene, dir: Path, species):
     """
     Downloads the flanking genes for a given gene and species using
@@ -981,8 +958,7 @@ def get_species_dict(settings_dir, args):
     Returns:
         dict: The species-specific or default configuration dictionary.
     """
-    default_setting_file = settings_dir / '_config' / 'species.yaml'
-    default_dict = load_config2(default_setting_file)
+    default_dict = load_config(settings_dir / '_config' / 'species.yaml')
     species_key = args.species.replace(' ', '_')
     return default_dict.get(species_key, default_dict.get('default', {}))
 
@@ -1034,9 +1010,9 @@ def create_config(output_dir, settings_dir, args, config):
         cwd (Path): The current working directory.
         args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
     """
-    species_config = load_config2(settings_dir / '_config' / 'species.yaml')
+    species_config = load_config(settings_dir / '_config' / 'species.yaml')
     initialize_config(args, species_config, settings_dir, config)
-    rss_config = load_config2(settings_dir / '_config' / 'rss.yaml')
+    rss_config = load_config(settings_dir / '_config' / 'rss.yaml')
     deep_merge(config, rss_config.get(args.receptor_type, {}))
     config_file = output_dir / 'config' / 'config.yaml'
     make_dir(config_file.parent)

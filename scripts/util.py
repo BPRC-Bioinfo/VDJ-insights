@@ -1,5 +1,6 @@
 from pathlib import Path
 import yaml
+import zipfile
 
 from logger import custom_logger
 
@@ -31,7 +32,7 @@ def make_dir(dir: str) -> Path:
     return Path(dir)
 
 
-def load_config(cwd):
+def load_config(path: str):
     """
     Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
 
@@ -45,7 +46,7 @@ def load_config(cwd):
         Exception: If the configuration file cannot be loaded, logs the error and raises an exception.
     """
     try:
-        with open(cwd / "config" / "config.yaml") as f:
+        with open(path) as f:
             config = yaml.safe_load(f)
             logger.info("Config file loaded successfully")
             return config
@@ -53,24 +54,24 @@ def load_config(cwd):
         logger.error(f"Failed to load config file: {e}")
         raise
 
-def load_config2(cwd):
+
+def unzip_file(file_path: str | Path, dir: str | Path) -> None:
     """
-    Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
+    Extracts a zip file to the specified directory.
 
     Args:
-        cwd (Path): The current working directory.
-
-    Returns:
-        dict: Dictionary containing the configuration settings, including chromosomes of interest and their respective flanking genes.
+        file_path (str or Path): Path to the zip file to be extracted.
+        dir (str or Path): Directory where the zip file's contents will be extracted.
 
     Raises:
-        Exception: If the configuration file cannot be loaded, logs the error and raises an exception.
+        Exception: If the extraction fails, logs the error and raises an exception.
     """
+    extract_to_path = Path(dir)
     try:
-        with open(cwd) as f:
-            config = yaml.safe_load(f)
-            logger.info("Config file loaded successfully")
-            return config
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to_path)
+        logger.info(f'Extracted {file_path} to {extract_to_path}')
     except Exception as e:
-        logger.error(f"Failed to load config file: {e}")
+        logger.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
         raise
+

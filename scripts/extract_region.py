@@ -244,7 +244,7 @@ def region_main(flanking_genes, assembly_dir=""):
         cwd = Path.cwd()
         directory = cwd / "region"
         make_dir(directory)
-        config = load_config(cwd)
+        config = load_config(cwd / "config" / "config.yaml")
         for first, second in zip(*[iter(flanking_genes)]*2):
             extensions = ["*.fna", "*.fasta", "*.fa"]
             fasta_files = [file for ext in extensions for file in Path(

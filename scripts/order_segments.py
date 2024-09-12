@@ -3,8 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 from logger import custom_logger
+from util import make_dir
 
-# Method for logger current states of the program.
+
 logger = custom_logger(__name__)
 
 
@@ -31,18 +32,6 @@ def combine_df(mapping_tools, input_dir, library):
     return unique_combinations.reset_index(drop=True)
 
 
-def write_report(df, report):
-    """
-    Creates a excel (xlsx) file of the df and saved as "report.xlsx".
-
-    Args:
-        df (DataFrame): df to be saved.
-        report (Path): Path of a excel to be saved to.
-    """
-
-    df.to_excel(report, index=False)
-
-
 def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     """
     Verifies if the report.xlsx is present.
@@ -60,18 +49,17 @@ def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     if not report.exists():
         logger.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, input_dir, library)
-        write_report(df, report)
+        df.to_excel(report, index=False)
         return df
     else:
         return pd.read_excel(report)
 
-
+"""
 def create_annotation_folder(cwd, mapper):
-    """Ensure the annotation folder exists."""
     annotation_folder = cwd / f"annotation_{mapper}"
     annotation_folder.mkdir(parents=True, exist_ok=True)
     return annotation_folder
-
+"""
 
 def process_dataframe(mapper, df):
     """Process the DataFrame based on the mapper used."""
@@ -85,7 +73,9 @@ def prepare_data_frames(library, input_dir, cwd):
     mapping_options = ['minimap2', 'bowtie2']
     dfs = []
     for mapper in mapping_options:
-        annotation_folder = create_annotation_folder(cwd, mapper)
+        #annotation_folder = create_annotation_folder(cwd, mapper) # delete also create_annotation_folder
+        annotation_folder = cwd / f"annotation_{mapper}"
+        make_dir(annotation_folder)
         df = get_or_create(annotation_folder, [mapper], input_dir, library)
         df['start'] = pd.to_numeric(df['start'], errors='coerce')
         df['stop'] = pd.to_numeric(df['stop'], errors='coerce')
@@ -126,22 +116,17 @@ def filter_data_frame(df, min_distance=5):
     return filtered_df
 
 
-def save_data_to_excel(df, file_path):
-    df.to_excel(file_path, index=False)
-    print(f"DataFrame saved to {file_path}")
-    return file_path
-
-
-def order_main(library, input_dir):
+def order_main(library, input_dir: str) -> str:
     cwd = Path.cwd()
     dfs = prepare_data_frames(library, input_dir, cwd)
     final_df = concatenate_and_clean(dfs)
     renamed = rename_and_sort_df(final_df)
     filtered_df = filter_data_frame(renamed)
-    excel_file = cwd / 'reevaluated.xlsx'
-    save_data_to_excel(filtered_df, excel_file)
+    file_path = cwd / 'reevaluated.xlsx'
+    filtered_df.to_excel(file_path, index=False)
+    logger.info(f"DataFrame saved to: {file_path}")
     return 'reevaluated.xlsx'
 
 
 if __name__ == "__main__":
-    order_main()
+    pass

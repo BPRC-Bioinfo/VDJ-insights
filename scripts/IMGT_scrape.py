@@ -36,28 +36,14 @@ def cleanup(directory):
         f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
-def edit_header(header):
-    """
-    Simplifies the header of the current record of that is being parsed.
-    It keeps only the ID, region, segment and species.
-
-    Args:
-        header (str): Old header of the record.
-
-    Returns:
-        str: Parsed header of the record.
-    """
-    new_header = "_".join(header.split("|")[0:3])
-    return new_header.replace(" ", "_")
-
-
 def create_library(directory: Path, simple_headers):
     """
     Gets a path of a directory that contain the fasta files needed to 
     create the library.fasta file. It first creates the library directory.
-    Then loops over the fasta files and opens it with biopython SeqIO and 
-    append the contents of the current fasta file to the library.fasta file.
-    In the end there is logged that the library is created.
+    Then loops over the fasta files and opens it with biopython SeqIO,get
+    the ID, region, segment and species and append the contents of the
+    current fasta file to the library.fasta file. In the end there is
+    logged that the library is created.
 
     Args:
         directory (Path): Path to the directory.
@@ -68,37 +54,12 @@ def create_library(directory: Path, simple_headers):
         for file in directory.glob("*.fasta"):
             for record in SeqIO.parse(file, "fasta"):
                 if simple_headers:
-                    record.description = edit_header(record.description)
+                    new_header = "_".join(record.description.split("|")[0:3])
+                    record.description = new_header.replace(" ", "_")
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
     log_info.append(
         {"message": "Library created from generated files.", "level": "success"})
     logger.info("Creating a library from generated files.")
-
-
-def construct_url(segment, species, frame):
-    """
-    Constructs the url that is needed to fetch the segments from the
-    IMGT web server based on the segment type, species and frame. 
-    It takes the base url and adds the right values for segment, 
-    species and frame, which are stored in the params dict. 
-    With urlencode the dict is converted to a url.
-
-    Args:
-        segment (str): The segment type itself.
-        species (str): The chosen species, which is choses from the
-        argparse list for species.
-        frame (str): the chosen frame, which is choses from the argparse
-        list for regarding frame.
-
-    Returns:
-        str: constructed url for data retrieval from the IMGT web server.
-    """
-    base_url = "https://www.imgt.org/genedb/GENElect"
-    params = {
-        'query': f"{frame} {segment}",
-        'species': species
-    }
-    return f"{base_url}?{urlencode(params)}"
 
 
 def scrape(response):
@@ -193,7 +154,7 @@ def fetch_sequence(segment, directory, species, frame, retry_limit=3):
         retry_limit (int): Maximum number of retries for fetching data.
     """
     for attempt in range(retry_limit):
-        url = construct_url(segment, species, frame)
+        url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}"
         response = requests.get(url)
         sleep_time = 2
         if response.status_code == 200:
@@ -275,20 +236,6 @@ def scrape_IMGT(species, immune_type, directory, frame):
             time.sleep(2)
 
 
-def to_capital(species):
-    """
-    Capitalize the input given for the species argument with argparse.
-
-    Args:
-        species (str): The chosen species, which is choses from the
-        argparse list for species.
-
-    Returns:
-        str: Capitalized species string.
-    """
-    return species.capitalize()
-
-
 def convert_frame(frame):
     """
     Transform the given frame to its secondary value. It creates a dict 
@@ -353,7 +300,7 @@ def argparser_setup():
     optional_group = parser.add_argument_group('Optional Options')
 
     # Species options
-    required_group.add_argument('-S', "--species", type=to_capital, choices=latin_names, required=True,
+    required_group.add_argument('-S', "--species", type=lambda s: s.capitalize(), choices=latin_names, required=True,
                                 help='Name of the species to scrape for (e.g., "Homo sapiens"). Capitalization is handled automatically.')
     required_group.add_argument('-T', '--type', type=str.upper, choices=['TR', 'IG'], required=True,
                                 help='Type of sequence to scrape: TR (T-cell receptor) or IG (Immunoglobulin).')
@@ -374,38 +321,6 @@ def argparser_setup():
     return args
 
 
-def save_log_to_html(release, fasta_files_info, file_path, args):
-    """
-    Save the collected log information to an HTML file using Jinja2 template.
-
-    Args:
-        log_info (list): List of log strings to save.
-        fasta_files_info (list): List of dictionaries containing fasta file names and number of entries.
-        file_path (str): Path to the HTML file.
-        args (argparse.Namespace): Parsed command line arguments.
-    """
-    env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('source/template/template.html')
-
-    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    html_content = template.render(
-        date_time=date_time,
-        set_release=release,
-        species=args.species,
-        type=args.type,
-        output=args.output,
-        frame_selection=args.frame_selection,
-        create_library=args.create_library,
-        cleanup=args.cleanup,
-        simple_headers=args.simple_headers,
-        fasta_files=fasta_files_info
-    )
-
-    with open(file_path, 'w') as html_file:
-        html_file.write(html_content)
-
-
 def main():
     """
     Main function of the IMGT_scrape script. 
@@ -418,7 +333,6 @@ def main():
     created and/or that the individual fasta files of the segments
     need to be removed. Lastly there is logged that the scrape is finished.
     """
-    global args  # Make args global to access it in save_log_to_html function
     args = argparser_setup()
     log_info.append(
         {"message": f"Starting scrape for species: {args.species}, type: {args.type}.", "level": "info"})
@@ -439,11 +353,6 @@ def main():
     log_info.append(
         {"message": "Scrape completed successfully.", "level": "success"})
     logger.info("Scrape completed successfully.")
-
-    # Save log to HTML
-    # make_dir(Path.cwd() / 'source' / 'html')
-    # save_log_to_html(set_release(), fasta_files_info,
-    #                  "source/html/scrape_report.html", args)
 
 
 if __name__ == '__main__':

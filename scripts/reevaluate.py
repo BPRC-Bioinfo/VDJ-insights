@@ -8,7 +8,6 @@ from order_segments import order_main
 from util import make_dir
 
 
-# Define the current working directory
 cwd = Path.cwd()
 
 

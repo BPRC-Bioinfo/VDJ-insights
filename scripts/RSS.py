@@ -8,7 +8,9 @@ from Bio.Seq import Seq
 
 from util import make_dir, load_config
 from logger import custom_logger
+
 pd.set_option('display.max_rows', None)
+
 """
 Used CLI packages:
     1. yaml
@@ -799,8 +801,8 @@ def RSS_main():
         complete_df = pd.DataFrame()
         cwd = Path.cwd()
 
-        config = load_config(cwd) #new
-        options = set(config.get("RSS_LAYOUT", {}).keys()) #new
+        config = load_config(cwd / "config" / "config.yaml")
+        options = set(config.get("RSS_LAYOUT", {}).keys())
 
         df1 = pd.read_excel(check_if_exists(
             cwd / 'annotation' / 'annotation_report.xlsx'))
