@@ -285,8 +285,11 @@ def run_meme(out, rss_file, rss_variant):
     Raises:
         CalledProcessError: If the MEME command fails, logs the error and raises an exception.
     """
+    total_nucleotides = sum(len(record.seq)
+                            for record in SeqIO.parse(rss_file, "fasta"))
+    logger.debug(total_nucleotides)
     multi_command = f"meme {
-        rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant}"
+        rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant} -maxsize {total_nucleotides}"
     single_command = f"meme {
         rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
     amount = subprocess.run(
