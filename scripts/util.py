@@ -1,6 +1,7 @@
 from pathlib import Path
 import yaml
 import zipfile
+import argparse
 
 from logger import custom_logger
 
@@ -8,14 +9,14 @@ from logger import custom_logger
 logger = custom_logger(__name__)
 
 
-def make_dir(dir: str) -> Path:
+def make_dir(path: str | Path) -> Path:
     """
     Ensures the specified directory exists by creating it if necessary. Checks if the directory exists,
     and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation
     or existence of the directory. If an error occurs during the directory creation, raises an `OSError`.
 
     Args:
-        dir (str): The path of the directory to be created.
+        path (str): The path of the directory to be created.
 
     Returns:
         Path: The path of the created or existing directory.
@@ -24,20 +25,89 @@ def make_dir(dir: str) -> Path:
         OSError: If the directory cannot be created due to a system-related error.
     """
     try:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Directory created or already exists: {dir}")
+        Path(path).mkdir(parents=True, exist_ok=True)
+        logger.info(f"Directory created or already exists: {path}")
     except Exception as e:
-        logger.error(f"Failed to create directory {dir}: {e}")
-        raise OSError(f"Failed to create directory {dir}") from e
-    return Path(dir)
+        logger.error(f"Failed to create directory {path}: {e}")
+        raise OSError(f"Failed to create directory {path}") from e
+    return Path(path)
 
 
-def load_config(path: str):
+def validate_directory(path: str) -> str:
+    """
+    Validates that the specified directory exists. Checks if the provided path corresponds to an existing directory.
+    If the directory does not exist, raises an `argparse.ArgumentTypeError`.
+
+    Args:
+        path (str): Path to the directory to validate.
+
+    Returns:
+        str: The validated directory path.
+
+    Raises:
+        argparse.ArgumentTypeError: If the directory does not exist.
+    """
+    if not Path(path).is_dir():
+        raise argparse.ArgumentTypeError(
+            f"The directory {path} does not exist. "
+            "Try another directory!"
+        )
+    return path
+
+
+def validate_file(path: str) -> str:
+    """
+    Validates that the specified file exists. Checks if the provided path corresponds to an existing file.
+    If the file does not exist, raises an `argparse.ArgumentTypeError`.
+
+    Args:
+        path (str): Path to the file to validate.
+
+    Returns:
+        str: The validated file path.
+
+    Raises:
+        argparse.ArgumentTypeError: If the file does not exist.
+    """
+    if not Path(path).is_file():
+        raise argparse.ArgumentTypeError(
+            f"The file {path} does not exist. Try another file, please!"
+        )
+    return path
+
+
+def validate_input(path: str) -> str:
+    """
+    Validates the input directory, ensuring it exists and contains FASTA files. Checks that the specified directory
+    exists and contains at least one FASTA file (with extensions .fasta, .fa, or .fna). If the directory is empty
+    or contains no FASTA files, raises an `argparse.ArgumentTypeError`.
+
+    Args:
+        path (str): Path to the input directory.
+
+    Returns:
+        str: The validated input directory path.
+
+    Raises:
+        argparse.ArgumentTypeError: If the directory is empty or contains no FASTA files.
+    """
+
+    input_path = Path(path).resolve()
+    validate_directory(str(input_path))
+    if not any(entry.is_file() for ext in ["*.fasta", "*.fa", "*.fna"] for entry in input_path.glob(ext)):
+        raise argparse.ArgumentTypeError(
+            f"""The directory {
+                input_path} is empty or does not contain any FASTA files!"""
+        )
+    return str(input_path)
+
+
+def load_config(path: str | Path) -> dict:
     """
     Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
 
     Args:
-        cwd (Path): The current working directory.
+        path (str): The current working directory.
 
     Returns:
         dict: Dictionary containing the configuration settings, including chromosomes of interest and their respective flanking genes.
@@ -55,18 +125,18 @@ def load_config(path: str):
         raise
 
 
-def unzip_file(file_path: str | Path, dir: str | Path) -> None:
+def unzip_file(file_path: str | Path, unzip_path: str | Path) -> None:
     """
     Extracts a zip file to the specified directory.
 
     Args:
         file_path (str or Path): Path to the zip file to be extracted.
-        dir (str or Path): Directory where the zip file's contents will be extracted.
+        unzip_path (str or Path): Directory where the zip file's contents will be extracted.
 
     Raises:
         Exception: If the extraction fails, logs the error and raises an exception.
     """
-    extract_to_path = Path(dir)
+    extract_to_path = Path(unzip_path)
     try:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(extract_to_path)
@@ -74,4 +144,3 @@ def unzip_file(file_path: str | Path, dir: str | Path) -> None:
     except Exception as e:
         logger.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
         raise
-

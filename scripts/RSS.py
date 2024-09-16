@@ -30,7 +30,7 @@ Used Python packages:
 logger = custom_logger(__name__)
 
 
-def write_fasta_file(dictionary, folder):
+def write_fasta_file(dictionary, folder: str):
     """
     Writes multiple FASTA files for each region and segment in the provided dictionary.
     Each file is named "{key}{region}.fasta" and stored in the specified folder.
@@ -344,15 +344,11 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     """
     try:
         if len(mer1) == 7:
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "heptamer", ''.join(mer1))
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "nonamer", ''.join(mer2))
+            ref_rss_dict.setdefault(segment, {}).setdefault("heptamer", ''.join(mer1))
+            ref_rss_dict.setdefault(segment, {}).setdefault("nonamer", ''.join(mer2))
         else:
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "heptamer", ''.join(mer2))
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "nonamer", ''.join(mer1))
+            ref_rss_dict.setdefault(segment, {}).setdefault("heptamer", ''.join(mer2))
+            ref_rss_dict.setdefault(segment, {}).setdefault("nonamer", ''.join(mer1))
         return ref_rss_dict
     except TypeError as e:
         logger.error(f"Failed to update reference dictionary: {e}")
@@ -409,8 +405,7 @@ def make_reference_rss(ref_meme_directory, config):
             command = f'cat {meme_text} | egrep -A2 "regular expression"'
             result = subprocess.run(command, shell=True,
                                     capture_output=True, text=True)
-            hits = result.stdout.replace(
-                "-", "").replace("\t", "").strip().split("\n")
+            hits = result.stdout.replace("-", "").replace("\t", "").strip().split("\n")
             hits = [hit for hit in hits if hit]
             if hits:
                 split_stem = meme.stem.split("_")

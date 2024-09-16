@@ -27,8 +27,7 @@ def combine_df(mapping_tools, input_dir, library):
     for tool in mapping_tools:
         mapping_df = mapping_main(tool, input_dir, library, 100, 100)
         df = pd.concat([df, mapping_df])
-    unique_combinations = df.drop_duplicates(
-        subset=["start", "stop", "haplotype"])
+    unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
 
 
@@ -54,40 +53,24 @@ def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     else:
         return pd.read_excel(report)
 
-"""
-def create_annotation_folder(cwd, mapper):
-    annotation_folder = cwd / f"annotation_{mapper}"
-    annotation_folder.mkdir(parents=True, exist_ok=True)
-    return annotation_folder
-"""
-
-def process_dataframe(mapper, df):
-    """Process the DataFrame based on the mapper used."""
-    if mapper == "minimap2":
-        return df
-    elif mapper == "bowtie2":
-        return df.query('(stop - start) <= 80')
-
 
 def prepare_data_frames(library, input_dir, cwd):
-    mapping_options = ['minimap2', 'bowtie2']
     dfs = []
-    for mapper in mapping_options:
-        #annotation_folder = create_annotation_folder(cwd, mapper) # delete also create_annotation_folder
+    for mapper in ['minimap2', 'bowtie2']:
         annotation_folder = cwd / f"annotation_{mapper}"
         make_dir(annotation_folder)
         df = get_or_create(annotation_folder, [mapper], input_dir, library)
         df['start'] = pd.to_numeric(df['start'], errors='coerce')
         df['stop'] = pd.to_numeric(df['stop'], errors='coerce')
-        processed_df = process_dataframe(mapper, df)
-        dfs.append(processed_df)
+        if mapper == "bowtie2":
+            df = df.query('(stop - start) <= 80')
+        dfs.append(df)
     return dfs
 
 
 def concatenate_and_clean(dfs):
     final_df = pd.concat(dfs)
-    final_df.drop_duplicates(
-        subset=['start', 'stop', 'haplotype'], inplace=True)
+    final_df.drop_duplicates(subset=['start', 'stop', 'haplotype'], inplace=True)
     parts = final_df['name'].str.split('_')
     final_df['Status'] = parts.str[-1]
     final_df['Short name'] = parts.str[:-1].apply('_'.join)

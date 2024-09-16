@@ -5,14 +5,7 @@ from Bio import SeqIO
 from util import make_dir, load_config
 from logger import custom_logger
 
-"""
-Used Python packages:
-    1. yaml
-    2. biopython
-"""
-# Method for logging the current states of the program.
 logger = custom_logger(__name__)
-
 
 
 def make_record_dict(fasta):

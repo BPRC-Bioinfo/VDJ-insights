@@ -6,19 +6,18 @@ import sys
 import threading
 import webbrowser
 from time import sleep
-from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 from pathlib import Path
 import subprocess
-from logger import custom_logger
+import json
+
 import yaml
 import pandas as pd
-import json
+from Bio import SeqIO
+
+from logger import custom_logger
 from annotation import main as annotation_main
-from annotation import validate_file, validate_input, validate_directory
 from env_manager import create_and_activate_env, deactivate_env
-from util import make_dir, load_config, unzip_file
+from util import make_dir, validate_file, validate_directory, validate_input, load_config, unzip_file
 
 
 logger = custom_logger(__name__)
@@ -36,8 +35,7 @@ def cwd_setup(output_dir):
 def copy_flask(output_dir, reset=False):
     settings_dir = Path(__file__).resolve().parent.parent
     if not output_dir.is_dir() or reset:
-        shutil.copytree(str(settings_dir / "flask"),
-                        str(output_dir), dirs_exist_ok=True)
+        shutil.copytree(str(settings_dir / "flask"), str(output_dir), dirs_exist_ok=True)
 
 
 def validate_read_files(file_path):
@@ -57,10 +55,8 @@ def validate_read_files(file_path):
     data_path = Path(file_path).resolve()
     validate_files(file_path)
     if data_path.suffixes != ['.fastq', '.gz']:
-        logger.error(
-            f"Invalid file type for {file_path}. Must be a '.fastq.gz' file.")
-        raise argparse.ArgumentTypeError(
-            f"The file {file_path} must be a '.fastq.gz' file.")
+        logger.error(f"Invalid file type for {file_path}. Must be a '.fastq.gz' file.")
+        raise argparse.ArgumentTypeError(f"The file {file_path} must be a '.fastq.gz' file.")
     logger.info(f"Validated read file: {file_path}")
     return data_path
 
@@ -83,8 +79,7 @@ def validate_files(file_path):
     data_path = Path(file_path)
     if not data_path.is_file():
         logger.error(f"File does not exist or is a directory: {file_path}")
-        raise argparse.ArgumentTypeError(
-            f"The file {file_path} does not exist or is a directory.")
+        raise argparse.ArgumentTypeError(f"The file {file_path} does not exist or is a directory.")
     logger.info(f"Validated file: {file_path}")
     return data_path
 
@@ -118,6 +113,7 @@ def validate_reference(value):
         r"^[A-Z]{3}_\d{9}\.\d+$",
         r"^[A-Z]{2}\d{6,}\.\d+$",
     ]
+
     if any(re.match(pattern, value) for pattern in accession_patterns):
         logger.info(f"Validated reference genome accession: {value}")
         return value
@@ -144,13 +140,10 @@ def validate_flanking_genes(value):
     Raises:
         argparse.ArgumentTypeError: If the number of genes is not even.
     """
-    flanking_genes = [gene.strip().upper() if gene.strip() !=
-                      '-' else '' for gene in value.split(',')]
+    flanking_genes = [gene.strip().upper() if gene.strip() != '-' else '' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
-        logger.error(
-            f"The specified flanking genes: {flanking_genes} should be even numbers.")
-        raise argparse.ArgumentTypeError(
-            f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
+        logger.error(f"The specified flanking genes: {flanking_genes} should be even numbers.")
+        raise argparse.ArgumentTypeError(f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
     logger.info(f"Validated flanking genes: {flanking_genes}")
     return flanking_genes
 
@@ -178,10 +171,8 @@ def validate_chromosome(value):
         logger.info(f"Validated chromosomes: {chromosomes}")
         return chromosomes
     else:
-        logger.error(
-            f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
-        raise argparse.ArgumentTypeError(
-            f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        logger.error(f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        raise argparse.ArgumentTypeError(f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
 
 
 def setup_pipeline_args(subparsers):
@@ -404,8 +395,8 @@ def run_annotation(args):
             logger.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{
-                    args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers'
+                command = (f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "'
+                           f'{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers')
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 logger.info(
@@ -442,11 +433,6 @@ def load_library_from_json(json_file_path):
     return {}
 
 
-def save_library_to_json(library, json_file_path):
-    with open(json_file_path, 'w') as json_file:
-        json.dump(library, json_file, indent=4)
-
-
 def load_annotation_data(cwd):
     novel = pd.read_excel(cwd / 'annotation' / 'annotation_report_plus.xlsx')
     known = pd.read_excel(cwd / 'annotation' /
@@ -463,8 +449,7 @@ def update_library_with_row(library, row, status_filter):
     if ref not in library:
         library[ref] = {"Number": 0}  # Initialize the reference with a count
 
-    unique_key = f"{row['Old name-like']}_{row['Start coord']
-                                           }_{row['End coord']}_{row['Sample']}"
+    unique_key = f"{row['Old name-like']}_{row['Start coord']}_{row['End coord']}_{row['Sample']}"
     if unique_key not in library[ref]:  # Check to avoid double-counting
         library[ref][unique_key] = {
             "Start coord": row["Start coord"],
@@ -480,22 +465,15 @@ def update_library_with_row(library, row, status_filter):
         library[ref]["Number"] += 1
 
 
-def update_library_from_dataframe(library, df, status_filter):
-    df.apply(lambda row: update_library_with_row(
-        library, row, status_filter), axis=1)
-
-
 def generate_json_library(status_filter="Novel"):
     cwd = Path.cwd()
     json_file_path = cwd / '.tool' / 'library' / 'library.json'
     library = load_library_from_json(json_file_path)
     df = load_annotation_data(cwd)
-    update_library_from_dataframe(library, df, status_filter)
-    save_library_to_json(library, json_file_path)
+    df.apply(lambda row: update_library_with_row(library, row, status_filter), axis=1)
 
-
-def open_browser():
-    webbrowser.open_new('http://127.0.0.1:5000/')
+    with open(json_file_path, 'w') as json_file:
+        json.dump(library, json_file, indent=4)
 
 
 def run_html(args):
@@ -574,7 +552,10 @@ def write_chromosomes(fasta_path, output_dir, new_genome_file, config):
     files["all"] = new_genome_file.open('a')
     for record in SeqIO.parse(fasta_path, 'fasta'):
         process_record(record, output_dir, files, config)
-    close_files(files)
+
+    for file in files.values():
+        file.close()
+
     logger.info(f"Files have been written to: {output_dir}")
 
 
@@ -627,17 +608,6 @@ def extract_chromosome_info(splitted):
     return chromosome, chromosome_number
 
 
-def close_files(files):
-    """
-    Closes all file handles in the provided dictionary of open files.
-
-    Args:
-        files (dict): A dictionary of open file handles to close.
-    """
-    for file in files.values():
-        file.close()
-
-
 def rename_files(cwd: Path, file: Path, read_type: str):
     """
     Renames a sequencing read file to a standard format based on the
@@ -672,8 +642,11 @@ def get_new_file_path(file, read_type, moved_dir):
     Returns:
         Path: The new file path in the downloads directory.
     """
-    conversion = {"ONT": "nanopore", "NANOPORE": "nanopore",
-                  "PACBIO": "pacbio", "PB": "pacbio"}
+    conversion = {"ONT": "nanopore",
+                  "NANOPORE": "nanopore",
+                  "PACBIO": "pacbio",
+                  "PB": "pacbio"
+                  }
     stripped_extensions = file.with_suffix('').with_suffix('')
     sample = stripped_extensions.stem.split('_')[0].upper()
     new_sample_name = sample if sample not in conversion else "SAMPLE"

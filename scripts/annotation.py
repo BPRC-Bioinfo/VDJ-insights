@@ -8,7 +8,7 @@ import argparse
 from blast import blast_main
 from map_genes import map_main
 from extract_region import region_main
-from util import make_dir
+from util import make_dir, validate_file, validate_input
 from logger import custom_logger
 
 
@@ -18,7 +18,6 @@ Used Python packages:
     2. openpyxl
 """
 
-# Method for logging current states of the program.
 logger = custom_logger(__name__)
 
 
@@ -47,9 +46,7 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
         df["haplotype"] = df["file"].str.extract(r'_([^_]+)\.')[0]
-    unique_combinations = df.drop_duplicates(
-        subset=["start", "stop", "haplotype"]
-    )
+    unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
 
 
@@ -112,75 +109,6 @@ def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, i
         except Exception as e:
             logger.error(f"Failed to read the report from {report}: {e}")
             raise OSError(f"Failed to read the report from {report}") from e
-
-
-def validate_directory(directory_path: str) -> str:
-    """
-    Validates that the specified directory exists. Checks if the provided path corresponds to an existing directory. 
-    If the directory does not exist, raises an `argparse.ArgumentTypeError`.
-
-    Args:
-        directory_path (str): Path to the directory to validate.
-
-    Returns:
-        str: The validated directory path.
-
-    Raises:
-        argparse.ArgumentTypeError: If the directory does not exist.
-    """
-    if not Path(directory_path).is_dir():
-        raise argparse.ArgumentTypeError(
-            f"The directory {directory_path} does not exist. "
-            "Try another directory!"
-        )
-    return directory_path
-
-
-def validate_file(file_path: str) -> str:
-    """
-    Validates that the specified file exists. Checks if the provided path corresponds to an existing file. 
-    If the file does not exist, raises an `argparse.ArgumentTypeError`.
-
-    Args:
-        file_path (str): Path to the file to validate.
-
-    Returns:
-        str: The validated file path.
-
-    Raises:
-        argparse.ArgumentTypeError: If the file does not exist.
-    """
-    if not Path(file_path).is_file():
-        raise argparse.ArgumentTypeError(
-            f"The file {file_path} does not exist. Try another file, please!"
-        )
-    return file_path
-
-
-def validate_input(input_path: str) -> str:
-    """
-    Validates the input directory, ensuring it exists and contains FASTA files. Checks that the specified directory 
-    exists and contains at least one FASTA file (with extensions .fasta, .fa, or .fna). If the directory is empty 
-    or contains no FASTA files, raises an `argparse.ArgumentTypeError`.
-
-    Args:
-        input_path (str): Path to the input directory.
-
-    Returns:
-        str: The validated input directory path.
-
-    Raises:
-        argparse.ArgumentTypeError: If the directory is empty or contains no FASTA files.
-    """
-
-    input_path = Path(input_path).resolve()
-    validate_directory(str(input_path))
-    if not any(entry.is_file() for ext in ["*.fasta", "*.fa", "*.fna"] for entry in input_path.glob(ext)):
-        raise argparse.ArgumentTypeError(
-            f"""The directory {
-                input_path} is empty or does not contain any FASTA files!"""
-        )
-    return str(input_path)
 
 
 def validate_flanking_genes(value: str) -> list:
@@ -313,8 +241,7 @@ def main(args=None):
     elif not isinstance(args, argparse.Namespace):
         raise ValueError("Invalid arguments passed to the main function")
 
-    # os.chdir(args.output)
-    # print(Path.cwd())
+
     if args.assembly:
         if not args.flanking_genes or not args.species:
             update_args.error(
