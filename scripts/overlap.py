@@ -122,7 +122,7 @@ def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index
     return non_best_rows.index
 
 
-def remove_non_best_rows(df: pd.DataFrame) -> pd.DataFrame:
+def remove_overlapping_segments(df: pd.DataFrame) -> pd.DataFrame:
     """
     Remove non-best rows based on overlapping segments and boolean conditions.
     """
@@ -131,9 +131,4 @@ def remove_non_best_rows(df: pd.DataFrame) -> pd.DataFrame:
         by=["Haplotype", "Region", "Start coord", "Sample"]).reset_index(drop=True)
     df_cleaned = df.drop(
         non_best_indices, errors='ignore').reset_index(drop=True)
-
     return df_cleaned
-
-
-def remove_overlapping_segments(df):
-    return remove_non_best_rows(df)
