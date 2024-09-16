@@ -112,12 +112,13 @@ def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index
 
     # Determine the maximum True count
     max_true_count = group['True_Count'].max()
+
+    best_group = group.query(f"True_Count == {max_true_count}")
+    if len(best_group) > 1:
+        best_group["Length"] = best_group["Old name-like seq"].str.len()
+        rechecked = check_groups(best_group)
+        return group.index.difference(rechecked.index)
     non_best_rows = group[group['True_Count'] != max_true_count]
-
-    if len(group.query(f"True_Count == {max_true_count}")) > 1:
-        rechecked = check_groups(group).index
-        return group.index.difference(rechecked)
-
     return non_best_rows.index
 
 
