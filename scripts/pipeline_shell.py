@@ -314,6 +314,8 @@ def setup_annotation_args(subparsers):
                                    help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
     parser_annotation.add_argument('-t', '--threads', type=int,
                                    required=False, default=8, help='Amount of threads to run the analysis.')
+    parser_annotation.add_argument(
+        '--no-split', required=False, action='store_true', help='Prevents output of separate Excel files for each individual sample')
 
     parser_annotation.set_defaults(func=run_annotation)
 

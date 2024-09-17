@@ -1,4 +1,5 @@
 from pathlib import Path
+import pandas as pd
 import yaml
 
 from logger import custom_logger
@@ -53,6 +54,7 @@ def load_config(cwd):
         logger.error(f"Failed to load config file: {e}")
         raise
 
+
 def load_config2(cwd):
     """
     Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
@@ -74,3 +76,19 @@ def load_config2(cwd):
     except Exception as e:
         logger.error(f"Failed to load config file: {e}")
         raise
+
+
+def seperate_annotation(sample_df: pd.DataFrame, annotation_folder: Path, filename: str):
+    """
+    Creates separate annotation files for individual samples.
+
+    Args:
+        sample_df (pd.DataFrame): Data for a single sample.
+        annotation_folder (Path): The directory where the individual report will be saved.
+        filename (str): The base file name for saving the report.
+    """
+    sample = sample_df.iloc[0]['Sample']
+    path = annotation_folder / "individual" / sample
+    make_dir(path)
+    new_file = path / f"{sample}_{filename}"
+    sample_df.to_excel(new_file, index=False)

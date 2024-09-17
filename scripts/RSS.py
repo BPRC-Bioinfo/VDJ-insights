@@ -6,7 +6,7 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 
-from util import make_dir, load_config
+from util import make_dir, load_config, seperate_annotation
 from logger import custom_logger
 from overlap import remove_overlapping_segments
 pd.set_option('display.max_rows', None)
@@ -683,7 +683,7 @@ def update_df(df, ref_rss_dict, config, options):
     return df
 
 
-def create_rss_excel_file(cwd, final_df):
+def create_rss_excel_file(cwd, final_df, no_split):
     """
     Process the DataFrame to remove non-best overlapping rows and export
     the remaining data into separate Excel files for 'Novel' and 'Known' statuses.
@@ -691,6 +691,10 @@ def create_rss_excel_file(cwd, final_df):
     novel_df = final_df.query("Status == 'Novel'")
     known_df = final_df.query("Status == 'Known'")
     for df, filename in zip([novel_df, known_df], ["annotation_report", "annotation_report_100%"]):
+        if not no_split:
+            logger.info("Creating individual sample excel files...")
+            df.groupby("Sample").apply(lambda group: seperate_annotation(
+                group, cwd / "annotation", f"{filename}_plus.xlsx"))
         wrtie_rss_excel_file(cwd, df, filename)
 
 
@@ -738,7 +742,7 @@ def check_if_exists(filename):
         sys.exit()
 
 
-def RSS_main():
+def RSS_main(no_split):
     """
     Main function of the RSS creation script.
     Loads the configuration and DataFrames, generates RSS and MEME files, and updates the annotation report.
@@ -775,7 +779,7 @@ def RSS_main():
             complete_df = pd.concat(
                 [complete_df, reference_df], ignore_index=True)
         final_df = remove_overlapping_segments(complete_df)
-        create_rss_excel_file(cwd, final_df)
+        create_rss_excel_file(cwd, final_df, no_split)
     except Exception as e:
         logger.error(f"Failed in RSS_main: {e}")
         raise
