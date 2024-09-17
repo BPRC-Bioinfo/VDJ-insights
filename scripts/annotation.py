@@ -312,9 +312,6 @@ def main(args=None):
         args = update_args.parse_args(args)
     elif not isinstance(args, argparse.Namespace):
         raise ValueError("Invalid arguments passed to the main function")
-
-    # os.chdir(args.output)
-    # print(Path.cwd())
     if args.assembly:
         if not args.flanking_genes or not args.species:
             update_args.error(

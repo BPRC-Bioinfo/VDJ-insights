@@ -317,6 +317,16 @@ def add_reference_length(row, record):
     return row
 
 
+def extract_sample(path):
+    filename = path.split("/")[-1]
+    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
+    match = sample_pattern.search(filename)
+    if match:
+        return match.group(0)
+    else:
+        return filename.split("_")[0]
+
+
 def run_like_and_length(df, record, cell_type):
     """
     Adds 'Old name-like', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
@@ -337,7 +347,7 @@ def run_like_and_length(df, record, cell_type):
     length_mask = df[["Reference Length", "Old name-like Length",
                       "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
     df = df[length_mask]
-    df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
+    df["Sample"] = df["Path"].apply(extract_sample)
     return df
 
 

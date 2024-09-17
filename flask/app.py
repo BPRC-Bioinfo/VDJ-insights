@@ -329,28 +329,10 @@ def download_fasta():
 
 @app.route('/imgt_report')
 def imgt_report():
-    # Example data to pass to the template
-    release = "2024.08"
-    fasta_files_info = [
-        {"name": "file1.fasta", "entries": 42},
-        {"name": "file2.fasta", "entries": 30}
-    ]
-
-    # Simulate parsed arguments and prepare data
-    context = {
-        "date_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "set_release": release,
-        "species": "Homo sapiens",
-        "type": "IG",  # 'type' is a reserved keyword in Python, so 'sequence_type' might be better
-        "output": "/path/to/output",
-        "frame_selection": "all",
-        "create_library": True,
-        "cleanup": False,
-        "simple_headers": True,
-        "fasta_files": fasta_files_info
-    }
-
-    # Render the template with the context
+    base_dir = Path.cwd()
+    context = json.load(open(base_dir / "library" / "library_info.json"))
+    context["date_time"] = datetime.datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S")
     return render_template('imgt_report.html', **context)
 
 

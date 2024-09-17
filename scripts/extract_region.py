@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import subprocess
 from Bio import SeqIO
 
@@ -12,7 +13,6 @@ Used Python packages:
 """
 # Method for logging the current states of the program.
 logger = custom_logger(__name__)
-
 
 
 def make_record_dict(fasta):
@@ -36,7 +36,6 @@ def make_record_dict(fasta):
     except Exception as e:
         logger.error(f"Failed to create record dictionary for {fasta}: {e}")
         raise
-
 
 
 def write_seq(record_dict, name, start, stop, out):
@@ -109,8 +108,8 @@ def get_positions_and_name(sam, first, second, record_dict):
             - list: A list of coordinates for the flanking genes or telomeres.
             - list: A list of contig names associated with these coordinates.
 
-    Raises:
-        Exception: If positions and names cannot be extracted, logs the error and raises an exception.
+    Warns:
+        Logs a warning if positions and names cannot be extracted.
     """
     try:
         coords, name, best_coords, contig_name = [], [], [], ""
@@ -126,18 +125,21 @@ def get_positions_and_name(sam, first, second, record_dict):
         for i, gene in enumerate(genes):
             if gene == "-":
                 if i == 0:
+                    # Handle telomere assignment for the first gene
                     if flag is not None and flag & 16:
                         record = record_dict[contig_name]
                         coords.append(len(record.seq))
                     else:
                         coords.append(0)
                 else:
+                    # Handle telomere assignment for the second gene
                     if flag is not None and flag & 16:
                         coords.append(0)
                     else:
                         record = record_dict[contig_name]
                         coords.append(len(record.seq))
             else:
+                # Process if gene is present
                 if commands[i]:
                     line = subprocess.run(
                         commands[i], shell=True, capture_output=True, text=True)
@@ -150,23 +152,30 @@ def get_positions_and_name(sam, first, second, record_dict):
                         best_coords, contig_name = get_best_coords(sam_list)
                         coords.extend([int(coord) for coord in best_coords])
                         name.append(contig_name)
+
         if len(coords) == 2:
+            # Check if the extracted region is too short
             region_length = abs(coords[1] - coords[0])
             if region_length < 100:
                 logger.warning(
-                    f"Region is too short: {region_length} base pairs")
+                    f"Region is too short: {region_length} base pairs. No region extracted.")
                 return [], []
+
+        if not coords or not name:
+            logger.warning(
+                "No coordinates or contig names could be found. Region could not be extracted.")
+            return [], []
 
         return coords, name
 
     except Exception as e:
         logger.error(f"Failed to get positions and name from SAM file: {e}")
-        raise
+        return [], []
 
 
 def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, config):
     """
-    Extracts a sequence from an assembly FASTA file based on flanking genes, 
+    Extracts a sequence from an assembly FASTA file based on flanking genes,
     and writes it to an output FASTA file.
 
     Args:
@@ -178,8 +187,8 @@ def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, co
         haplotype (str): Haplotype identifier.
         config (dict): Dictionary containing regions of interest and their associated flanking genes.
 
-    Raises:
-        Exception: If the sequence cannot be extracted, logs the error and raises an exception.
+    Warns:
+        Logs a warning if no region can be extracted instead of raising an exception.
     """
     outfile = directory / f"{sample}_{first}_{second}_{haplotype}.fasta"
     if not outfile.is_file():
@@ -188,6 +197,7 @@ def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, co
             record_dict = make_record_dict(assembly_fasta)
             coords, name = get_positions_and_name(
                 sam, first, second, record_dict)
+
             if coords:
                 if len(set(name)) == 1:
                     logger.info(
@@ -195,34 +205,92 @@ def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, co
                     write_seq(record_dict, name[0], min(
                         coords), max(coords), outfile)
                 else:
-                    logger.warning("Broken region, can't create region!")
+                    logger.warning(
+                        "Broken region detected, unable to create a valid region.")
+            else:
+                logger.warning(f"No coordinates found for {first} and {
+                               second}. Region could not be extracted.")
+
         except Exception as e:
             logger.error(f"Failed to extract region: {e}")
-            raise
+
+
+def clean_filename(filename: str):
+    """
+    Cleans the filename by removing common prefixes or suffixes that are not part of the key identifiers, 
+    but preserves legitimate accession codes like GCA or GCF.
+
+    Args:
+        filename (str): The original filename to clean.
+
+    Returns:
+        tuple: A tuple containing:
+            - str: The cleaned filename without irrelevant prefixes or suffixes.
+            - str: The accession code if found.
+    """
+    # Define common unwanted prefixes or suffixes (this list can be expanded)
+    unwanted_terms = ["unmasked", "filtered", "trimmed", "masked"]
+
+    # Define accession code pattern (this will not be altered)
+    accession_code_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
+
+    # Extract the accession code and remove it temporarily from the filename
+    accession_match = accession_code_pattern.search(filename)
+    if accession_match:
+        accession_code = accession_match.group(0)
+        # Remove accession code to clean the rest
+        filename = filename.replace(accession_code, "")
+    else:
+        accession_code = ""
+
+    # Remove unwanted terms
+    for term in unwanted_terms:
+        filename = filename.replace(term, "")
+
+    # Replace periods with underscores for consistency, except for the period in accession codes
+    filename = re.sub(r'\.', '_', filename)
+
+    # Remove any extra underscores caused by removal
+    filename = re.sub(r'_+', '_', filename).strip('_')
+
+    return filename, accession_code
 
 
 def create_name(filename: Path):
     """
-    Parses the filename to extract the chromosome, sample, and haplotype information.
+    Parses the filename to extract the chromosome, sample (accession code or custom ID), and haplotype information,
+    handling any order of parts and missing values.
 
     Args:
         filename (Path): The file name to parse.
 
     Returns:
         tuple: A tuple containing:
-            - str: Chromosome identifier.
-            - str: Sample identifier.
-            - str: Haplotype identifier.
+            - str: Chromosome identifier (empty if not found).
+            - str: Sample identifier (accession code, if found, or custom identifier).
+            - str: Haplotype identifier (default to "hap1" if not found).
     """
-    name_part = filename.stem.split("_")
-    chrom, sample, haplotype = "", "", "hap1"
+    # Clean the filename and get the accession code separately
+    cleaned_stem, accession_code = clean_filename(filename.stem)
 
+    # Split the cleaned filename stem into parts, but accession_code is handled separately
+    name_part = cleaned_stem.split("_")
+
+    # Initialize variables
+    chrom, sample, haplotype = "", accession_code, "hap1"
+
+    # Use regex patterns to identify parts
+    chrom_pattern = re.compile(r'chr\d+|chr[XY]')
+    haplotype_pattern = re.compile(r'hap\d+')
+
+    # Loop through parts and assign to the appropriate category
     for part in name_part:
-        if part.startswith("hap"):
-            haplotype = part
-        elif part.startswith("chr"):
+        if chrom_pattern.match(part):
             chrom = part
-        else:
+        elif haplotype_pattern.match(part):
+            haplotype = part
+        # If no accession code was found, treat other parts as the sample
+        elif not sample:
             sample = part
 
     return chrom, sample, haplotype
