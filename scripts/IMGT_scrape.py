@@ -6,15 +6,13 @@ import argparse
 from pathlib import Path
 from urllib.parse import urlencode
 from Bio import SeqIO
-from jinja2 import Environment, FileSystemLoader
-from datetime import datetime
+
 
 from util import make_dir
 from logger import custom_logger
 
 logger = custom_logger(__name__)
-log_info = []  # List to collect log information
-fasta_files_info = []  # List to collect fasta file information
+fasta_files_info = []
 
 
 
@@ -30,8 +28,6 @@ def cleanup(directory):
     for file in directory.glob("*.fasta"):
         Path(file).unlink()
     Path(directory).rmdir()
-    log_info.append(
-        {"message": f"Deleted folder: {directory.name}, because --cleanup was selected", "level": "warning"})
     logger.info(
         f"Deleting folder: {directory.name}, because --cleanup was selected")
 
@@ -57,8 +53,6 @@ def create_library(directory: Path, simple_headers):
                     new_header = "_".join(record.description.split("|")[0:3])
                     record.description = new_header.replace(" ", "_")
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
-    log_info.append(
-        {"message": "Library created from generated files.", "level": "success"})
     logger.info("Creating a library from generated files.")
 
 
@@ -82,27 +76,9 @@ def scrape(response):
     for p in paragraphs:
         seq = p.text.strip()
         if ">" in seq:
-            log_info.append(
-                {"message": "Succeeded to retrieve sequences from IMGT.", "level": "success"})
             logger.info("Succeeded to retrieve sequences from IMGT")
             return seq
 
-
-def file_empty(file_path):
-    """
-    Checks if a file is empty by evaluating its size using the pathlib module. 
-    This function assesses whether the file at the specified path exists and, if it does, 
-    whether its size is zero bytes. It uses the `Path` object from `pathlib` to interact with the 
-    file system, making it more intuitive and readable compared to older os-based methods.
-
-    Args:
-    file_path (str or Path): The path to the file to check. Can be a string or a Path object.
-
-    Returns:
-    bool: True if the file exists and is empty (size is 0 bytes), False otherwise.
-    """
-    path = Path(file_path)
-    return path.exists() and path.stat().st_size == 0
 
 
 def set_release():
@@ -125,20 +101,17 @@ def write_sequence(name, directory, sequence):
         sequence (str): Large string containing all the different sequences
         for a current VDJ segment.
     """
-    file = directory / f"{name}.fasta"
-    log_info.append(
-        {"message": f"Writing sequences from {name} to {file.name}.", "level": "success"})
-    logger.info(f"Writing sequences from {name} to {file.name}")
-    with open(file, 'w') as f:
-        f.write(str(sequence) + "\n")
-    # Count the number of entries in the fasta file
-    count = sum(1 for _ in SeqIO.parse(file, "fasta"))
-    fasta_files_info.append({"name": file.name, "entries": count})
-    return file_empty(file)
+    path = Path(directory / f"{name}.fasta")
+    logger.info(f"Writing sequences from {name} to {path.name}")
 
-    # Count the number of entries in the fasta file
-    count = sum(1 for _ in SeqIO.parse(file, "fasta"))
-    fasta_files_info.append({"name": file.name, "entries": count})
+    with open(path, 'w') as f:
+        f.write(str(sequence) + "\n")
+
+    count = sum(1 for _ in SeqIO.parse(path, "fasta"))
+    fasta_files_info.append({"name": path.name, "entries": count})
+
+    return path.exists() and path.stat().st_size == 0
+
 
 
 def fetch_sequence(segment, directory, species, frame, retry_limit=3):
@@ -166,20 +139,15 @@ def fetch_sequence(segment, directory, species, frame, retry_limit=3):
                     break
                 else:
                     sleep_time = 30
-                    logger.warning(
-                        "Retrieved sequence was empty. Will retry after extended wait.")
+                    logger.warning("Retrieved sequence was empty. Will retry after extended wait.")
             else:
-                logger.warning(
-                    f"No sequences found for {segment} of {species}.")
+                logger.warning(f"No sequences found for {segment} of {species}.")
         else:
-            logger.warning(
-                f"Failed to fetch data for {segment} of {species} with status code: {response.status_code}")
-        logger.info(
-            f"Waiting {sleep_time} seconds to avoid overloading the IMGT server.")
+            logger.warning(f"Failed to fetch data for {segment} of {species} with status code: {response.status_code}")
+        logger.info(f"Waiting {sleep_time} seconds to avoid overloading the IMGT server.")
         time.sleep(sleep_time)
     if attempt == retry_limit - 1 and response.status_code == 200 and not sequence:
-        logger.error(
-            f"Max retries reached for {segment} of {species} without successful data retrieval.")
+        logger.error(f"Max retries reached for {segment} of {species} without successful data retrieval.")
 
 
 def scrape_IMGT(species, immune_type, directory, frame):
@@ -213,25 +181,18 @@ def scrape_IMGT(species, immune_type, directory, frame):
         ]
     }
     if not directory.exists():
-        log_info.append(
-            {"message": f"Folder created: {directory.name}.", "level": "success"})
         logger.info(f"Folder {directory.name} does not exist, creating it!")
         make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
-        log_info.append(
-            {"message": f"Retrieving sequences from IMGT for the {segment} of {species}.", "level": "info"})
         logger.info(
             f"Retrieving sequences from IMGT for the {segment} of {species}")
         if not Path(segment_file).exists():
             fetch_sequence(segment, directory, species, frame)
         else:
-            # Count the number of entries in the fasta file
             count = sum(1 for _ in SeqIO.parse(segment_file, "fasta"))
             fasta_files_info.append(
                 {"name": segment_file.name, "entries": count})
-            log_info.append(
-                {"message": f"File exists: {segment}.fasta already exists, skipping!", "level": "info"})
             logger.info(f"File {segment}.fasta already exists skipping!")
             time.sleep(2)
 
@@ -252,24 +213,6 @@ def convert_frame(frame):
         "all": "7.2", "in-frame": "7.5", "in-frame-gaps": "7.1"
     }
     return options[frame or "all"]
-
-
-def validate_directory(path):
-    """
-    Validate the given path. First the path is converted to a Path object
-    and than there is checked if the path to a directory exists. If it does the
-    path is returned, otherwise the directory is created and returned.
-
-    Args:
-        path (str): Path to a directory.
-
-    Returns:
-        Path: Path to a directory, converted to a Path object.
-    """
-    path = Path(path)
-    if not path.exists():
-        make_dir(path)
-    return path
 
 
 def argparser_setup():
@@ -306,7 +249,7 @@ def argparser_setup():
                                 help='Type of sequence to scrape: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     # Output options
-    optional_group.add_argument('-O', '--output', type=validate_directory,
+    optional_group.add_argument('-O', '--output', type=make_dir,
                                 help='Output directory where the results will be saved. The directory will be created if it does not exist.')
     optional_group.add_argument('-f', '--frame-selection', type=str, choices=['all', 'in-frame', 'in-frame-gaps'],
                                 help='ORF frame analysis type. Choices are "all" for F+ORF+all P, "in-frame" for F+ORF+in-frame P, or "in-frame-gaps" for F+ORF+in-frame P with IMGT gaps.')
@@ -334,10 +277,7 @@ def main():
     need to be removed. Lastly there is logged that the scrape is finished.
     """
     args = argparser_setup()
-    log_info.append(
-        {"message": f"Starting scrape for species: {args.species}, type: {args.type}.", "level": "info"})
-    logger.info(
-        f"Starting scrape for species: {args.species}, type: {args.type}")
+    logger.info(f"Starting scrape for species: {args.species}, type: {args.type}")
 
     output_dir = Path(args.output) if args.output else Path.cwd(
     ) / args.species.replace(" ", "_").lower()
@@ -350,8 +290,6 @@ def main():
     if args.cleanup:
         cleanup(output_dir)
 
-    log_info.append(
-        {"message": "Scrape completed successfully.", "level": "success"})
     logger.info("Scrape completed successfully.")
 
 
