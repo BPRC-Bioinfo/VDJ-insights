@@ -680,7 +680,7 @@ def create_rss_excel_file(cwd, final_df, no_split):
         if not no_split:
             logger.info("Creating individual sample excel files...")
             df.groupby("Sample").apply(lambda group: seperate_annotation(
-                group, cwd / "annotation", f"{filename}_plus.xlsx"))
+                group, cwd / "annotation", f"{filename}_rss.xlsx"))
         wrtie_rss_excel_file(cwd, df, filename)
 
 
@@ -698,9 +698,9 @@ def wrtie_rss_excel_file(cwd, df, filename):
         OSError: If the file creation fails, logs the error and raises an exception.
     """
     try:
-        logger.info(f"Generating {filename}_plus.xlsx!")
+        logger.info(f"Generating {filename}_rss.xlsx!")
         df.to_excel(cwd / 'annotation' /
-                          f'{filename}_plus.xlsx', index=False)
+                          f'{filename}_rss.xlsx', index=False)
     except OSError as e:
         logger.error(f"Failed to create Excel file: {e}")
         raise
