@@ -6,8 +6,10 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 
-from util import make_dir, load_config
+from util import make_dir, load_config, seperate_annotation
 from logger import custom_logger
+
+from overlap import remove_overlapping_segments
 
 pd.set_option('display.max_rows', None)
 
@@ -26,7 +28,7 @@ Used Python packages:
     3. openpyxl
     4. biopython
 """
-# Method for logging current states of the program.
+
 logger = custom_logger(__name__)
 
 
@@ -210,7 +212,8 @@ def add_to_row(row, mer1, mer2, rss_variant):
     """
     heptamer, nonamer = (''.join(mer1), ''.join(mer2)) if len(
         mer1) == 7 else (''.join(mer2), ''.join(mer1))
-    row[f"{rss_variant}_heptamer"], row[f"{rss_variant}_nonamer"] = heptamer, nonamer
+    row[f"{rss_variant}_heptamer"], row[f"{
+        rss_variant}_nonamer"] = heptamer, nonamer
     return row
 
 
@@ -284,8 +287,13 @@ def run_meme(out, rss_file, rss_variant):
     Raises:
         CalledProcessError: If the MEME command fails, logs the error and raises an exception.
     """
-    multi_command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant}"
-    single_command = f"meme {rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
+    total_nucleotides = sum(len(record.seq)
+                            for record in SeqIO.parse(rss_file, "fasta"))
+    logger.debug(total_nucleotides)
+    multi_command = f"meme {
+        rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant} -maxsize {total_nucleotides}"
+    single_command = f"meme {
+        rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
     amount = subprocess.run(
         f"cat {rss_file} | egrep '^>' | wc -l", shell=True, capture_output=True)
 
@@ -637,7 +645,8 @@ def create_all_RSS_meme_files(cwd, df, config):
     try:
         for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
             create_RSS_files(dataset, base / rss_filename, config)
-            create_meme_directory(base / meme_directory, base / rss_filename, config)
+            create_meme_directory(base / meme_directory,
+                                  base / rss_filename, config)
     except OSError as e:
         logger.error(f"Failed to create RSS or MEME files: {e}")
         raise
@@ -671,56 +680,7 @@ def update_df(df, ref_rss_dict, config, options):
     return df
 
 
-def find_non_best_rows(df: pd.DataFrame) -> pd.Index:
-    """
-    Identify and return the indices of rows that are not the 'best' in overlapping segments.
-    'Best' is determined based on the row with the highest count of True values in the boolean columns.
-    """
-    boolean_columns = ["12_heptamer_matched", "12_nonamer_matched",
-                       "23_heptamer_matched", "23_nonamer_matched"]
-
-    df[boolean_columns] = df[boolean_columns].apply(
-        pd.to_numeric, errors='coerce').fillna(0).astype(bool)
-
-    df = df.sort_values(
-        by=["Haplotype", "Region", "Start coord"]).reset_index(drop=True)
-
-    df['Group'] = (df['Start coord'] > df['End coord'].shift()).cumsum()
-
-    non_best_indices = df.groupby(['Haplotype', 'Region', 'Group']).apply(
-        lambda group: select_non_best_rows(group, boolean_columns)).explode()
-
-    # Return as a pandas Index object
-    return pd.Index(non_best_indices.dropna())
-
-
-def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index:
-    """
-    Select the non-best rows in a group based on the sum of True values in the boolean columns.
-    """
-    group['True_Count'] = group[boolean_columns].sum(axis=1)
-
-    max_true_count = group['True_Count'].max()
-
-    non_best_rows = group[group['True_Count'] != max_true_count]
-
-    return non_best_rows.index
-
-
-def remove_non_best_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Remove non-best rows based on overlapping segments and boolean conditions.
-    """
-    non_best_indices = find_non_best_rows(df)
-    df = df.sort_values(
-        by=["Haplotype", "Region", "Start coord"]).reset_index(drop=True)
-    df_cleaned = df.drop(
-        non_best_indices, errors='ignore').reset_index(drop=True)
-
-    return df_cleaned
-
-
-def create_rss_excel_file(cwd, final_df):
+def create_rss_excel_file(cwd, final_df, no_split):
     """
     Process the DataFrame to remove non-best overlapping rows and export
     the remaining data into separate Excel files for 'Novel' and 'Known' statuses.
@@ -728,6 +688,10 @@ def create_rss_excel_file(cwd, final_df):
     novel_df = final_df.query("Status == 'Novel'")
     known_df = final_df.query("Status == 'Known'")
     for df, filename in zip([novel_df, known_df], ["annotation_report", "annotation_report_100%"]):
+        if not no_split:
+            logger.info("Creating individual sample excel files...")
+            df.groupby("Sample").apply(lambda group: seperate_annotation(
+                group, cwd / "annotation", f"{filename}_plus.xlsx"))
         wrtie_rss_excel_file(cwd, df, filename)
 
 
@@ -775,7 +739,7 @@ def check_if_exists(filename):
         sys.exit()
 
 
-def RSS_main():
+def RSS_main(no_split):
     """
     Main function of the RSS creation script.
     Loads the configuration and DataFrames, generates RSS and MEME files, and updates the annotation report.
@@ -811,8 +775,8 @@ def RSS_main():
                 cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
             complete_df = pd.concat(
                 [complete_df, reference_df], ignore_index=True)
-        final_df = remove_non_best_rows(complete_df)
-        create_rss_excel_file(cwd, final_df)
+        final_df = remove_overlapping_segments(complete_df)
+        create_rss_excel_file(cwd, final_df, no_split)
     except Exception as e:
         logger.error(f"Failed in RSS_main: {e}")
         raise

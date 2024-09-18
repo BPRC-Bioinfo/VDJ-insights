@@ -240,8 +240,6 @@ def main(args=None):
         args = update_args.parse_args(args)
     elif not isinstance(args, argparse.Namespace):
         raise ValueError("Invalid arguments passed to the main function")
-
-
     if args.assembly:
         if not args.flanking_genes or not args.species:
             update_args.error(
@@ -271,8 +269,9 @@ def main(args=None):
     if not blast_file.exists():
         blast_main(df, blast_file, args.library)
 
-    report_main(annotation_folder, blast_file, args.receptor_type, args.library)
-    RSS_main()
+    report_main(annotation_folder, blast_file,
+                args.receptor_type, args.library, args.no_split)
+    RSS_main(args.no_split)
     logger.info(
         f"""Annotation process completed. Results are available in {
             annotation_folder}.xlsx"""

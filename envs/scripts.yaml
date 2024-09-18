@@ -17,3 +17,4 @@ dependencies:
  - bedtools=2.31.0
  - pyyaml=6.0.1
  - ncbi-datasets-cli=15.25.0
+ - mafft

@@ -1,3 +1,4 @@
+import json
 import re
 import time
 import requests
@@ -13,7 +14,6 @@ from logger import custom_logger
 
 logger = custom_logger(__name__)
 fasta_files_info = []
-
 
 
 def cleanup(directory):
@@ -264,6 +264,33 @@ def argparser_setup():
     return args
 
 
+
+def save_json(release, fasta_files_info, file_path, args):
+    """
+    Save the collected log information to an HTML file using Jinja2 template.
+
+    Args:
+        log_info (list): List of log strings to save.
+        fasta_files_info (list): List of dictionaries containing fasta file names and number of entries.
+        file_path (str): Path to the HTML file.
+        args (argparse.Namespace): Parsed command line arguments.
+    """
+
+    json_dict = {
+        "set_release": release,
+        "species": args.species,
+        "type": args.type,
+        "output": args.output,
+        "frame_selection": args.frame_selection,
+        "create_library": args.create_library,
+        "cleanup": args.cleanup,
+        "simple_headers": args.simple_headers,
+        "fasta_files": fasta_files_info
+    }
+    with open(file_path, 'w') as w:
+        json.dump(json_dict, w, indent=4)
+
+
 def main():
     """
     Main function of the IMGT_scrape script. 
@@ -291,6 +318,10 @@ def main():
         cleanup(output_dir)
 
     logger.info("Scrape completed successfully.")
+
+
+    save_json(set_release(), fasta_files_info, Path.cwd() /
+              "library" / "library_info.json", args)
 
 
 if __name__ == '__main__':

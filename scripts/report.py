@@ -5,7 +5,7 @@ from pathlib import Path
 from Bio import SeqIO
 
 from logger import custom_logger
-
+from util import make_dir, seperate_annotation
 """
 Used python packages:
     1. yaml
@@ -315,6 +315,16 @@ def add_reference_length(row, record):
     return row
 
 
+def extract_sample(path):
+    filename = path.split("/")[-1]
+    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
+    match = sample_pattern.search(filename)
+    if match:
+        return match.group(0)
+    else:
+        return filename.split("_")[0]
+
+
 def run_like_and_length(df, record, cell_type):
     """
     Adds 'Old name-like', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
@@ -335,7 +345,7 @@ def run_like_and_length(df, record, cell_type):
     length_mask = df[["Reference Length", "Old name-like Length",
                       "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
     df = df[length_mask]
-    df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
+    df["Sample"] = df["Path"].apply(extract_sample)
     return df
 
 
@@ -377,7 +387,7 @@ def annotation_long(df, annotation_folder):
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
-def annotation(df, annotation_folder, file_name):
+def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
     """
     Generates a full annotation report and saves it as the specified file name.
     The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
@@ -397,10 +407,18 @@ def annotation(df, annotation_folder, file_name):
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
              'Short name', 'Message', 'Old name-like seq', 'Reference seq',]]
     df["Status"] = "Known" if "100%" in file_name else "Novel"
-    df.to_excel(annotation_folder / file_name, index=False)
+
+    # Write full annotation report to Excel
+    full_annotation_path = annotation_folder / file_name
+    df.to_excel(full_annotation_path, index=False)
+
+    if not no_split:
+        logger.info("Creating individual sample excel files...")
+        df.groupby("Sample").apply(lambda group: seperate_annotation(
+            group, annotation_folder, file_name))
 
 
-def report_main(annotation_folder, blast_file, cell_type, library):
+def report_main(annotation_folder, blast_file, cell_type, library, no_split):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     It performs the following steps:
@@ -427,8 +445,9 @@ def report_main(annotation_folder, blast_file, cell_type, library):
     df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
     annotation_long(df, annotation_folder)
     df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
-    annotation(df, annotation_folder, 'annotation_report.xlsx')
-    annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
+    annotation(df, annotation_folder, 'annotation_report.xlsx', no_split)
+    annotation(ref_df, annotation_folder,
+               'annotation_report_100%.xlsx', no_split)
 
 
 if __name__ == '__main__':

@@ -304,6 +304,8 @@ def setup_annotation_args(subparsers):
                                    help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
     parser_annotation.add_argument('-t', '--threads', type=int,
                                    required=False, default=8, help='Amount of threads to run the analysis.')
+    parser_annotation.add_argument(
+        '--no-split', required=False, action='store_true', help='Prevents output of separate Excel files for each individual sample')
 
     parser_annotation.set_defaults(func=run_annotation)
 
@@ -478,9 +480,13 @@ def generate_json_library(status_filter="Novel"):
 
 def run_html(args):
     logger.info(
-        "Running the HTML report, which will automatically open in your browser.")
-    logger.info(
-        "If it doesn't, please enter this address manually: http://127.0.0.1:5000")
+        "Running the HTML report, which should automatically open in your browser.\n"
+        "If it doesn't, try entering this address manually: http://127.0.0.1:5000.\n"
+        "If that doesn't work, try http://localhost:8080.\n"
+        "If neither address works, you may need to forward the port using SSH with the following command:\n"
+        "'ssh -L 8080:localhost:5000 username@your_server_ip'.\n"
+        "For further instructions, please refer to the README."
+    )
     output_dir = args.input
     copy_flask(output_dir, args.reset_flask)
     os.chdir(output_dir.parent)
@@ -915,7 +921,6 @@ def loop_flanking_genes(settings_dir, output_dir, args):
         process_flanking_gene(gene, flanking_genes_dir,
                               args.species, receptor_chromosomes)
     args.chromosomes = list(receptor_chromosomes)
-
 
 
 def get_species_dict(settings_dir, args):
