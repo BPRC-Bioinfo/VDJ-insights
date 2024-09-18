@@ -490,6 +490,10 @@ def generate_json_library(status_filter="Novel"):
         json.dump(library, json_file, indent=4)
 
 
+def open_browser():
+    webbrowser.open_new('http://127.0.0.1:5000/')
+
+
 def run_html(args):
     logger.info(
         "Running the HTML report, which should automatically open in your browser.\n"

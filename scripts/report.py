@@ -392,7 +392,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
              'Short name', 'Message', 'Old name-like seq', 'Reference seq',]]
-    df["Status"] = "Known" if "100%" in file_name else "Novel"
+    df["Status"] = "Known" if "known" in file_name else "Novel"
 
     # Write full annotation report to Excel
     full_annotation_path = annotation_folder / file_name
