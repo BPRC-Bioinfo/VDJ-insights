@@ -760,13 +760,12 @@ def main():
             input_files = [reevaluated_excel]
 
     plot_generator.output_dir.mkdir(parents=True, exist_ok=True)
-
     df = plot_generator.load_and_combine_dataframes(input_files)
     regions = list(df["Region"].unique())
     sample = df.iloc[0]["Sample"]
     for region in regions:
         plot_generator.process_region_data(df, region, sample)
-
+    print("finnish")
 
 if __name__ == "__main__":
     main()

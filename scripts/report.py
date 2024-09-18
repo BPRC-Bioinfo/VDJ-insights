@@ -21,10 +21,8 @@ Used CLI packages:
     5. bedtools
 """
 
-# Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
-# Enable copy-on-write mode to improve performance and reduce memory usage.
 pd.options.mode.copy_on_write = True
 
 

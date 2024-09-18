@@ -2,10 +2,9 @@ from pathlib import Path
 import shutil
 import subprocess
 from time import sleep
-import zipfile
 from Bio import SeqIO
 
-from util import make_dir
+from util import make_dir, unzip_file
 from logger import custom_logger
 
 """
@@ -16,30 +15,9 @@ Used CLI packages:
     1. ncbi datasets
     2. minimap2
 """
-# Method for logging the current states of the program.
+
+
 logger = custom_logger(__name__)
-
-
-
-def unzip_file(file_path, dir):
-    """
-    Extracts a zip file to the specified directory.
-
-    Args:
-        file_path (str or Path): Path to the zip file to be extracted.
-        dir (str or Path): Directory where the zip file's contents will be extracted.
-
-    Raises:
-        Exception: If the extraction fails, logs the error and raises an exception.
-    """
-    extract_to_path = Path(dir)
-    try:
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_to_path)
-        logger.info(f'Extracted {file_path} to {extract_to_path}')
-    except Exception as e:
-        logger.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
-        raise
 
 
 def download_flanking_genes(gene, dir: Path, species="homo sapiens"):

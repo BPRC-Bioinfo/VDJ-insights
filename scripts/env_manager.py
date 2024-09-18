@@ -3,24 +3,14 @@ from pathlib import Path
 import os
 import shutil
 import filecmp
+
 from logger import custom_logger
 
-# Initialize the logger
 logger = custom_logger(__name__)
-
-# Default directory to save the environments
-
-
-def get_default_env_root_dir():
-    return Path.cwd() / '.tool' / 'conda'
 
 
 def get_archive_dir():
     return Path.cwd() / '.tool' / 'conda_archive'
-
-
-def get_saved_env_yaml_dir():
-    return Path.cwd() / '.tool' / 'saved_envs'
 
 
 def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None):
@@ -40,10 +30,9 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
         Path: The full path to the created or activated conda environment, or None if creation failed.
     """
 
-    # Calculate directories based on the current CWD
-    env_root_dir = env_root_dir or get_default_env_root_dir()
-    saved_env_yaml_dir = saved_env_yaml_dir or get_saved_env_yaml_dir()
-    # Ensure directories exist
+    env_root_dir = env_root_dir or Path.cwd() / '.tool' / 'conda'
+    saved_env_yaml_dir = saved_env_yaml_dir or Path.cwd() / '.tool' / 'saved_envs'
+
     env_root_dir.mkdir(parents=True, exist_ok=True)
     get_archive_dir().mkdir(parents=True, exist_ok=True)
     saved_env_yaml_dir.mkdir(parents=True, exist_ok=True)
@@ -52,7 +41,6 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
     env_dir = env_root_dir / env_name
     saved_env_yaml_file = saved_env_yaml_dir / f"{env_name}.yaml"
 
-    # Check if the environment already exists and matches the saved YAML
     if env_dir.exists() and saved_env_yaml_file.exists():
         if filecmp.cmp(env_file, saved_env_yaml_file, shallow=False):
             logger.environment(
@@ -67,7 +55,6 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
                 shutil.rmtree(archive_path)
             shutil.move(env_dir, archive_path)
 
-    # Create the environment using conda
     logger.environment(f"Creating environment {env_name}.")
     result = subprocess.run(
         ["conda", "env", "create", "--file",
@@ -80,10 +67,8 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
         logger.error(f"Error creating environment: {result.stderr}")
         return None
 
-    # Save the environment YAML file for future comparison
     shutil.copy(env_file, saved_env_yaml_file)
 
-    # Activate the new environment
     logger.environment(f"Activating environment {env_name}.")
     activate_env(env_dir, env_name)
 
@@ -111,7 +96,5 @@ def deactivate_env():
     conda_prefix = os.environ.pop("CONDA_PREFIX", None)
     if conda_prefix:
         env_name = Path(conda_prefix).name
-        os.environ["PATH"] = ":".join(p for p in os.environ["PATH"].split(
-            ":") if not p.startswith(conda_prefix))
-        logger.environment(
-            f"Deactivated environment {env_name} at {conda_prefix}")
+        os.environ["PATH"] = ":".join(p for p in os.environ["PATH"].split(":") if not p.startswith(conda_prefix))
+        logger.environment(f"Deactivated environment {env_name} at {conda_prefix}")

@@ -6,10 +6,10 @@ from Bio import SeqIO
 from order_segments import order_main
 
 from util import make_dir
+from logger import custom_logger
 
-
-# Define the current working directory
 cwd = Path.cwd()
+logger = custom_logger(__name__)
 
 
 def read_excel_files(filenames):
@@ -28,7 +28,7 @@ def read_excel_files(filenames):
             df = pd.read_excel(filename)
             df_list.append(df)
         except Exception as e:
-            print(f"Failed to read {filename}: {e}")
+            logger.error(f"Failed to read {filename}: {e}")
     return pd.concat(df_list, ignore_index=True)
 
 
@@ -42,12 +42,7 @@ def write_library_file(df, output_path):
     """
     with open(output_path, "w") as f:
         for _, row in df.iterrows():
-            f.write(
-                f">{row['Short name']}_{row['Status']}\n{row['Old name-like seq']}\n")
-
-
-def seqio_dict(path):
-    return SeqIO.to_dict(SeqIO.parse(path, "fasta"))
+            f.write(f">{row['Short name']}_{row['Status']}\n{row['Old name-like seq']}\n")
 
 
 def rename(files: Path, sample_directory: Path) -> None:
@@ -59,7 +54,7 @@ def rename(files: Path, sample_directory: Path) -> None:
     for file_path in sorted_files:
         path = Path(file_path)
         name = path.stem
-        sequences = seqio_dict(path)
+        sequences = SeqIO.to_dict(SeqIO.parse(path, "fasta"))
         header = list(sequences.keys())[0]
         sequence = sequences[header].seq
         fasta_out = "_".join(name.split("_")[:-1])
@@ -73,7 +68,7 @@ def write_read_to_file(read_data, header, seperated):
     filename = seperated / f"{header}.fasta"
     with open(filename, 'w') as output_file:
         output_file.write(read_data)
-    print(f"Written {filename}")
+    logger.info(f"Written {filename}")
 
 
 def seperate_fasta(aligned_path, seperated):

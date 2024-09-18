@@ -8,7 +8,9 @@ from Bio.Seq import Seq
 
 from util import make_dir, load_config, seperate_annotation
 from logger import custom_logger
+
 from overlap import remove_overlapping_segments
+
 pd.set_option('display.max_rows', None)
 
 """
@@ -26,11 +28,11 @@ Used Python packages:
     3. openpyxl
     4. biopython
 """
-# Method for logging current states of the program.
+
 logger = custom_logger(__name__)
 
 
-def write_fasta_file(dictionary, folder):
+def write_fasta_file(dictionary, folder: str):
     """
     Writes multiple FASTA files for each region and segment in the provided dictionary.
     Each file is named "{key}{region}.fasta" and stored in the specified folder.
@@ -350,15 +352,11 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     """
     try:
         if len(mer1) == 7:
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "heptamer", ''.join(mer1))
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "nonamer", ''.join(mer2))
+            ref_rss_dict.setdefault(segment, {}).setdefault("heptamer", ''.join(mer1))
+            ref_rss_dict.setdefault(segment, {}).setdefault("nonamer", ''.join(mer2))
         else:
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "heptamer", ''.join(mer2))
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "nonamer", ''.join(mer1))
+            ref_rss_dict.setdefault(segment, {}).setdefault("heptamer", ''.join(mer2))
+            ref_rss_dict.setdefault(segment, {}).setdefault("nonamer", ''.join(mer1))
         return ref_rss_dict
     except TypeError as e:
         logger.error(f"Failed to update reference dictionary: {e}")
@@ -415,8 +413,7 @@ def make_reference_rss(ref_meme_directory, config):
             command = f'cat {meme_text} | egrep -A2 "regular expression"'
             result = subprocess.run(command, shell=True,
                                     capture_output=True, text=True)
-            hits = result.stdout.replace(
-                "-", "").replace("\t", "").strip().split("\n")
+            hits = result.stdout.replace("-", "").replace("\t", "").strip().split("\n")
             hits = [hit for hit in hits if hit]
             if hits:
                 split_stem = meme.stem.split("_")
@@ -763,8 +760,8 @@ def RSS_main(no_split):
         complete_df = pd.DataFrame()
         cwd = Path.cwd()
 
-        config = load_config(cwd)  # new
-        options = set(config.get("RSS_LAYOUT", {}).keys())  # new
+        config = load_config(cwd / "config" / "config.yaml")
+        options = set(config.get("RSS_LAYOUT", {}).keys())
 
         df1 = pd.read_excel(check_if_exists(
             cwd / 'annotation' / 'annotation_report.xlsx'))
