@@ -6,20 +6,6 @@ from Bio import SeqIO
 
 from logger import custom_logger
 from util import make_dir, seperate_annotation
-"""
-Used python packages:
-    1. yaml
-    2. pandas
-    3. openpyxl
-    4. biopython
-
-Used CLI packages:
-    1. minimap2
-    2. bowtie2
-    3. bowtie
-    4. samtools
-    5. bedtools
-"""
 
 logger = custom_logger(__name__)
 
@@ -445,9 +431,9 @@ def report_main(annotation_folder, blast_file, cell_type, library, no_split):
     df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
     annotation_long(df, annotation_folder)
     df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
-    annotation(df, annotation_folder, 'annotation_report.xlsx', no_split)
+    annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split)
     annotation(ref_df, annotation_folder,
-               'annotation_report_100%.xlsx', no_split)
+               'annotation_report_known.xlsx', no_split)
 
 
 if __name__ == '__main__':

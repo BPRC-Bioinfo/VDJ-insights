@@ -185,9 +185,9 @@ def report():
 
     # Parsing annotation data
     annotation_summary_100_plus, annotation_data_100_plus = summarize_annotation_data(
-        cwd / 'annotation' / 'annotation_report_100%_plus.xlsx')
+        cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
     annotation_summary_plus, annotation_data_plus = summarize_annotation_data(
-        cwd / 'annotation' / 'annotation_report_plus.xlsx')
+        cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
 
     data = {
         'config': CONFIG,
@@ -213,11 +213,11 @@ def annotation(annotation_type):
     cwd = Path.cwd()
     if annotation_type == 'known':
         annotation_summary, annotation_data = summarize_annotation_data(
-            cwd / 'annotation' / 'annotation_report_100%_plus.xlsx')
+            cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
         show_known = True
     else:
         annotation_summary, annotation_data = summarize_annotation_data(
-            cwd / 'annotation' / 'annotation_report_plus.xlsx')
+            cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
         show_known = False
 
     data = {

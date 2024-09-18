@@ -11,13 +11,6 @@ from extract_region import region_main
 from util import make_dir, validate_file, validate_input
 from logger import custom_logger
 
-
-"""
-Used Python packages:
-    1. pandas
-    2. openpyxl
-"""
-
 logger = custom_logger(__name__)
 
 
@@ -46,7 +39,8 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
         df["haplotype"] = df["file"].str.extract(r'_([^_]+)\.')[0]
-    unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
+    unique_combinations = df.drop_duplicates(
+        subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
 
 

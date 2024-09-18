@@ -13,22 +13,6 @@ from overlap import remove_overlapping_segments
 
 pd.set_option('display.max_rows', None)
 
-"""
-Used CLI packages:
-    1. yaml
-    2. pandas
-    3. openpyxl
-    4. biopython
-    5. meme
-    6. imagemagick
-
-Used Python packages:
-    1. yaml
-    2. pandas
-    3. openpyxl
-    4. biopython
-"""
-
 logger = custom_logger(__name__)
 
 
@@ -352,11 +336,15 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     """
     try:
         if len(mer1) == 7:
-            ref_rss_dict.setdefault(segment, {}).setdefault("heptamer", ''.join(mer1))
-            ref_rss_dict.setdefault(segment, {}).setdefault("nonamer", ''.join(mer2))
+            ref_rss_dict.setdefault(segment, {}).setdefault(
+                "heptamer", ''.join(mer1))
+            ref_rss_dict.setdefault(segment, {}).setdefault(
+                "nonamer", ''.join(mer2))
         else:
-            ref_rss_dict.setdefault(segment, {}).setdefault("heptamer", ''.join(mer2))
-            ref_rss_dict.setdefault(segment, {}).setdefault("nonamer", ''.join(mer1))
+            ref_rss_dict.setdefault(segment, {}).setdefault(
+                "heptamer", ''.join(mer2))
+            ref_rss_dict.setdefault(segment, {}).setdefault(
+                "nonamer", ''.join(mer1))
         return ref_rss_dict
     except TypeError as e:
         logger.error(f"Failed to update reference dictionary: {e}")
@@ -413,7 +401,8 @@ def make_reference_rss(ref_meme_directory, config):
             command = f'cat {meme_text} | egrep -A2 "regular expression"'
             result = subprocess.run(command, shell=True,
                                     capture_output=True, text=True)
-            hits = result.stdout.replace("-", "").replace("\t", "").strip().split("\n")
+            hits = result.stdout.replace(
+                "-", "").replace("\t", "").strip().split("\n")
             hits = [hit for hit in hits if hit]
             if hits:
                 split_stem = meme.stem.split("_")
@@ -636,7 +625,7 @@ def create_all_RSS_meme_files(cwd, df, config):
         OSError: If the directory creation or file writing fails, logs the error and raises an exception.
     """
     base = cwd / "RSS"
-    df_100 = pd.read_excel(cwd / 'annotation' / 'annotation_report_100%.xlsx')
+    df_100 = pd.read_excel(cwd / 'annotation' / 'annotation_report_known.xlsx')
     combined = pd.concat([df_100, df], axis=0)
     datasets = [df_100, df, combined]
     rss_filenames = ["reference_RSS", "new_RSS", "combined_RSS"]
@@ -687,7 +676,7 @@ def create_rss_excel_file(cwd, final_df, no_split):
     """
     novel_df = final_df.query("Status == 'Novel'")
     known_df = final_df.query("Status == 'Known'")
-    for df, filename in zip([novel_df, known_df], ["annotation_report", "annotation_report_100%"]):
+    for df, filename in zip([novel_df, known_df], ["annotation_report_novel", "annotation_report_known"]):
         if not no_split:
             logger.info("Creating individual sample excel files...")
             df.groupby("Sample").apply(lambda group: seperate_annotation(
@@ -764,12 +753,12 @@ def RSS_main(no_split):
         options = set(config.get("RSS_LAYOUT", {}).keys())
 
         df1 = pd.read_excel(check_if_exists(
-            cwd / 'annotation' / 'annotation_report.xlsx'))
+            cwd / 'annotation' / 'annotation_report_novel.xlsx'))
         df2 = pd.read_excel(check_if_exists(
-            cwd / 'annotation' / 'annotation_report_100%.xlsx'))
+            cwd / 'annotation' / 'annotation_report_known.xlsx'))
         ref_meme_directory = create_all_RSS_meme_files(cwd, df1, config)
         ref_rss_dict = make_reference_rss(ref_meme_directory, config)
-        for df, filename in zip([df1, df2], ["annotation_report", "annotation_report_100%"]):
+        for df, filename in zip([df1, df2], ["annotation_report_novel", "annotation_report_known"]):
             df = update_df(df, ref_rss_dict, config, options)
             reference_df = combine_df(df, pd.read_excel(
                 cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()

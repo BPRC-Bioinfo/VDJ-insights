@@ -35,7 +35,8 @@ def cwd_setup(output_dir):
 def copy_flask(output_dir, reset=False):
     settings_dir = Path(__file__).resolve().parent.parent
     if not output_dir.is_dir() or reset:
-        shutil.copytree(str(settings_dir / "flask"), str(output_dir), dirs_exist_ok=True)
+        shutil.copytree(str(settings_dir / "flask"),
+                        str(output_dir), dirs_exist_ok=True)
 
 
 def validate_read_files(file_path):
@@ -55,8 +56,10 @@ def validate_read_files(file_path):
     data_path = Path(file_path).resolve()
     validate_files(file_path)
     if data_path.suffixes != ['.fastq', '.gz']:
-        logger.error(f"Invalid file type for {file_path}. Must be a '.fastq.gz' file.")
-        raise argparse.ArgumentTypeError(f"The file {file_path} must be a '.fastq.gz' file.")
+        logger.error(f"Invalid file type for {
+                     file_path}. Must be a '.fastq.gz' file.")
+        raise argparse.ArgumentTypeError(
+            f"The file {file_path} must be a '.fastq.gz' file.")
     logger.info(f"Validated read file: {file_path}")
     return data_path
 
@@ -79,7 +82,8 @@ def validate_files(file_path):
     data_path = Path(file_path)
     if not data_path.is_file():
         logger.error(f"File does not exist or is a directory: {file_path}")
-        raise argparse.ArgumentTypeError(f"The file {file_path} does not exist or is a directory.")
+        raise argparse.ArgumentTypeError(
+            f"The file {file_path} does not exist or is a directory.")
     logger.info(f"Validated file: {file_path}")
     return data_path
 
@@ -140,10 +144,13 @@ def validate_flanking_genes(value):
     Raises:
         argparse.ArgumentTypeError: If the number of genes is not even.
     """
-    flanking_genes = [gene.strip().upper() if gene.strip() != '-' else '' for gene in value.split(',')]
+    flanking_genes = [gene.strip().upper() if gene.strip() !=
+                      '-' else '' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
-        logger.error(f"The specified flanking genes: {flanking_genes} should be even numbers.")
-        raise argparse.ArgumentTypeError(f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
+        logger.error(f"The specified flanking genes: {
+                     flanking_genes} should be even numbers.")
+        raise argparse.ArgumentTypeError(f"The specified flanking genes: {
+                                         flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
     logger.info(f"Validated flanking genes: {flanking_genes}")
     return flanking_genes
 
@@ -171,8 +178,10 @@ def validate_chromosome(value):
         logger.info(f"Validated chromosomes: {chromosomes}")
         return chromosomes
     else:
-        logger.error(f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
-        raise argparse.ArgumentTypeError(f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        logger.error(f"Invalid chromosome list: '{
+                     value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        raise argparse.ArgumentTypeError(f"Invalid chromosome list: '{
+                                         value}'. All values must be integers between 1-22, or 'X', 'Y'.")
 
 
 def setup_pipeline_args(subparsers):
@@ -436,9 +445,10 @@ def load_library_from_json(json_file_path):
 
 
 def load_annotation_data(cwd):
-    novel = pd.read_excel(cwd / 'annotation' / 'annotation_report_plus.xlsx')
+    novel = pd.read_excel(cwd / 'annotation' /
+                          'annotation_report_novel_rss.xlsx')
     known = pd.read_excel(cwd / 'annotation' /
-                          'annotation_report_100%_plus.xlsx')
+                          'annotation_report_known_rss.xlsx')
     return pd.concat([novel, known])[["Start coord", "End coord", "Reference", "Old name-like", "Status",
                                       "Sample", "Haplotype", "Old name-like seq"]].apply(lambda col: col.str.strip() if col.dtype == "object" else col)
 
@@ -451,7 +461,8 @@ def update_library_with_row(library, row, status_filter):
     if ref not in library:
         library[ref] = {"Number": 0}  # Initialize the reference with a count
 
-    unique_key = f"{row['Old name-like']}_{row['Start coord']}_{row['End coord']}_{row['Sample']}"
+    unique_key = f"{row['Old name-like']}_{row['Start coord']
+                                           }_{row['End coord']}_{row['Sample']}"
     if unique_key not in library[ref]:  # Check to avoid double-counting
         library[ref][unique_key] = {
             "Start coord": row["Start coord"],
@@ -472,7 +483,8 @@ def generate_json_library(status_filter="Novel"):
     json_file_path = cwd / '.tool' / 'library' / 'library.json'
     library = load_library_from_json(json_file_path)
     df = load_annotation_data(cwd)
-    df.apply(lambda row: update_library_with_row(library, row, status_filter), axis=1)
+    df.apply(lambda row: update_library_with_row(
+        library, row, status_filter), axis=1)
 
     with open(json_file_path, 'w') as json_file:
         json.dump(library, json_file, indent=4)

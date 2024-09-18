@@ -5,22 +5,8 @@ from Bio import SeqIO
 from pathlib import Path
 from logger import custom_logger
 
-"""
-Used python packages:
-    1. yaml
-    2. pandas
-    3. openpyxl
-    4. biopython
+from util import make_dir
 
-Used CLI packages:
-    1. minimap2
-    2. bowtie2
-    3. bowtie
-    4. samtools
-    5. bedtools
-"""
-
-# Method for logging the current states of the program.
 logger = custom_logger(__name__)
 
 
@@ -162,7 +148,8 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {
+        score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -190,7 +177,8 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie command string.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {
+        bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
@@ -322,7 +310,7 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
         prefix = fasta.stem
         index = outdir / prefix
         if mapping_type != "minimap2":
-            create_directory(index)
+            make_dir(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
             for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads):
@@ -334,19 +322,6 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
         else:
             logger.warning(f"Required file missing: {files.bed}")
             yield list()
-
-
-def create_directory(location):
-    """
-    Creates a directory if it does not already exist.
-
-    This function checks if a specified directory exists, and if not,
-    it creates the directory (including any necessary parent directories).
-
-    Args:
-        location (str): Path to the directory to create.
-    """
-    Path(location).mkdir(parents=True, exist_ok=True)
 
 
 def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
@@ -376,7 +351,7 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
     all_entries = []
     for acc in range(start, stop - 1, -1):
         beddir = cwd / "mapping" / mapping_type / f"{acc}%acc"
-        create_directory(beddir)
+        make_dir(beddir)
         for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
             all_entries.extend(current_entry)
     df = make_df(all_entries)

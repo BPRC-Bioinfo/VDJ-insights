@@ -485,7 +485,7 @@ rule annotation:
         ancient("library/library.fasta"),
         "converted/gfatofasta/check.txt"
     output:
-        "annotation/annotation_report_plus.xlsx"
+        "annotation/annotation_report_novel_rss.xlsx"
     benchmark: 
         "benchmarks/annotation.txt"
     log:
@@ -506,7 +506,7 @@ rule annotation:
 
 rule VDJ_display:
     input:
-        "annotation/annotation_report_plus.xlsx"
+        "annotation/annotation_report_novel_rss.xlsx"
     output:
         directory("VDJ_visualization"),
     benchmark: 
@@ -519,12 +519,12 @@ rule VDJ_display:
         "envs/display.yaml"
     shell:
         """
-        python {params.settings}/scripts/VDJ_display.py -f "annotation/annotation_report_100%_plus.xlsx" "annotation/annotation_report_plus.xlsx" -o "VDJ_visualization" -s "combined" 2> {log}
+        python {params.settings}/scripts/VDJ_display.py -f "annotation/annotation_report_known_rss.xlsx" "annotation/annotation_report_novel_rss.xlsx" -o "VDJ_visualization" -s "combined" 2> {log}
         """
 
 rule fetchAllInput:
     input:
-        ancient("annotation/annotation_report_plus.xlsx"),
+        ancient("annotation/annotation_report_novel_rss.xlsx"),
         ancient("VDJ_visualization"),
         ancient("QC/raw/{accession}_{machine}.stats"),
         ancient("QC/filtered/filtered_{accession}_{machine}.stats"),
