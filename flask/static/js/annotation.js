@@ -112,4 +112,9 @@ document.addEventListener('DOMContentLoaded', function () {
             isSimplified = true; // Toggle back to simplify mode
         }
     });
+    document.getElementById('go_button').addEventListener('click', function() {
+        const sample_id = document.getElementById('sample_select').value;
+        const annotation_type = document.getElementById('annotation_type').value;
+        window.location.href = `/annotation/${annotation_type}/${sample_id}`;
+    });    
 });

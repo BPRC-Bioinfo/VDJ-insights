@@ -340,6 +340,8 @@ def setup_html(subparsers):
                              help='Path to the directory containing the HTML report.')
     parser_html.add_argument('--reset-flask', required=False, default=False,
                              action='store_true', help="Reset the flask directory.")
+    parser_html.add_argument('--dev-mode', required=False, default=False,
+                             action='store_true', help='Enable developer mode to see the flask output.')
 
     parser_html.set_defaults(func=run_html)
 
@@ -509,14 +511,14 @@ def run_html(args):
     generate_fasta_library()
     generate_json_library(status_filter="Both")
     try:
-        # Use Popen instead of subprocess.run to make the call non-blocking
-        threading.Timer(1, open_browser).start()
+        if not args.dev_mode:
+            threading.Timer(1, open_browser).start()
         process = subprocess.Popen(
             ['python', str(output_dir / 'app.py')],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=False if args.dev_mode else subprocess.DEVNULL,
+            stderr=False if args.dev_mode else subprocess.DEVNULL,
         )
-        process.communicate()  # To capture the output and ensure it runs
+        process.communicate()
     except KeyboardInterrupt:
         logger.info(
             "Process interrupted by user (Ctrl + C), HTML report closed!")

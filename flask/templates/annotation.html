@@ -21,8 +21,19 @@
         
         <!-- If showing known matches, display table with known matches -->
         {% if show_known %}
-            <h2 class="report-heading">Known Matches</h2>
+            <h2 class="report-heading">Known Matches | {{ current_sample }}</h2>
             <button class="modal-btn column-toggle-btn">Toggle Columns</button>
+            <p class="sample_choice_p">Select your sample: </p>
+            <div class="sample_choice">
+                <select id="sample_select">
+                    <option value="all">all</option>
+                    {% for sample_id in sample_ids %}
+                        <option value="{{ sample_id }}">{{ sample_id }}</option>
+                    {% endfor %}
+                </select>
+                <button id="go_button">Go</button>
+                <input type="hidden" id="annotation_type" value="{{ 'known' if show_known else 'novel' }}">
+            </div>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
             </div>
@@ -53,7 +64,7 @@
 
         <!-- Else show table with novel segments -->
         {% else %}
-            <h2 class="report-heading">Novel Segments</h2>
+            <h2 class="report-heading">Novel Segments | {{ current_sample }} </h2>
             <button class="modal-btn column-toggle-btn">Toggle Columns</button>
 
             <!-- Button Row for actions -->
@@ -61,7 +72,17 @@
                 <button class="action-btn" id="selectAllBtn">Select All</button>
                 <button class="action-btn" id="saveToLibraryBtn">Save to Library</button>
             </div>
-
+            <p class="sample_choice_p">Select your sample: </p>
+            <div class="sample_choice">
+                <select id="sample_select">
+                    <option value="all">all</option>
+                    {% for sample_id in sample_ids %}
+                        <option value="{{ sample_id }}">{{ sample_id }}</option>
+                    {% endfor %}
+                </select>
+                <button id="go_button">Go</button>
+                <input type="hidden" id="annotation_type" value="{{ 'known' if show_known else 'novel' }}">
+            </div>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
             </div>

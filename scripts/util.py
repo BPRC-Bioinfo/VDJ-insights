@@ -159,5 +159,5 @@ def seperate_annotation(sample_df: pd.DataFrame, annotation_folder: Path, filena
     sample = sample_df.iloc[0]['Sample']
     path = annotation_folder / "individual" / sample
     make_dir(path)
-    new_file = path / f"{sample}_{filename}"
+    new_file = path / filename
     sample_df.to_excel(new_file, index=False)

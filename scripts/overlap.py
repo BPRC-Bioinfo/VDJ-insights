@@ -103,23 +103,36 @@ def find_non_best_rows(df: pd.DataFrame) -> pd.Index:
     return pd.Index(non_best_indices.dropna())
 
 
+def is_overlapping(group):
+    # Extract start and end coordinates for each sequence in the group
+    start_coords = group["Start coord"].tolist()
+    end_coords = group["End coord"].tolist()
+
+    # Loop through and compare adjacent sequences
+    for i in range(len(start_coords) - 1):
+        if end_coords[i] >= start_coords[i + 1]:
+            # If the current end is greater than or equal to the next start, there is an overlap
+            return True
+    # If no overlaps are found, return True
+    return False
+
+
 def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index:
     """
     Select the non-best rows in a group based on the sum of True values in the boolean columns.
     """
-    # Calculate True count for each row
-    group['True_Count'] = group[boolean_columns].sum(axis=1)
+    if is_overlapping(group):
+        group['True_Count'] = group[boolean_columns].sum(axis=1)
 
-    # Determine the maximum True count
-    max_true_count = group['True_Count'].max()
+        max_true_count = group['True_Count'].max()
 
-    best_group = group.query(f"True_Count == {max_true_count}")
-    if len(best_group) > 1:
-        best_group["Length"] = best_group["Old name-like seq"].str.len()
-        rechecked = check_groups(best_group)
-        return group.index.difference(rechecked.index)
-    non_best_rows = group[group['True_Count'] != max_true_count]
-    return non_best_rows.index
+        best_group = group.query(f"True_Count == {max_true_count}")
+        if len(best_group) > 1:
+            best_group["Length"] = best_group["Old name-like seq"].str.len()
+            rechecked = check_groups(best_group)
+            return group.index.difference(rechecked.index)
+        non_best_rows = group[group['True_Count'] != max_true_count]
+        return non_best_rows.index
 
 
 def remove_overlapping_segments(df: pd.DataFrame) -> pd.DataFrame:

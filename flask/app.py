@@ -1,3 +1,4 @@
+import re
 from flask import Flask, render_template, request, jsonify
 from pathlib import Path
 import datetime
@@ -79,6 +80,16 @@ def parse_quast_data(quast_dir: Path) -> dict:
     return data
 
 
+def extract_sample(path):
+    filename = path.split("/")[-1]
+    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
+    match = sample_pattern.search(filename)
+    if match:
+        return match.group(0)
+    else:
+        return filename.split("_")[0]
+
+
 def parse_transposed_report(report_path: Path) -> list:
     df = pd.read_csv(report_path, sep='\t')
     return df.to_dict(orient='records')
@@ -88,12 +99,14 @@ def parse_region_files(region_dir: Path) -> list:
     data = []
     if region_dir.is_dir():
         for fasta_file in region_dir.glob("*.fasta"):
+
             file_info = {}
-            parts = fasta_file.stem.split('_')
-            if len(parts) == 4:
-                file_info['sample_name'] = parts[0]
-                file_info['region_name'] = "/".join(parts[1:3])
-                file_info['haplotype'] = parts[-1]
+            sample = extract_sample(str(fasta_file))
+            file_info['sample_name'] = sample
+            parts = fasta_file.stem
+            parts = parts.removeprefix(f"{sample}_").split('_')
+            file_info['region_name'] = "/".join(parts[0:2])
+            file_info['haplotype'] = parts[-1]
             length = sum(len(record.seq)
                          for record in SeqIO.parse(fasta_file, "fasta"))
             file_info['length'] = length
@@ -208,24 +221,33 @@ def report():
     return render_template('report.html', **data)
 
 
-@app.route('/annotation/<string:annotation_type>')
-def annotation(annotation_type):
+@app.route('/annotation/<string:annotation_type>', defaults={'sample_id': 'all'})
+@app.route('/annotation/<string:annotation_type>/<string:sample_id>')
+def annotation(annotation_type, sample_id):
     cwd = Path.cwd()
+    individual_path = cwd / 'annotation' / 'individual'
+    if sample_id == "all" or sample_id == None:
+        report_path = cwd / 'annotation'
+    elif sample_id:
+        report_path = individual_path / sample_id
+
     if annotation_type == 'known':
-        annotation_summary, annotation_data = summarize_annotation_data(
-            cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
+        report_file = report_path / 'annotation_report_known_rss.xlsx'
         show_known = True
     else:
-        annotation_summary, annotation_data = summarize_annotation_data(
-            cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
+        report_file = report_path / 'annotation_report_novel_rss.xlsx'
         show_known = False
 
+    annotation_summary, annotation_data = summarize_annotation_data(report_file)
+    all_samples = [i.name for i in individual_path.glob("*")]
     data = {
         'annotation_summary': annotation_summary,
         'annotation_data_100_plus': annotation_data if show_known else None,
         'annotation_data_plus': None if show_known else annotation_data,
         'show_known': show_known,
-        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'sample_ids': all_samples,
+        'current_sample': sample_id
     }
 
     return render_template('annotation.html', **data)

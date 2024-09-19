@@ -38,7 +38,8 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
     for tool in mapping_tools:
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
-        df["haplotype"] = df["file"].str.extract(r'_([^_]+)\.')[0]
+        df["haplotype"] = df['file'].apply(
+            lambda x: Path(x).stem.split('_')[-1])
     unique_combinations = df.drop_duplicates(
         subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
