@@ -10,7 +10,7 @@ from logger import custom_logger
 logger = custom_logger(__name__)
 
 
-def make_dir(path: str | Path) -> Path:
+def make_dir(path: str | Path) -> Path | Path:
     """
     Ensures the specified directory exists by creating it if necessary. Checks if the directory exists,
     and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation
@@ -34,7 +34,7 @@ def make_dir(path: str | Path) -> Path:
     return Path(path)
 
 
-def validate_directory(path: str) -> str:
+def validate_directory(path: str | Path) -> str | Path:
     """
     Validates that the specified directory exists. Checks if the provided path corresponds to an existing directory.
     If the directory does not exist, raises an `argparse.ArgumentTypeError`.
@@ -49,10 +49,7 @@ def validate_directory(path: str) -> str:
         argparse.ArgumentTypeError: If the directory does not exist.
     """
     if not Path(path).is_dir():
-        raise argparse.ArgumentTypeError(
-            f"The directory {path} does not exist. "
-            "Try another directory!"
-        )
+        raise argparse.ArgumentTypeError(f"The directory {path} does not exist. Try another directory!")
     return path
 
 

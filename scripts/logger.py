@@ -11,16 +11,16 @@ logging.addLevelName(NOTICE_LEVEL, "NOTICE")
 logging.addLevelName(TRACE_LEVEL, "TRACE")
 
 COLORS = {
-    'WARNING': '\033[93m',    # Yellow
-    'INFO': '\033[92m',       # Green
-    'DEBUG': '\033[94m',      # Blue
-    'CRITICAL': '\033[91m',   # Red
-    'ERROR': '\033[91m',      # Red
+    'WARNING': '\033[93m',      # Yellow
+    'INFO': '\033[92m',         # Green
+    'DEBUG': '\033[94m',        # Blue
+    'CRITICAL': '\033[91m',     # Red
+    'ERROR': '\033[91m',        # Red
     'ENVIRONMENT': '\033[95m',  # Purple
-    'SUCCESS': '\033[92m',    # Green
-    'NOTICE': '\033[96m',     # Cyan
-    'TRACE': '\033[90m',      # Grey
-    'ENDC': '\033[0m',        # Reset
+    'SUCCESS': '\033[92m',      # Green
+    'NOTICE': '\033[96m',       # Cyan
+    'TRACE': '\033[90m',        # Grey
+    'ENDC': '\033[0m',          # Reset
 }
 
 
@@ -65,8 +65,3 @@ def custom_logger(name=__name__):
         args, **kws: self._log(TRACE_LEVEL, message, args, **kws)
 
     return logger
-
-
-if __name__ == "__main__":
-    logger = custom_logger(__name__)
-    logger.warning(f"test")

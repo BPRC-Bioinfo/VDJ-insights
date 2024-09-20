@@ -119,21 +119,18 @@ def get_positions_and_name(sam, first, second, record_dict):
         for i, gene in enumerate(genes):
             if gene == "-":
                 if i == 0:
-                    # Handle telomere assignment for the first gene
                     if flag is not None and flag & 16:
                         record = record_dict[contig_name]
                         coords.append(len(record.seq))
                     else:
                         coords.append(0)
                 else:
-                    # Handle telomere assignment for the second gene
                     if flag is not None and flag & 16:
                         coords.append(0)
                     else:
                         record = record_dict[contig_name]
                         coords.append(len(record.seq))
             else:
-                # Process if gene is present
                 if commands[i]:
                     line = subprocess.run(
                         commands[i], shell=True, capture_output=True, text=True)
@@ -148,7 +145,6 @@ def get_positions_and_name(sam, first, second, record_dict):
                         name.append(contig_name)
 
         if len(coords) == 2:
-            # Check if the extracted region is too short
             region_length = abs(coords[1] - coords[0])
             if region_length < 100:
                 logger.warning(
@@ -202,8 +198,7 @@ def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, co
                     logger.warning(
                         "Broken region detected, unable to create a valid region.")
             else:
-                logger.warning(f"No coordinates found for {first} and {
-                               second}. Region could not be extracted.")
+                logger.warning(f"No coordinates found for {first} and {second}. Region could not be extracted.")
 
         except Exception as e:
             logger.error(f"Failed to extract region: {e}")
@@ -222,35 +217,24 @@ def clean_filename(filename: str):
             - str: The cleaned filename without irrelevant prefixes or suffixes.
             - str: The accession code if found.
     """
-    # Define common unwanted prefixes or suffixes (this list can be expanded)
     unwanted_terms = ["unmasked", "filtered", "trimmed", "masked"]
-
-    # Define accession code pattern (this will not be altered)
     accession_code_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
-
-    # Extract the accession code and remove it temporarily from the filename
     accession_match = accession_code_pattern.search(filename)
     if accession_match:
         accession_code = accession_match.group(0)
-        # Remove accession code to clean the rest
         filename = filename.replace(accession_code, "")
     else:
         accession_code = ""
 
-    # Remove unwanted terms
     for term in unwanted_terms:
         filename = filename.replace(term, "")
-
-    # Replace periods with underscores for consistency, except for the period in accession codes
     filename = re.sub(r'\.', '_', filename)
-
-    # Remove any extra underscores caused by removal
     filename = re.sub(r'_+', '_', filename).strip('_')
 
     return filename, accession_code
 
 
-def create_name(filename: Path):
+def parse_name(filename: Path):
     """
     Parses the filename to extract the chromosome, sample (accession code or custom ID), and haplotype information,
     handling any order of parts and missing values.
@@ -264,26 +248,17 @@ def create_name(filename: Path):
             - str: Sample identifier (accession code, if found, or custom identifier).
             - str: Haplotype identifier (default to "hap1" if not found).
     """
-    # Clean the filename and get the accession code separately
     cleaned_stem, accession_code = clean_filename(filename.stem)
-
-    # Split the cleaned filename stem into parts, but accession_code is handled separately
     name_part = cleaned_stem.split("_")
-
-    # Initialize variables
     chrom, sample, haplotype = "", accession_code, "hap1"
-
-    # Use regex patterns to identify parts
     chrom_pattern = re.compile(r'chr\d+|chr[XY]')
     haplotype_pattern = re.compile(r'hap\d+')
 
-    # Loop through parts and assign to the appropriate category
     for part in name_part:
         if chrom_pattern.match(part):
             chrom = part
         elif haplotype_pattern.match(part):
             haplotype = part
-        # If no accession code was found, treat other parts as the sample
         elif not sample:
             sample = part
 
@@ -312,7 +287,7 @@ def region_main(flanking_genes, assembly_dir=""):
             fasta_files = [file for ext in extensions for file in Path(
                 assembly_dir).glob(ext)]
             for assembly in fasta_files:
-                chrom, sample, haplotype = create_name(assembly)
+                chrom, sample, haplotype = parse_name(assembly)
                 extract(cwd, assembly, directory, first,
                         second, sample, haplotype, config)
         if any(directory.iterdir()):
