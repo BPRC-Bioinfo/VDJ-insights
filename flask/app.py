@@ -239,7 +239,8 @@ def annotation(annotation_type, sample_id):
         show_known = False
 
     annotation_summary, annotation_data = summarize_annotation_data(report_file)
-    all_samples = [i.name for i in individual_path.glob("*")]
+    all_samples = [i.name for i in individual_path.glob(
+        "*") if not i.name.startswith(".")]
     data = {
         'annotation_summary': annotation_summary,
         'annotation_data_100_plus': annotation_data if show_known else None,
