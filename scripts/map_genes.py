@@ -12,7 +12,7 @@ from property import log_error
 logger = custom_logger(__name__)
 
 
-def download_flanking_genes(gene, path: Path, species="Homo sapiens"):
+def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> None:
     """
     Downloads flanking gene sequences for the specified gene and species using the NCBI datasets CLI.
     Extracts the sequences to a specified directory and processes them into a FASTA file.
@@ -109,7 +109,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
 
 
 @log_error()
-def map_main(flanking_genes, assembly_dir, species):
+def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 

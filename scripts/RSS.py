@@ -8,6 +8,7 @@ from Bio.Seq import Seq
 
 from util import make_dir, load_config, seperate_annotation
 from logger import custom_logger
+from property import log_error
 
 from overlap import remove_overlapping_segments
 
@@ -16,6 +17,7 @@ pd.set_option('display.max_rows', None)
 logger = custom_logger(__name__)
 
 
+@log_error()
 def write_fasta_file(dictionary, folder: str):
     """
     Writes multiple FASTA files for each region and segment in the provided dictionary.
@@ -30,17 +32,14 @@ def write_fasta_file(dictionary, folder: str):
         OSError: If there is an issue writing to the files, logs the error and raises an exception.
     """
     make_dir(folder)
-    try:
-        for key, value in dictionary.items():
-            for region, segments in value.items():
-                ffile = folder / f"{key}{region}.fasta"
-                with open(ffile, 'w') as f:
-                    for header, segment in segments.items():
-                        for x, rss in enumerate(segment):
-                            f.write(f">{header}-{x+1}\n{rss}\n")
-    except OSError as e:
-        logger.error(f"Failed to write to FASTA file {ffile}: {e}")
-        raise
+    for key, value in dictionary.items():
+        for region, segments in value.items():
+            ffile = folder / f"{key}{region}.fasta"
+            with open(ffile, 'w') as f:
+                for header, segment in segments.items():
+                    for x, rss in enumerate(segment):
+                        f.write(f">{header}-{x+1}\n{rss}\n")
+
 
 
 def calculate_position(position, variant_length, operation):
@@ -100,6 +99,7 @@ def rss_type(start, end, combi, rss_variant, strand, config):
         raise KeyError(f"Invalid combination or strand: {combi}, {strand}")
 
 
+@log_error()
 def fetch_sequence(row, segment, rss_variant, config):
     """
     Extracts the RSS sequence from the specified row of the DataFrame based on the segment and RSS variant.
@@ -118,25 +118,17 @@ def fetch_sequence(row, segment, rss_variant, config):
         FileNotFoundError: If the FASTA file is not found, logs the error and raises an exception.
         KeyError: If the segment or region combination is invalid, logs the error and raises an exception.
     """
-    fasta, start, end, strand, region = row[[
-        'Path', 'Start coord', 'End coord', 'Strand', 'Region']]
-    try:
-        with open(fasta, 'r') as fasta_file:
-            record = SeqIO.read(fasta_file, 'fasta')
-            rss_start, rss_stop = rss_type(
-                start, end, f"{region}{segment}", rss_variant, strand, config)
-            rss = record.seq[int(rss_start):int(rss_stop)]
-            if strand == '-':
-                rss = str(Seq(str(rss)).reverse_complement())
-        return rss
-    except FileNotFoundError as e:
-        logger.error(f"FASTA file not found: {fasta}")
-        raise
-    except KeyError as e:
-        logger.error(f"Invalid segment or region combination: {e}")
-        raise
+    fasta, start, end, strand, region = row[['Path', 'Start coord', 'End coord', 'Strand', 'Region']]
+    with open(fasta, 'r') as fasta_file:
+        record = SeqIO.read(fasta_file, 'fasta')
+        rss_start, rss_stop = rss_type(start, end, f"{region}{segment}", rss_variant, strand, config)
+        rss = record.seq[int(rss_start):int(rss_stop)]
+        if strand == '-':
+            rss = str(Seq(str(rss)).reverse_complement())
+    return rss
 
 
+@log_error()
 def add_to_dict(query, dictionary, rss):
     """
     Adds an RSS sequence to the specified dictionary under the given query.
@@ -150,13 +142,11 @@ def add_to_dict(query, dictionary, rss):
     Raises:
         TypeError: If the provided dictionary is not valid, logs the error and raises an exception.
     """
-    try:
-        dictionary.setdefault(query, []).append(rss)
-    except TypeError as e:
-        logger.error(f"Failed to add to dictionary: {e}")
-        raise
+    dictionary.setdefault(query, []).append(rss)
 
 
+
+@log_error()
 def get_mers(rss, rss_variant, config):
     """
     Extracts the heptamer and nonamer sequences from the RSS based on the RSS variant.
@@ -171,13 +161,10 @@ def get_mers(rss, rss_variant, config):
     Raises:
         KeyError: If the RSS variant is not found in the configuration, logs the error and raises an exception.
     """
-    try:
-        mers = config["RSS_MERS"].get(str(rss_variant), [])
-        mer1, mer2 = mers
-        return [rss[0:mer1], rss[-mer2:]]
-    except KeyError as e:
-        logger.error(f"RSS variant not found in configuration: {e}")
-        raise
+    mers = config["RSS_MERS"].get(str(rss_variant), [])
+    mer1, mer2 = mers
+    return [rss[0:mer1], rss[-mer2:]]
+
 
 
 def add_to_row(row, mer1, mer2, rss_variant):
@@ -196,11 +183,11 @@ def add_to_row(row, mer1, mer2, rss_variant):
     """
     heptamer, nonamer = (''.join(mer1), ''.join(mer2)) if len(
         mer1) == 7 else (''.join(mer2), ''.join(mer1))
-    row[f"{rss_variant}_heptamer"], row[f"{
-        rss_variant}_nonamer"] = heptamer, nonamer
+    row[f"{rss_variant}_heptamer"], row[f"{rss_variant}_nonamer"] = heptamer, nonamer
     return row
 
 
+@log_error()
 def add_segment(query, segment, region, separated_segments, rss_sequence, function):
     """
     Adds the RSS sequence to the separated_segments dictionary based on the segment, region, and function.
@@ -218,14 +205,11 @@ def add_segment(query, segment, region, separated_segments, rss_sequence, functi
         TypeError: If the provided dictionary is not valid, logs the error and raises an exception.
     """
     if function != "P":
-        try:
-            add_to_dict(query, separated_segments.setdefault(
-                region, {}).setdefault(segment, {}), str(rss_sequence))
-        except TypeError as e:
-            logger.error(f"Failed to add segment to dictionary: {e}")
-            raise
+        add_to_dict(query, separated_segments.setdefault(region, {}).setdefault(segment, {}), str(rss_sequence))
 
 
+
+@log_error()
 def add_base_rss_parts(row, config):
     """
     Adds base RSS components (heptamer and nonamer) to the row based on the segment type and RSS variant.
@@ -246,18 +230,14 @@ def add_base_rss_parts(row, config):
     row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
     rss_variants = config['RSS_LAYOUT'].get(full, {}).keys()
 
-    try:
-        for rss_variant in rss_variants:
-            rss_sequence = fetch_sequence(row, segment, rss_variant, config)
-            mer1, mer2 = get_mers(rss_sequence, rss_variant, config)
-            add_to_row(row, mer1, mer2, rss_variant)
-    except KeyError as e:
-        logger.error(f"Invalid segment or region combination: {e}")
-        raise
+    for rss_variant in rss_variants:
+        rss_sequence = fetch_sequence(row, segment, rss_variant, config)
+        mer1, mer2 = get_mers(rss_sequence, rss_variant, config)
+        add_to_row(row, mer1, mer2, rss_variant)
 
     return row
 
-
+@log_error()
 def run_meme(out, rss_file, rss_variant):
     """
     Executes the MEME suite to identify motifs in the RSS sequences.
@@ -271,28 +251,21 @@ def run_meme(out, rss_file, rss_variant):
     Raises:
         CalledProcessError: If the MEME command fails, logs the error and raises an exception.
     """
-    total_nucleotides = sum(len(record.seq)
-                            for record in SeqIO.parse(rss_file, "fasta"))
+    total_nucleotides = sum(len(record.seq) for record in SeqIO.parse(rss_file, "fasta"))
     logger.debug(total_nucleotides)
-    multi_command = f"meme {
-        rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant} -maxsize {total_nucleotides}"
-    single_command = f"meme {
-        rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
-    amount = subprocess.run(
-        f"cat {rss_file} | egrep '^>' | wc -l", shell=True, capture_output=True)
 
-    try:
-        if int(amount.stdout) > 1:
-            subprocess.run(multi_command, shell=True, check=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-            subprocess.run(single_command, shell=True, check=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as e:
-        logger.error(f"MEME command failed: {e}")
-        raise
+    multi_command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant} -maxsize {total_nucleotides}"
+    single_command = f"meme {rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
+    amount = subprocess.run(f"cat {rss_file} | egrep '^>' | wc -l", shell=True, capture_output=True)
+
+    if int(amount.stdout) > 1:
+        subprocess.run(multi_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        subprocess.run(single_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
+
+@log_error()
 def get_reference_mers(regex_string, rss_variant, config):
     """
     Extracts the heptamer and nonamer sequences from a MEME-generated regular expression string.
@@ -307,16 +280,13 @@ def get_reference_mers(regex_string, rss_variant, config):
     Raises:
         ValueError: If the regular expression string is invalid, logs the error and raises an exception.
     """
-    try:
-        rss = re.findall(r'\[[^\]]*\]|.', regex_string)
-        mers = config["RSS_MERS"].get(str(rss_variant), [])
-        mer1, mer2 = mers
-        return rss[0:mer1], rss[-mer2:]
-    except ValueError as e:
-        logger.error(f"Invalid regular expression string: {e}")
-        raise
+    rss = re.findall(r'\[[^\]]*\]|.', regex_string)
+    mers = config["RSS_MERS"].get(str(rss_variant), [])
+    mer1, mer2 = mers
+    return rss[0:mer1], rss[-mer2:]
 
 
+@log_error()
 def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     """
     Updates the reference RSS dictionary with the heptamer and nonamer sequences for a specific segment.
@@ -334,23 +304,21 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     Raises:
         TypeError: If the provided segment or sequence is invalid, logs the error and raises an exception.
     """
-    try:
-        if len(mer1) == 7:
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "heptamer", ''.join(mer1))
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "nonamer", ''.join(mer2))
-        else:
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "heptamer", ''.join(mer2))
-            ref_rss_dict.setdefault(segment, {}).setdefault(
-                "nonamer", ''.join(mer1))
-        return ref_rss_dict
-    except TypeError as e:
-        logger.error(f"Failed to update reference dictionary: {e}")
-        raise
+    if len(mer1) == 7:
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "heptamer", ''.join(mer1))
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "nonamer", ''.join(mer2))
+    else:
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "heptamer", ''.join(mer2))
+        ref_rss_dict.setdefault(segment, {}).setdefault(
+            "nonamer", ''.join(mer1))
+    return ref_rss_dict
 
 
+
+@log_error()
 def create_meme_directory(meme_directory, RSS_directory, config):
     """
     Creates a directory for storing MEME results and runs the MEME suite on RSS sequences.
@@ -365,20 +333,18 @@ def create_meme_directory(meme_directory, RSS_directory, config):
     """
     make_dir(meme_directory)
 
-    try:
-        for rss_file in Path(RSS_directory).iterdir():
-            stem = rss_file.stem
-            rss_variant = stem.split("_")[-1]
-            RSS_convert = config.get("RSS_LENGTH", {})
-            out = meme_directory / stem
-            meme = out / "meme.txt"
-            if not meme.exists():
-                run_meme(out, rss_file, RSS_convert[rss_variant])
-    except OSError as e:
-        logger.error(f"Failed to create meme directory or run MEME: {e}")
-        raise
+    for rss_file in Path(RSS_directory).iterdir():
+        stem = rss_file.stem
+        rss_variant = stem.split("_")[-1]
+        RSS_convert = config.get("RSS_LENGTH", {})
+        out = meme_directory / stem
+        meme = out / "meme.txt"
+        if not meme.exists():
+            run_meme(out, rss_file, RSS_convert[rss_variant])
 
 
+
+@log_error()
 def make_reference_rss(ref_meme_directory, config):
     """
     Generates a reference dictionary of RSS heptamers and nonamers from MEME results.
@@ -395,24 +361,17 @@ def make_reference_rss(ref_meme_directory, config):
     """
     ref_rss_dict = {}
 
-    try:
-        for meme in ref_meme_directory.iterdir():
-            meme_text = meme / "meme.txt"
-            command = f'cat {meme_text} | egrep -A2 "regular expression"'
-            result = subprocess.run(command, shell=True,
-                                    capture_output=True, text=True)
-            hits = result.stdout.replace(
-                "-", "").replace("\t", "").strip().split("\n")
-            hits = [hit for hit in hits if hit]
-            if hits:
-                split_stem = meme.stem.split("_")
-                rss_variant = int(split_stem[1])
-                val1, val2 = get_reference_mers(hits[1], rss_variant, config)
-                make_ref_dict(meme.stem, ref_rss_dict, val1, val2)
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to extract MEME results: {e}")
-        raise
-
+    for meme in ref_meme_directory.iterdir():
+        meme_text = meme / "meme.txt"
+        command = f'cat {meme_text} | egrep -A2 "regular expression"'
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        hits = result.stdout.replace("-", "").replace("\t", "").strip().split("\n")
+        hits = [hit for hit in hits if hit]
+        if hits:
+            split_stem = meme.stem.split("_")
+            rss_variant = int(split_stem[1])
+            val1, val2 = get_reference_mers(hits[1], rss_variant, config)
+            make_ref_dict(meme.stem, ref_rss_dict, val1, val2)
     return ref_rss_dict
 
 
@@ -485,6 +444,7 @@ def check_ref_rss(row, ref_rss_dict, rss_variant):
     return row
 
 
+@log_error()
 def combine_df(original_df, new_df):
     """
     Merges the original DataFrame with the new DataFrame containing RSS heptamers and nonamers.
@@ -508,21 +468,15 @@ def combine_df(original_df, new_df):
         '23_nonamer', '23_ref_nonamer', '23_nonamer_matched',
     ]
 
-    try:
-        for column in columns_to_merge:
-            if column not in original_df.columns:
-                original_df[column] = ''
-        combined_df = pd.merge(new_df, original_df[columns_to_merge],
-                               on=['Reference', 'Old name-like',
-                                   'Start coord', 'End coord'],
-                               how='left')
-    except ValueError as e:
-        logger.error(f"Failed to merge DataFrames: {e}")
-        raise
+    for column in columns_to_merge:
+        if column not in original_df.columns:
+            original_df[column] = ''
+    combined_df = pd.merge(new_df, original_df[columns_to_merge], on=['Reference', 'Old name-like', 'Start coord', 'End coord'], how='left')
 
     return combined_df
 
 
+@log_error()
 def apply_check_ref_rss(row, ref_rss_dict, config, options):
     """
     Applies the reference RSS check to each row in the DataFrame.
@@ -542,17 +496,14 @@ def apply_check_ref_rss(row, ref_rss_dict, config, options):
     full = region + segment
     rss_variants = config['RSS_LAYOUT'].get(full, {}).keys()
 
-    try:
-        for rss_variant in rss_variants:
-            if full in options:
-                return check_ref_rss(row, ref_rss_dict, rss_variant)
-    except KeyError as e:
-        logger.error(f"Invalid segment or region combination: {e}")
-        raise
+    for rss_variant in rss_variants:
+        if full in options:
+            return check_ref_rss(row, ref_rss_dict, rss_variant)
 
     return row
 
 
+@log_error()
 def create_dict(row, separated_segments, config):
     """
     Creates a dictionary entry for the RSS sequence based on the current row of the DataFrame.
@@ -568,23 +519,18 @@ def create_dict(row, separated_segments, config):
     Raises:
         KeyError: If the segment or region combination is not found in the configuration, logs the error and raises an exception.
     """
-    query, region, segment, function = row[[
-        "Old name-like", "Region", "Segment", "Function"]]
+    query, region, segment, function = row[["Old name-like", "Region", "Segment", "Function"]]
     combi = region + segment
     rss_variants = config['RSS_LAYOUT'].get(combi, {}).keys()
 
-    try:
-        for rss_variant in rss_variants:
-            rss_sequence = fetch_sequence(row, segment, rss_variant, config)
-            add_segment(query, f"{segment}_{rss_variant}", region,
-                        separated_segments, rss_sequence, function)
-    except KeyError as e:
-        logger.error(f"Invalid segment or region combination: {e}")
-        raise
+    for rss_variant in rss_variants:
+        rss_sequence = fetch_sequence(row, segment, rss_variant, config)
+        add_segment(query, f"{segment}_{rss_variant}", region, separated_segments, rss_sequence, function)
 
     return row
 
 
+@log_error()
 def create_RSS_files(df, RSS_directory, config):
     """
     Generates RSS files from the DataFrame and saves them to the specified directory.
@@ -599,16 +545,12 @@ def create_RSS_files(df, RSS_directory, config):
     """
     if not RSS_directory.exists():
         separated_segments = {}
-
-        try:
-            df = df.apply(lambda row: create_dict(
-                row, separated_segments, config), axis=1)
-            write_fasta_file(separated_segments, RSS_directory)
-        except OSError as e:
-            logger.error(f"Failed to create RSS files: {e}")
-            raise
+        df = df.apply(lambda row: create_dict(row, separated_segments, config), axis=1)
+        write_fasta_file(separated_segments, RSS_directory)
 
 
+
+@log_error()
 def create_all_RSS_meme_files(cwd, df, config):
     """
     Generates all necessary RSS and MEME files for the analysis.
@@ -631,15 +573,9 @@ def create_all_RSS_meme_files(cwd, df, config):
     rss_filenames = ["reference_RSS", "new_RSS", "combined_RSS"]
     meme_directories = ["reference_meme", "new_meme", "complete_meme"]
 
-    try:
-        for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
-            create_RSS_files(dataset, base / rss_filename, config)
-            create_meme_directory(base / meme_directory,
-                                  base / rss_filename, config)
-    except OSError as e:
-        logger.error(f"Failed to create RSS or MEME files: {e}")
-        raise
-
+    for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
+        create_RSS_files(dataset, base / rss_filename, config)
+        create_meme_directory(base / meme_directory, base / rss_filename, config)
     return base / meme_directories[0]
 
 
@@ -728,6 +664,7 @@ def check_if_exists(filename):
         sys.exit()
 
 
+@log_error()
 def RSS_main(no_split):
     """
     Main function of the RSS creation script.
@@ -745,31 +682,24 @@ def RSS_main(no_split):
     Raises:
         Exception: If any step fails, logs the error and raises an exception.
     """
-    try:
-        complete_df = pd.DataFrame()
-        cwd = Path.cwd()
+    complete_df = pd.DataFrame()
+    cwd = Path.cwd()
 
-        config = load_config(cwd / "config" / "config.yaml")
-        options = set(config.get("RSS_LAYOUT", {}).keys())
+    config = load_config(cwd / "config" / "config.yaml")
+    options = set(config.get("RSS_LAYOUT", {}).keys())
 
-        df1 = pd.read_excel(check_if_exists(
-            cwd / 'annotation' / 'annotation_report_novel.xlsx'))
-        df2 = pd.read_excel(check_if_exists(
-            cwd / 'annotation' / 'annotation_report_known.xlsx'))
-        ref_meme_directory = create_all_RSS_meme_files(cwd, df1, config)
-        ref_rss_dict = make_reference_rss(ref_meme_directory, config)
-        for df, filename in zip([df1, df2], ["annotation_report_novel", "annotation_report_known"]):
-            df = update_df(df, ref_rss_dict, config, options)
-            reference_df = combine_df(df, pd.read_excel(
-                cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
-            complete_df = pd.concat(
-                [complete_df, reference_df], ignore_index=True)
-        final_df = remove_overlapping_segments(complete_df)
-        create_rss_excel_file(cwd, final_df, no_split)
-    except Exception as e:
-        logger.error(f"Failed in RSS_main: {e}")
-        raise
+    df1 = pd.read_excel(check_if_exists(cwd / 'annotation' / 'annotation_report_novel.xlsx'))
+    df2 = pd.read_excel(check_if_exists(cwd / 'annotation' / 'annotation_report_known.xlsx'))
+    ref_meme_directory = create_all_RSS_meme_files(cwd, df1, config)
+    ref_rss_dict = make_reference_rss(ref_meme_directory, config)
+
+    for df, filename in zip([df1, df2], ["annotation_report_novel", "annotation_report_known"]):
+        df = update_df(df, ref_rss_dict, config, options)
+        reference_df = combine_df(df, pd.read_excel(cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
+        complete_df = pd.concat([complete_df, reference_df], ignore_index=True)
+    final_df = remove_overlapping_segments(complete_df)
+    create_rss_excel_file(cwd, final_df, no_split)
 
 
 if __name__ == '__main__':
-    RSS_main()
+    RSS_main(True)

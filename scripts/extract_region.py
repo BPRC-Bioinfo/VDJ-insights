@@ -1,15 +1,20 @@
 from pathlib import Path
 import re
 import subprocess
+from typing import Tuple
+
 from Bio import SeqIO
 
-from util import make_dir, load_config
+from util import make_dir
 from logger import custom_logger
+from property import log_error
+
 
 logger = custom_logger(__name__)
 
 
-def make_record_dict(fasta):
+@log_error()
+def make_record_dict(fasta: str | Path) -> dict:
     """
     Creates a dictionary of SeqIO records from a given FASTA file. 
     The dictionary allows for efficient access to sequences by their IDs.
@@ -23,13 +28,9 @@ def make_record_dict(fasta):
     Raises:
         Exception: If the FASTA file cannot be read or parsed, logs the error and raises an exception.
     """
-    try:
-        with open(fasta, 'r') as fasta_file:
-            record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
-            return record_dict
-    except Exception as e:
-        logger.error(f"Failed to create record dictionary for {fasta}: {e}")
-        raise
+    with open(fasta, 'r') as fasta_file:
+        record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+        return record_dict
 
 
 def write_seq(record_dict, name, start, stop, out):
@@ -47,16 +48,13 @@ def write_seq(record_dict, name, start, stop, out):
     Raises:
         Exception: If the sequence cannot be written, logs the error and raises an exception.
     """
-    try:
-        with open(out, 'w') as out_file:
-            record = record_dict[name]
-            out_file.write(f">{out.stem}\n{record.seq[start:stop]}")
-            logger.info(f"Sequence written to {out}")
-    except Exception as e:
-        logger.error(f"Failed to write sequence to {out}: {e}")
-        raise
+    with open(out, 'w') as out_file:
+        record = record_dict[name]
+        out_file.write(f">{out.stem}\n{record.seq[start:stop]}")
+        logger.info(f"Sequence written to {out}")
 
 
+@log_error()
 def get_best_coords(sam_list):
     """
     Determines the best coordinates from a list of SAM file entries based on the lowest bitwise flag value.
@@ -72,18 +70,15 @@ def get_best_coords(sam_list):
     Raises:
         Exception: If the best coordinates cannot be determined, logs the error and raises an exception.
     """
-    try:
-        bitwise_flag = float("inf")
-        best = []
-        for i in range(0, len(sam_list), 4):
-            sublist = sam_list[i:i+4]
-            sam_bitwise = int(sublist[0])
-            if sam_bitwise < bitwise_flag:
-                bitwise_flag, contig_name, best = sam_bitwise, sublist[1], sublist
-        return best[2:], contig_name
-    except Exception as e:
-        logger.error(f"Failed to get best coordinates: {e}")
-        raise
+    bitwise_flag = float("inf")
+    best = []
+    for i in range(0, len(sam_list), 4):
+        sublist = sam_list[i:i+4]
+        sam_bitwise = int(sublist[0])
+        if sam_bitwise < bitwise_flag:
+            bitwise_flag, contig_name, best = sam_bitwise, sublist[1], sublist
+    return best[2:], contig_name
+
 
 
 def get_positions_and_name(sam, first, second, record_dict):
@@ -159,11 +154,11 @@ def get_positions_and_name(sam, first, second, record_dict):
         return coords, name
 
     except Exception as e:
-        logger.error(f"Failed to get positions and name from SAM file: {e}")
+        logger.warning(f"Failed to get positions and name from SAM file: {e}")
         return [], []
 
 
-def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, config):
+def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path, first: str, second: str, sample: str, haplotype: str):
     """
     Extracts a sequence from an assembly FASTA file based on flanking genes,
     and writes it to an output FASTA file.
@@ -171,37 +166,30 @@ def extract(cwd, assembly_fasta, directory, first, second, sample, haplotype, co
     Args:
         cwd (Path): The current working directory.
         assembly_fasta (Path): Path to the assembly FASTA file.
+        directory (Path):
         first (str): First flanking gene.
         second (str): Second flanking gene.
         sample (str): Sample identifier.
         haplotype (str): Haplotype identifier.
-        config (dict): Dictionary containing regions of interest and their associated flanking genes.
-
     Warns:
         Logs a warning if no region can be extracted instead of raising an exception.
     """
     outfile = directory / f"{sample}_{first}_{second}_{haplotype}.fasta"
     if not outfile.is_file():
-        try:
-            sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
-            record_dict = make_record_dict(assembly_fasta)
-            coords, name = get_positions_and_name(
-                sam, first, second, record_dict)
+        sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
 
-            if coords:
-                if len(set(name)) == 1:
-                    logger.info(
-                        f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
-                    write_seq(record_dict, name[0], min(
-                        coords), max(coords), outfile)
-                else:
-                    logger.warning(
-                        "Broken region detected, unable to create a valid region.")
+        record_dict = make_record_dict(assembly_fasta)
+        coords, name = get_positions_and_name(sam, first, second, record_dict)
+
+        if coords:
+            if len(set(name)) == 1:
+                logger.info(f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
+                write_seq(record_dict, name[0], min(coords), max(coords), outfile)
             else:
-                logger.warning(f"No coordinates found for {first} and {second}. Region could not be extracted.")
+                logger.warning("Broken region detected, unable to create a valid region.")
+        else:
+            logger.warning(f"No coordinates found for {first} and {second}. Region could not be extracted.")
 
-        except Exception as e:
-            logger.error(f"Failed to extract region: {e}")
 
 
 def clean_filename(filename: str):
@@ -234,7 +222,7 @@ def clean_filename(filename: str):
     return filename, accession_code
 
 
-def parse_name(filename: Path):
+def parse_name(filename: str | Path) -> Tuple[str, str, str]:
     """
     Parses the filename to extract the chromosome, sample (accession code or custom ID), and haplotype information,
     handling any order of parts and missing values.
@@ -265,9 +253,10 @@ def parse_name(filename: Path):
     return chrom, sample, haplotype
 
 
+@log_error()
 def region_main(flanking_genes, assembly_dir=""):
     """
-    Main function that processes SAM files to create region-specific FASTA files 
+    Main function that processes SAM files to create region-specific assembly files
     based on flanking genes specified in the configuration.
 
     Args:
@@ -277,28 +266,19 @@ def region_main(flanking_genes, assembly_dir=""):
     Raises:
         Exception: If the main region processing fails, logs the error and raises an exception.
     """
-    try:
-        cwd = Path.cwd()
-        directory = cwd / "region"
-        make_dir(directory)
-        config = load_config(cwd / "config" / "config.yaml")
-        for first, second in zip(*[iter(flanking_genes)]*2):
-            extensions = ["*.fna", "*.fasta", "*.fa"]
-            fasta_files = [file for ext in extensions for file in Path(
-                assembly_dir).glob(ext)]
-            for assembly in fasta_files:
-                chrom, sample, haplotype = parse_name(assembly)
-                extract(cwd, assembly, directory, first,
-                        second, sample, haplotype, config)
-        if any(directory.iterdir()):
-            logger.info("Region extraction completed successfully")
-        else:
-            logger.error("No regions where extracted")
-            raise
-    except Exception as e:
-        logger.error(f"Failed in region_main: {e}")
+    cwd = Path.cwd()
+    directory = cwd / "region"
+    make_dir(directory)
+
+    extensions = ["*.fna", "*.fasta", "*.fa"]
+
+    for first, second in zip(*[iter(flanking_genes)]*2):
+        assembly_files = [file for ext in extensions for file in Path(assembly_dir).glob(ext)]
+        for assembly in assembly_files:
+            chrom, sample, haplotype = parse_name(assembly)
+            extract(cwd, assembly, directory, first, second, sample, haplotype)
+    if any(directory.iterdir()):
+        logger.info("Region extraction completed successfully")
+    else:
+        logger.error("No regions where extracted")
         raise
-
-
-if __name__ == "__main__":
-    pass

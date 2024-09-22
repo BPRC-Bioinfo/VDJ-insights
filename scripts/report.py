@@ -5,7 +5,7 @@ from pathlib import Path
 from Bio import SeqIO
 
 from logger import custom_logger
-from util import make_dir, seperate_annotation
+from util import seperate_annotation
 
 logger = custom_logger(__name__)
 
@@ -104,8 +104,7 @@ def main_df(df):
             - df (pd.DataFrame): The filtered DataFrame without gaps and 100% identity entries.
             - reference_df (pd.DataFrame): A DataFrame containing only 100% identity entries.
     """
-    mask = ~df['query seq'].str.contains(
-        '-') & ~df['subject seq'].str.contains('-')
+    mask = ~df['query seq'].str.contains('-') & ~df['subject seq'].str.contains('-')
     df = df[mask]
     df['% identity'] = df['% identity'].astype(float)
     reference_df = df.query("`% identity` == 100.000")
@@ -124,13 +123,11 @@ def add_values(df):
     Returns:
         pd.DataFrame: The DataFrame with additional columns for sequence lengths, mismatch percentage, and split query information.
     """
-    df['% Mismatches of total alignment'] = (
-        df['mismatches'] / df['alignment length']) * 100
+    df['% Mismatches of total alignment'] = (df['mismatches'] / df['alignment length']) * 100
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     path_df = df['query'].str.split(':', expand=True)
-    df[['query', 'start', 'stop', 'strand', 'path',
-        'haplotype']] = path_df[[0, 1, 2, 3, 4, 5]]
+    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype']] = path_df[[0, 1, 2, 3, 4, 5]]
     return df
 
 
@@ -328,8 +325,7 @@ def run_like_and_length(df, record, cell_type):
     df = add_like_to_df(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
-    length_mask = df[["Reference Length", "Old name-like Length",
-                      "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
+    length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
     df = df[length_mask]
     df["Sample"] = df["Path"].apply(extract_sample)
     return df
@@ -347,8 +343,7 @@ def group_similar(df, cell_type):
     Returns:
         pd.DataFrame: The grouped and filtered DataFrame.
     """
-    df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(
-        lambda group: filter_df(group, cell_type))
+    df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
     return df
 
@@ -394,17 +389,15 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
              'Short name', 'Message', 'Old name-like seq', 'Reference seq',]]
     df["Status"] = "Known" if "known" in file_name else "Novel"
 
-    # Write full annotation report to Excel
     full_annotation_path = annotation_folder / file_name
     df.to_excel(full_annotation_path, index=False)
 
     if not no_split:
         logger.info("Creating individual sample excel files...")
-        df.groupby("Sample").apply(lambda group: seperate_annotation(
-            group, annotation_folder, file_name))
+        df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
 
 
-def report_main(annotation_folder, blast_file, cell_type, library, no_split):
+def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type: str, library: str | Path, no_split: bool):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     It performs the following steps:
@@ -423,6 +416,7 @@ def report_main(annotation_folder, blast_file, cell_type, library, no_split):
     """
     cwd = Path.cwd()
     record = make_record_dict(cwd / library)
+
     df = pd.read_excel(blast_file)
     df = add_values(df)
     df, ref_df = main_df(df)
@@ -431,12 +425,6 @@ def report_main(annotation_folder, blast_file, cell_type, library, no_split):
     df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
     annotation_long(df, annotation_folder)
     df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
+
     annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split)
-    annotation(ref_df, annotation_folder,
-               'annotation_report_known.xlsx', no_split)
-
-
-if __name__ == '__main__':
-    cwd = Path.cwd()
-    annotation_folder = cwd / "annotation"
-    report_main(annotation_folder)
+    annotation(ref_df, annotation_folder,'annotation_report_known.xlsx', no_split)

@@ -71,11 +71,11 @@ def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, i
         df = combine_df(mapping_tool, cell_type, input_dir, library, threads)
         df.to_excel(report, index=False)
         logger.info(f"Report successfully saved to {report}")
-        return df
     else:
         df = pd.read_excel(report)
         logger.info(f"Loaded existing report from {report}")
-        return df
+    return df
+
 
 @log_error()
 def validate_flanking_genes(value: str) -> list:
@@ -202,16 +202,8 @@ def main(args=None):
     if not blast_file.exists():
         blast_main(df, blast_file, args.library)
 
-    report_main(annotation_folder, blast_file,
-                args.receptor_type, args.library, args.no_split)
+    report_main(annotation_folder, blast_file,args.receptor_type, args.library, args.no_split)
     RSS_main(args.no_split)
-    logger.info(
-        f"""Annotation process completed. Results are available in {
-            annotation_folder}.xlsx"""
-    )
 
+    logger.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
 
-if __name__ == '__main__':
-    #main()
-    result = validate_flanking_genes("gene1, gene2, gen2")
-    print(result)
