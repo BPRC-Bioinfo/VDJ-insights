@@ -3,6 +3,8 @@ import shutil
 import subprocess
 from time import sleep
 from Bio import SeqIO
+from multiprocessing import cpu_count
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from util import make_dir, unzip_file
 from logger import custom_logger
@@ -31,7 +33,7 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
     output_zip = path / f"{gene}.zip"
     output_fna = path / f"{gene}.fna"
     if not output_fna.is_file():
-        command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+        command = f'datasets download gene symbol {gene} --taxon "{species}" --include gene --filename {output_zip}'
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         unzip_file(output_zip, path)
@@ -82,7 +84,6 @@ def combine_genes(path: str | Path, flanking_output: str | Path) -> Path:
     return flanking_output
 
 
-@log_error()
 def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Path, threads=8) -> None:
     """
     Maps flanking genes to an assembly file using Minimap2, producing a SAM file.
@@ -108,7 +109,6 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         logger.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-@log_error()
 def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
@@ -130,18 +130,25 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) 
             download_flanking_genes(gene, flanking_genes_dir, species)
 
     gene_output = combine_genes(flanking_genes_dir, flanking_genes_dir / "all_genes.fna")
-    assembly_dir = cwd / assembly_dir
 
+    assembly_dir = cwd / assembly_dir
     map_flanking_genes_dir = cwd / "mapped_genes"
     make_dir(map_flanking_genes_dir)
 
     extensions = ["*.fna", "*.fasta", "*.fa"]
     assembly_files = [file for ext in extensions for file in assembly_dir.glob(ext)]
 
-    for assembly_file in assembly_files:
-        map_flanking_genes(map_flanking_genes_dir, gene_output, Path(assembly_file))
+    threads = 4
+    num_cores = cpu_count() // threads
+    logger.info(f"Threads found on server: {cpu_count()}")
+
+    args = [
+        (map_flanking_genes_dir, gene_output, Path(assembly_file), threads)
+        for assembly_file in assembly_files
+    ]
+    with ProcessPoolExecutor(max_workers=num_cores) as executor:
+        futures = {executor.submit(map_flanking_genes, *arg): arg for arg in args}
+        for future in as_completed(futures):
+            future.result()
+
     logger.info("Extract main process completed successfully")
-
-
-if __name__ == "__main__":
-    map_main()

@@ -136,7 +136,7 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
         subprocess.run(command, shell=True, check=True)
         logger.info(f"Executed BLAST search for {header}")
-        return blast_result_path
+    return blast_result_path
 
 
 @log_error()

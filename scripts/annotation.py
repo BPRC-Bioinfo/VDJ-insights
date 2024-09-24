@@ -121,7 +121,7 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
     data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
     data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
     assembly_options = parser.add_argument_group('Assembly-Specific Options','These options are required if -a/--assembly is chosen:')
-    assembly_options.add_argument('-s', '--species', type=str, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
+    assembly_options.add_argument('-s', '--species', type=str.capitalize, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     exclusive_group = parser.add_argument_group('Exclusive Options')
     exclusive_mutually_exclusive = exclusive_group.add_mutually_exclusive_group()
     exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')

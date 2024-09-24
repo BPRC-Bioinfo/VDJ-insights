@@ -1,9 +1,10 @@
 from pathlib import Path
 import re
 import subprocess
-from typing import Tuple
+from typing import Tuple, Dict
 
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 from util import make_dir
 from logger import custom_logger
@@ -30,10 +31,10 @@ def make_record_dict(fasta: str | Path) -> dict:
     """
     with open(fasta, 'r') as fasta_file:
         record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
-        return record_dict
+    return record_dict
 
 
-def write_seq(record_dict, name, start, stop, out):
+def write_seq(record_dict: dict, name: str, start: int, stop: int, output: str | Path):
     """
     Writes a sequence from a given record dictionary to an output FASTA file, 
     using specified start and stop coordinates.
@@ -43,19 +44,19 @@ def write_seq(record_dict, name, start, stop, out):
         name (str): ID of the sequence to write.
         start (int): Start coordinate of the region to extract.
         stop (int): End coordinate of the region to extract.
-        out (Path): Path to the output FASTA file.
+        output (Path): Path to the output FASTA file.
 
     Raises:
         Exception: If the sequence cannot be written, logs the error and raises an exception.
     """
-    with open(out, 'w') as out_file:
+    with open(output, 'w') as out_file:
         record = record_dict[name]
-        out_file.write(f">{out.stem}\n{record.seq[start:stop]}")
-        logger.info(f"Sequence written to {out}")
+        out_file.write(f">{output.stem}\n{record.seq[start:stop]}")
+    logger.info(f"Sequence written to {output}")
 
 
 @log_error()
-def get_best_coords(sam_list):
+def get_best_coords(sam_list: list[str]):
     """
     Determines the best coordinates from a list of SAM file entries based on the lowest bitwise flag value.
 
@@ -81,7 +82,7 @@ def get_best_coords(sam_list):
 
 
 
-def get_positions_and_name(sam, first, second, record_dict):
+def get_positions_and_name(sam: str | Path, first: str, second: str, record_dict: Dict[str, SeqRecord]):
     """
     Extracts the positions and contig name from a SAM file for given flanking genes.
     Handles reverse strand mapping and assigns missing genes to the telomere if necessary.
@@ -142,13 +143,11 @@ def get_positions_and_name(sam, first, second, record_dict):
         if len(coords) == 2:
             region_length = abs(coords[1] - coords[0])
             if region_length < 100:
-                logger.warning(
-                    f"Region is too short: {region_length} base pairs. No region extracted.")
+                logger.warning(f"Region is too short: {region_length} base pairs. No region extracted.")
                 return [], []
 
         if not coords or not name:
-            logger.warning(
-                "No coordinates or contig names could be found. Region could not be extracted.")
+            logger.warning("No coordinates or contig names could be found. Region could not be extracted.")
             return [], []
 
         return coords, name
@@ -253,8 +252,7 @@ def parse_name(filename: str | Path) -> Tuple[str, str, str]:
     return chrom, sample, haplotype
 
 
-@log_error()
-def region_main(flanking_genes, assembly_dir=""):
+def region_main(flanking_genes: list[str], assembly_dir=""):
     """
     Main function that processes SAM files to create region-specific assembly files
     based on flanking genes specified in the configuration.

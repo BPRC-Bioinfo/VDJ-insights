@@ -68,9 +68,7 @@ def validate_file(path: str) -> str:
         argparse.ArgumentTypeError: If the file does not exist.
     """
     if not Path(path).is_file():
-        raise argparse.ArgumentTypeError(
-            f"The file {path} does not exist. Try another file, please!"
-        )
+        raise argparse.ArgumentTypeError(f"The file {path} does not exist. Try another file, please!")
     return path
 
 
@@ -158,3 +156,4 @@ def seperate_annotation(sample_df: pd.DataFrame, annotation_folder: Path, filena
     make_dir(path)
     new_file = path / filename
     sample_df.to_excel(new_file, index=False)
+

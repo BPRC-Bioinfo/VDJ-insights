@@ -12,11 +12,12 @@ from Bio import SeqIO
 from util import make_dir
 from logger import custom_logger
 
+
 logger = custom_logger(__name__)
 fasta_files_info = []
 
 
-def cleanup(directory):
+def cleanup(directory: str | Path):
     """
     Gets a path of a directory as input and loops over the fasta files 
     inside. It removes every found fasta file. After the removal of the 
@@ -28,11 +29,10 @@ def cleanup(directory):
     for file in directory.glob("*.fasta"):
         Path(file).unlink()
     Path(directory).rmdir()
-    logger.info(
-        f"Deleting folder: {directory.name}, because --cleanup was selected")
+    logger.info(f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
-def create_library(directory: Path, simple_headers):
+def create_library(directory: str | Path, simple_headers):
     """
     Gets a path of a directory that contain the fasta files needed to 
     create the library.fasta file. It first creates the library directory.
@@ -84,12 +84,11 @@ def scrape(response):
 def set_release():
     response = requests.get("https://www.imgt.org/vquest/refseqh.html")
     soup = BeautifulSoup(response.text, 'html.parser')
-    release = soup.find(
-        'h2', string=lambda text: text and 'IMGT/V-QUEST reference directory' in text)
+    release = soup.find('h2', string=lambda text: text and 'IMGT/V-QUEST reference directory' in text)
     return str(re.findall(r'\(.*?\)', release.text.strip())[0][1:-1])
 
 
-def write_sequence(name, directory, sequence):
+def write_sequence(name: str, directory: str | Path, sequence: str):
     """
     Write the found VDJ segment sequences. It first establishes a base fasta file. 
     Then it writes the VDJ sequences to the fasta file and logs that 
@@ -114,7 +113,7 @@ def write_sequence(name, directory, sequence):
 
 
 
-def fetch_sequence(segment, directory, species, frame, retry_limit=3):
+def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str, retry_limit=3):
     """
     Fetches sequence data from IMGT server using a constructed URL and handles failures with specified retry logic.
     Implements differentiated wait times based on the cause of retry need.
@@ -150,7 +149,7 @@ def fetch_sequence(segment, directory, species, frame, retry_limit=3):
         logger.error(f"Max retries reached for {segment} of {species} without successful data retrieval.")
 
 
-def scrape_IMGT(species, immune_type, directory, frame):
+def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: str):
     """
     Uses the argparse values to scrape from the IMGT server. First a dictionary 
     is created with the different VDJ segments that are known.
@@ -180,9 +179,7 @@ def scrape_IMGT(species, immune_type, directory, frame):
             'IGKJ', 'IGLV', 'IGLJ'
         ]
     }
-    if not directory.exists():
-        logger.info(f"Folder {directory.name} does not exist, creating it!")
-        make_dir(directory)
+    make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
         logger.info(
@@ -197,7 +194,7 @@ def scrape_IMGT(species, immune_type, directory, frame):
             time.sleep(2)
 
 
-def convert_frame(frame):
+def convert_frame(frame: str | None):
     """
     Transform the given frame to its secondary value. It creates a dict 
     for this and converts the value based on this dict. 
@@ -238,34 +235,23 @@ def argparser_setup():
         description='Scrape IMGT for TR and IG segment sequences of a given species.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    # Grouping arguments
     required_group = parser.add_argument_group('Required Options')
     optional_group = parser.add_argument_group('Optional Options')
 
-    # Species options
-    required_group.add_argument('-S', "--species", type=lambda s: s.capitalize(), choices=latin_names, required=True,
-                                help='Name of the species to scrape for (e.g., "Homo sapiens"). Capitalization is handled automatically.')
-    required_group.add_argument('-T', '--type', type=str.upper, choices=['TR', 'IG'], required=True,
-                                help='Type of sequence to scrape: TR (T-cell receptor) or IG (Immunoglobulin).')
+    required_group.add_argument('-S', "--species", type=lambda s: s.capitalize(), choices=latin_names, required=True, help='Name of the species to scrape for (e.g., "Homo sapiens"). Capitalization is handled automatically.')
+    required_group.add_argument('-T', '--type', type=str.upper, choices=['TR', 'IG'], required=True, help='Type of sequence to scrape: TR (T-cell receptor) or IG (Immunoglobulin).')
 
-    # Output options
-    optional_group.add_argument('-O', '--output', type=make_dir,
-                                help='Output directory where the results will be saved. The directory will be created if it does not exist.')
-    optional_group.add_argument('-f', '--frame-selection', type=str, choices=['all', 'in-frame', 'in-frame-gaps'],
-                                help='ORF frame analysis type. Choices are "all" for F+ORF+all P, "in-frame" for F+ORF+in-frame P, or "in-frame-gaps" for F+ORF+in-frame P with IMGT gaps.')
-    optional_group.add_argument('--create-library', action='store_true',
-                                help='Create a library from the IMGT files if specified.')
-    optional_group.add_argument('--cleanup', action='store_true',
-                                help='Clean up leftover IMGT files after processing.')
-    optional_group.add_argument('--simple-headers', action='store_true',
-                                help='Create simplified headers to improve readability.')
+    optional_group.add_argument('-O', '--output', type=make_dir, help='Output directory where the results will be saved. The directory will be created if it does not exist.')
+    optional_group.add_argument('-f', '--frame-selection', type=str, choices=['all', 'in-frame', 'in-frame-gaps'], help='ORF frame analysis type. Choices are "all" for F+ORF+all P, "in-frame" for F+ORF+in-frame P, or "in-frame-gaps" for F+ORF+in-frame P with IMGT gaps.')
+    optional_group.add_argument('--create-library', action='store_true', help='Create a library from the IMGT files if specified.')
+    optional_group.add_argument('--cleanup', action='store_true', help='Clean up leftover IMGT files after processing.')
+    optional_group.add_argument('--simple-headers', action='store_true', help='Create simplified headers to improve readability.')
 
     args = parser.parse_args()
     return args
 
 
-
-def save_json(release, fasta_files_info, file_path, args):
+def save_json(release: str, fasta_files_info:list[str], file_path: str, args):
     """
     Save the collected log information to an HTML file using Jinja2 template.
 
@@ -320,8 +306,7 @@ def main():
     logger.info("Scrape completed successfully.")
 
 
-    save_json(set_release(), fasta_files_info, Path.cwd() /
-              "library" / "library_info.json", args)
+    save_json(set_release(), fasta_files_info, Path.cwd() / "library" / "library_info.json", args)
 
 
 if __name__ == '__main__':

@@ -252,7 +252,6 @@ def run_meme(out, rss_file, rss_variant):
         CalledProcessError: If the MEME command fails, logs the error and raises an exception.
     """
     total_nucleotides = sum(len(record.seq) for record in SeqIO.parse(rss_file, "fasta"))
-    logger.debug(total_nucleotides)
 
     multi_command = f"meme {rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant} -maxsize {total_nucleotides}"
     single_command = f"meme {rss_file} -o {out} -dna -mod anr -nmotifs 1 -minw {rss_variant}"
@@ -317,7 +316,6 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     return ref_rss_dict
 
 
-
 @log_error()
 def create_meme_directory(meme_directory, RSS_directory, config):
     """
@@ -341,7 +339,6 @@ def create_meme_directory(meme_directory, RSS_directory, config):
         meme = out / "meme.txt"
         if not meme.exists():
             run_meme(out, rss_file, RSS_convert[rss_variant])
-
 
 
 @log_error()
@@ -549,7 +546,6 @@ def create_RSS_files(df, RSS_directory, config):
         write_fasta_file(separated_segments, RSS_directory)
 
 
-
 @log_error()
 def create_all_RSS_meme_files(cwd, df, config):
     """
@@ -579,6 +575,7 @@ def create_all_RSS_meme_files(cwd, df, config):
     return base / meme_directories[0]
 
 
+@log_error()
 def update_df(df, ref_rss_dict, config, options):
     """
     Updates the DataFrame with base RSS components and checks against reference RSS sequences.
@@ -594,17 +591,12 @@ def update_df(df, ref_rss_dict, config, options):
     Raises:
         KeyError: If the segment or region combination is not found in the configuration, logs the error and raises an exception.
     """
-    try:
-        df = df.apply(lambda row: add_base_rss_parts(row, config), axis=1)
-        df = df.apply(lambda row: apply_check_ref_rss(
-            row, ref_rss_dict, config, options), axis=1)
-    except KeyError as e:
-        logger.error(f"Failed to update DataFrame: {e}")
-        raise
-
+    df = df.apply(lambda row: add_base_rss_parts(row, config), axis=1)
+    df = df.apply(lambda row: apply_check_ref_rss(row, ref_rss_dict, config, options), axis=1)
     return df
 
 
+@log_error()
 def create_rss_excel_file(cwd, final_df, no_split):
     """
     Process the DataFrame to remove non-best overlapping rows and export
@@ -620,6 +612,7 @@ def create_rss_excel_file(cwd, final_df, no_split):
         wrtie_rss_excel_file(cwd, df, filename)
 
 
+@log_error()
 def wrtie_rss_excel_file(cwd, df, filename):
     """
     Creates an extended Excel file with the updated DataFrame.
@@ -633,35 +626,8 @@ def wrtie_rss_excel_file(cwd, df, filename):
     Raises:
         OSError: If the file creation fails, logs the error and raises an exception.
     """
-    try:
-        logger.info(f"Generating {filename}_rss.xlsx!")
-        df.to_excel(cwd / 'annotation' /
-                          f'{filename}_rss.xlsx', index=False)
-    except OSError as e:
-        logger.error(f"Failed to create Excel file: {e}")
-        raise
-
-
-def check_if_exists(filename):
-    """
-    Checks if a file exists at the specified path.
-    Logs an error and exits the program if the file is not found.
-
-    Args:
-        filename (str or Path): Path to the file to check.
-
-    Returns:
-        str or Path: The filename if it exists.
-
-    Raises:
-        SystemExit: If the file does not exist, logs the error and exits the program.
-    """
-    if Path(filename).exists():
-        return filename
-    else:
-        logger.error(
-            f"The {filename} file does not exist, closing application!")
-        sys.exit()
+    logger.info(f"Generating {filename}_rss.xlsx!")
+    df.to_excel(cwd / 'annotation' / f'{filename}_rss.xlsx', index=False)
 
 
 @log_error()
@@ -688,8 +654,8 @@ def RSS_main(no_split):
     config = load_config(cwd / "config" / "config.yaml")
     options = set(config.get("RSS_LAYOUT", {}).keys())
 
-    df1 = pd.read_excel(check_if_exists(cwd / 'annotation' / 'annotation_report_novel.xlsx'))
-    df2 = pd.read_excel(check_if_exists(cwd / 'annotation' / 'annotation_report_known.xlsx'))
+    df1 = pd.read_excel(cwd / 'annotation' / 'annotation_report_novel.xlsx')
+    df2 = pd.read_excel(cwd / 'annotation' / 'annotation_report_known.xlsx')
     ref_meme_directory = create_all_RSS_meme_files(cwd, df1, config)
     ref_rss_dict = make_reference_rss(ref_meme_directory, config)
 
