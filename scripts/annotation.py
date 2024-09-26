@@ -260,7 +260,7 @@ def main(args=None):
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool,
                        region_dir, args.library, args.threads)
 
-    blast_file = annotation_folder / "blast_results.xlsx"
+    blast_file = annotation_folder / "blast_results.csv"
     if not blast_file.exists():
         blast_main(df, blast_file, args.library)
 

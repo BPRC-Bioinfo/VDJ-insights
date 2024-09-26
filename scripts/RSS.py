@@ -273,7 +273,6 @@ def run_meme(out, rss_file, rss_variant):
     """
     total_nucleotides = sum(len(record.seq)
                             for record in SeqIO.parse(rss_file, "fasta"))
-    logger.debug(total_nucleotides)
     multi_command = f"meme {
         rss_file} -o {out} -dna -mod zoops -nmotifs 1 -minw {rss_variant} -maxsize {total_nucleotides}"
     single_command = f"meme {
