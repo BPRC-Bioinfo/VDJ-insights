@@ -19,3 +19,4 @@ dependencies:
  - ncbi-datasets-cli=15.25.0
  - mafft
  - psutil
+ - tqdm

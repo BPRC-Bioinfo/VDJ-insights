@@ -28,7 +28,7 @@ def make_dir(path: str | Path) -> Path | Path:
     """
     try:
         Path(path).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Directory created or already exists: {path}")
+        # logger.info(f"Directory created or already exists: {path}")
     except Exception as e:
         logger.error(f"Failed to create directory {path}: {e}")
         raise OSError(f"Failed to create directory {path}") from e

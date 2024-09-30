@@ -416,8 +416,7 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
     """
     cwd = Path.cwd()
     record = make_record_dict(cwd / library)
-
-    df = pd.read_excel(blast_file)
+    df = pd.read_csv(blast_file)
     df = add_values(df)
     df, ref_df = main_df(df)
     df = run_like_and_length(df, record, cell_type)

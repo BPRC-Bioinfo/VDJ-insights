@@ -3,6 +3,7 @@ import subprocess
 from tempfile import NamedTemporaryFile as Ntf
 from pathlib import Path
 import pandas as pd
+from tqdm import tqdm
 
 from logger import custom_logger
 from util import make_dir
@@ -94,7 +95,8 @@ def construct_blast_command(fasta_file_path: str | Path,
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"
     extra = "-word_size 7 -evalue 1000 -max_target_seqs 100 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
-    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
+    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{
+        blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
     if length <= LENGTH_THRESHOLD:
         command += f" {extra}"
     return command
@@ -128,7 +130,8 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"]
 
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
-        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}\n"
+        fasta_header = f">{header}:{start}:{stop}:{
+            strand}:{fasta_file_name}:{haplotype}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 
@@ -137,6 +140,7 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         subprocess.run(command, shell=True, check=True)
         logger.info(f"Executed BLAST search for {header}")
     return blast_result_path
+
 
 
 @log_error()
@@ -163,21 +167,28 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
         subprocess.CalledProcessError: If a BLAST command fails during execution.
     """
     aggregated_results = pd.DataFrame()
-    with ThreadPoolExecutor() as executor:
-        for cutoff in CUTOFFS:
-            futures = {executor.submit(execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
-            for future in futures:
-                result_file_path_str = future.result()
-                blast_columns = [
-                    'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
-                    'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
-                    'query seq', 'subject seq', 'query cov'
-                ]
-                temp_df = pd.read_csv(result_file_path_str, sep='\t', names=blast_columns)
-                if not temp_df.empty:
-                    temp_df['cutoff'] = cutoff
-                    aggregated_results = pd.concat([aggregated_results, temp_df], ignore_index=True)
-                Path(result_file_path_str).unlink()
+    total_searches = len(dataframe) * len(CUTOFFS)
+    with tqdm(total=total_searches, desc="Running all BLAST searches", unit="search") as pbar:
+        with ThreadPoolExecutor() as executor:
+            for cutoff in CUTOFFS:
+                futures = {executor.submit(
+                    execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
+                for future in futures:
+                    result_file_path_str = future.result()
+                    blast_columns = [
+                        'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
+                        'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
+                        'query seq', 'subject seq', 'query cov'
+                    ]
+                    temp_df = pd.read_csv(
+                        result_file_path_str, sep='\t', names=blast_columns)
+                    if not temp_df.empty:
+                        temp_df['cutoff'] = cutoff
+                        aggregated_results = pd.concat(
+                            [aggregated_results, temp_df], ignore_index=True)
+                    Path(result_file_path_str).unlink()
+                    pbar.update(1)
+
     logger.info("Aggregation of BLAST results completed.")
     return aggregated_results
 
@@ -202,13 +213,13 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
         OSError: If any file operation fails during the process.
     """
     blast_results = aggregate_blast_results(df, db_path)
-
     blast_results['query cov'] = pd.to_numeric(blast_results['query cov'], errors='coerce')
     blast_results = blast_results.query("`query cov` == 100")
     path_df = blast_results['query'].str.split(':', expand=True)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
-    logger.info("BLAST operations completed and results saved to Excel.")
+    
+    logger.info("BLAST operations completed and results saved to csv.")
 
 
 def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:

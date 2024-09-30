@@ -263,7 +263,6 @@ def run_meme(out, rss_file, rss_variant):
         subprocess.run(single_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-
 @log_error()
 def get_reference_mers(regex_string, rss_variant, config):
     """
