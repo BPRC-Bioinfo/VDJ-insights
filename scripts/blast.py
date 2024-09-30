@@ -207,7 +207,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     blast_results = blast_results.query("`query cov` == 100")
     path_df = blast_results['query'].str.split(':', expand=True)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
-    blast_results.to_excel(blast_file_path, index=False)
+    blast_results.to_csv(blast_file_path, index=False)
     logger.info("BLAST operations completed and results saved to Excel.")
 
 
