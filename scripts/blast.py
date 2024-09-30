@@ -3,6 +3,7 @@ import subprocess
 from tempfile import NamedTemporaryFile as Ntf
 from pathlib import Path
 import pandas as pd
+from tqdm import tqdm
 
 from logger import custom_logger
 from util import make_dir
@@ -145,7 +146,7 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
             fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
         try:
             subprocess.run(command, shell=True, check=True)
-            logger.info(f"Executed BLAST search for {header}")
+            # logger.info(f"Executed BLAST search for {header}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Error executing BLAST command for {header}: {e}")
             raise
@@ -175,24 +176,28 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
         subprocess.CalledProcessError: If a BLAST command fails during execution.
     """
     aggregated_results = pd.DataFrame()
-    with ThreadPoolExecutor() as executor:
-        for cutoff in CUTOFFS:
-            futures = {executor.submit(
-                execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
-            for future in futures:
-                result_file_path_str = future.result()
-                blast_columns = [
-                    'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
-                    'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
-                    'query seq', 'subject seq', 'query cov'
-                ]
-                temp_df = pd.read_csv(result_file_path_str,
-                                      sep='\t', names=blast_columns)
-                if not temp_df.empty:
-                    temp_df['cutoff'] = cutoff
-                    aggregated_results = pd.concat(
-                        [aggregated_results, temp_df], ignore_index=True)
-                Path(result_file_path_str).unlink()
+    total_searches = len(dataframe) * len(CUTOFFS)
+    with tqdm(total=total_searches, desc="Running all BLAST searches", unit="search") as pbar:
+        with ThreadPoolExecutor() as executor:
+            for cutoff in CUTOFFS:
+                futures = {executor.submit(
+                    execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
+                for future in futures:
+                    result_file_path_str = future.result()
+                    blast_columns = [
+                        'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
+                        'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
+                        'query seq', 'subject seq', 'query cov'
+                    ]
+                    temp_df = pd.read_csv(
+                        result_file_path_str, sep='\t', names=blast_columns)
+                    if not temp_df.empty:
+                        temp_df['cutoff'] = cutoff
+                        aggregated_results = pd.concat(
+                            [aggregated_results, temp_df], ignore_index=True)
+                    Path(result_file_path_str).unlink()
+                    pbar.update(1)
+
     logger.info("Aggregation of BLAST results completed.")
     return aggregated_results
 
