@@ -138,10 +138,10 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, 
     extensions = ["*.fna", "*.fasta", "*.fa"]
     assembly_files = [file for ext in extensions for file in assembly_dir.glob(ext)]
 
-    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=8)
+    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
 
     args = [
-        (map_flanking_genes_dir, gene_output, Path(assembly_file), memory_per_process)
+        (map_flanking_genes_dir, gene_output, Path(assembly_file), 4)
         for assembly_file in assembly_files
     ]
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
@@ -150,3 +150,7 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, 
             future.result()
 
     logger.info("Extract main process completed successfully")
+
+
+if __name__ == "__main__":
+    map_main(["SALL2", "DAD1", "MGAM2", "EPHB6", "EPDR1", "VPS41"], path, "Homo sapiens")

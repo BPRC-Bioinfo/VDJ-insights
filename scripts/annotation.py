@@ -186,6 +186,7 @@ def main(args=None):
             '-i/--input cannot be used with -f/--flanking-genes or -s/--species.'
         )
 
+
     if args.input:
         region_dir = args.input
 
