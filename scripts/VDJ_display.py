@@ -126,7 +126,7 @@ class PlotGenerator:
                         df.iloc[row_counter]).T], ignore_index=True)
                     row_counter += 1
                 else:
-                    logger.warning(
+                    console_log.warning(
                         f"Warning: Attempted to access row {row_counter} but only {len(df)} rows are available.")
         return new_df
 
@@ -474,7 +474,7 @@ class PlotGenerator:
         """
         filename = f"{region}-{haplotype}.png"
         filepath = output_dir / filename
-        logger.info(f"Generation plot {filename}, saving to {filepath}")
+        console_log.info(f"Generation plot {filename}, saving to {filepath}")
         fig.savefig(filepath, dpi=300, bbox_inches='tight', format='png')
 
     def create_plot(self, df, output_dir, region,
@@ -541,7 +541,7 @@ class PlotGenerator:
         combined_ax.axis('off')
         plt.subplots_adjust(left=0, right=1, top=1,
                             bottom=0, wspace=0, hspace=0)
-        logger.info(
+        console_log.info(
             f"Creating {output_path.name} and saving it to {self.cwd /output_path}!")
         plt.savefig(self.cwd / output_path, dpi=dpi, bbox_inches='tight',
                     pad_inches=0, transparent=True)
@@ -751,7 +751,7 @@ def main():
         key: key for key in plot_generator.colors if key != ''}
     reevaluated_excel = Path(Path.cwd() / "reevaluated.xlsx")
     if args.re_evaluate:
-        logger.info(
+        console_log.info(
             f"Reevaluating {' '.join(input_files)}!"
             f"See {reevaluated_excel} for the results!")
         if not reevaluated_excel.exists():

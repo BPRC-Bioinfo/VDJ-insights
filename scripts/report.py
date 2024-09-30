@@ -4,10 +4,11 @@ from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
 
-from logger import custom_logger
 from util import seperate_annotation
+from logger import console_logger, file_logger
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 pd.options.mode.copy_on_write = True
 
@@ -360,7 +361,7 @@ def annotation_long(df, annotation_folder):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    logger.info("Generating annotation_report_long.xlsx!")
+    console_log.info("Generating annotation_report_long.xlsx!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
@@ -381,7 +382,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    logger.info(f"Generating {file_name}!")
+    console_log.info(f"Generating {file_name}!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
@@ -393,7 +394,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
     df.to_excel(full_annotation_path, index=False)
 
     if not no_split:
-        logger.info("Creating individual sample excel files...")
+        console_log.info("Creating individual sample excel files...")
         df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
 
 

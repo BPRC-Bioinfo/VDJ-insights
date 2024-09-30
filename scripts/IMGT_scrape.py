@@ -10,10 +10,11 @@ from Bio import SeqIO
 
 
 from util import make_dir
-from logger import custom_logger
+from logger import console_logger, file_logger
 
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
-logger = custom_logger(__name__)
 fasta_files_info = []
 
 
@@ -29,7 +30,7 @@ def cleanup(directory: str | Path):
     for file in directory.glob("*.fasta"):
         Path(file).unlink()
     Path(directory).rmdir()
-    logger.info(f"Deleting folder: {directory.name}, because --cleanup was selected")
+    console_log.info(f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
 def create_library(directory: str | Path, simple_headers):
@@ -53,7 +54,7 @@ def create_library(directory: str | Path, simple_headers):
                     new_header = "_".join(record.description.split("|")[0:3])
                     record.description = new_header.replace(" ", "_")
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
-    logger.info("Creating a library from generated files.")
+    console_log.info("Creating a library from generated files.")
 
 
 def scrape(response):
@@ -76,7 +77,7 @@ def scrape(response):
     for p in paragraphs:
         seq = p.text.strip()
         if ">" in seq:
-            logger.info("Succeeded to retrieve sequences from IMGT")
+            console_log.info("Succeeded to retrieve sequences from IMGT")
             return seq
 
 
@@ -101,7 +102,7 @@ def write_sequence(name: str, directory: str | Path, sequence: str):
         for a current VDJ segment.
     """
     path = Path(directory / f"{name}.fasta")
-    logger.info(f"Writing sequences from {name} to {path.name}")
+    console_log.info(f"Writing sequences from {name} to {path.name}")
 
     with open(path, 'w') as f:
         f.write(str(sequence) + "\n")
@@ -134,19 +135,19 @@ def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str
             if sequence:
                 empty_value = write_sequence(segment, directory, sequence)
                 if not empty_value:
-                    logger.info("Sequence successfully retrieved and written.")
+                    console_log.info("Sequence successfully retrieved and written.")
                     break
                 else:
                     sleep_time = 30
-                    logger.warning("Retrieved sequence was empty. Will retry after extended wait.")
+                    console_log.warning("Retrieved sequence was empty. Will retry after extended wait.")
             else:
-                logger.warning(f"No sequences found for {segment} of {species}.")
+                console_log.warning(f"No sequences found for {segment} of {species}.")
         else:
-            logger.warning(f"Failed to fetch data for {segment} of {species} with status code: {response.status_code}")
-        logger.info(f"Waiting {sleep_time} seconds to avoid overloading the IMGT server.")
+            console_log.warning(f"Failed to fetch data for {segment} of {species} with status code: {response.status_code}")
+        console_log.info(f"Waiting {sleep_time} seconds to avoid overloading the IMGT server.")
         time.sleep(sleep_time)
     if attempt == retry_limit - 1 and response.status_code == 200 and not sequence:
-        logger.error(f"Max retries reached for {segment} of {species} without successful data retrieval.")
+        console_log.error(f"Max retries reached for {segment} of {species} without successful data retrieval.")
 
 
 def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: str):
@@ -182,7 +183,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
     make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
-        logger.info(
+        console_log.info(
             f"Retrieving sequences from IMGT for the {segment} of {species}")
         if not Path(segment_file).exists():
             fetch_sequence(segment, directory, species, frame)
@@ -190,7 +191,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
             count = sum(1 for _ in SeqIO.parse(segment_file, "fasta"))
             fasta_files_info.append(
                 {"name": segment_file.name, "entries": count})
-            logger.info(f"File {segment}.fasta already exists skipping!")
+            console_log.info(f"File {segment}.fasta already exists skipping!")
             time.sleep(2)
 
 
@@ -290,7 +291,7 @@ def main():
     need to be removed. Lastly there is logged that the scrape is finished.
     """
     args = argparser_setup()
-    logger.info(f"Starting scrape for species: {args.species}, type: {args.type}")
+    console_log.info(f"Starting scrape for species: {args.species}, type: {args.type}")
 
     output_dir = Path(args.output) if args.output else Path.cwd(
     ) / args.species.replace(" ", "_").lower()
@@ -303,7 +304,7 @@ def main():
     if args.cleanup:
         cleanup(output_dir)
 
-    logger.info("Scrape completed successfully.")
+    console_log.info("Scrape completed successfully.")
 
 
     save_json(set_release(), fasta_files_info, Path.cwd() / "library" / "library_info.json", args)

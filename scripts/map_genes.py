@@ -3,15 +3,16 @@ import shutil
 import subprocess
 from time import sleep
 from Bio import SeqIO
-from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from util import make_dir, unzip_file, calculate_available_resources
-from logger import custom_logger
 from property import log_error
 
+from logger import console_logger, file_logger
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
+
 
 
 def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> None:
@@ -48,7 +49,7 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
 
         shutil.rmtree(path / "ncbi_dataset")
         sleep(2)
-        logger.info(f"Downloaded and processed flanking genes for {gene}")
+        console_log.info(f"Downloaded and processed flanking genes for {gene}")
 
 
 @log_error()
@@ -79,8 +80,8 @@ def combine_genes(path: str | Path, flanking_output: str | Path) -> Path:
                     with open(gene_file, 'r') as fasta:
                         for record in SeqIO.parse(fasta, 'fasta'):
                             outfile.write(f">{record.description.replace(' ', '_')}\n{record.seq}\n")
-                    logger.info(f'Added {gene_file} to {flanking_output}')
-        logger.info(f'All files in {path} have been combined into {flanking_output}')
+                    console_log.info(f'Added {gene_file} to {flanking_output}')
+        console_log.info(f'All files in {path} have been combined into {flanking_output}')
     return flanking_output
 
 
@@ -106,7 +107,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
             f'{assembly_file} {flanking_genes} | {awk_command} > {sam_file}'
         )
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logger.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
+        console_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
 def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, memory_per_process=8, buffer_percentage=20) -> None:
@@ -149,7 +150,7 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, 
         for future in as_completed(futures):
             future.result()
 
-    logger.info("Extract main process completed successfully")
+    console_log.info("Extract main process completed successfully")
 
 
 if __name__ == "__main__":

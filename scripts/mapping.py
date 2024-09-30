@@ -1,13 +1,16 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 import re
 import subprocess
 import pandas as pd
 from Bio import SeqIO
 from pathlib import Path
-from logger import custom_logger
 
 from util import make_dir
+from logger import console_logger, file_logger
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 class MappingFiles:
@@ -119,7 +122,7 @@ def run_command(command):
         subprocess.run(command, shell=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        logger.error(
+        console_log.error(
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
@@ -317,10 +320,10 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
                 run_command(command)
         if files.bed.exists():
             entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
-            logger.info(f"Parsed {len(entries)} entries from {files.bed}")
+            console_log.info(f"Parsed {len(entries)} entries from {files.bed}")
             yield entries
         else:
-            logger.warning(f"Required file missing: {files.bed}")
+            console_log.warning(f"Required file missing: {files.bed}")
             yield list()
 
 

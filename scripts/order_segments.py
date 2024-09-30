@@ -2,11 +2,11 @@ from mapping import mapping_main
 from pathlib import Path
 import pandas as pd
 
-from logger import custom_logger
 from util import make_dir
+from logger import console_logger, file_logger
 
-
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 def combine_df(mapping_tools, input_dir, library):
@@ -46,7 +46,7 @@ def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     """
     report = annotation_folder / "report.xlsx"
     if not report.exists():
-        logger.info("The report.xlsx file does not exist! Creating it!")
+        console_log.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, input_dir, library)
         df.to_excel(report, index=False)
         return df
@@ -107,7 +107,7 @@ def order_main(library, input_dir: str) -> str:
     filtered_df = filter_data_frame(renamed)
     file_path = cwd / 'reevaluated.xlsx'
     filtered_df.to_excel(file_path, index=False)
-    logger.info(f"DataFrame saved to: {file_path}")
+    console_log.info(f"DataFrame saved to: {file_path}")
     return 'reevaluated.xlsx'
 
 

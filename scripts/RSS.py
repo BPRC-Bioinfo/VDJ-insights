@@ -7,14 +7,15 @@ from pathlib import Path
 from Bio.Seq import Seq
 
 from util import make_dir, load_config, seperate_annotation
-from logger import custom_logger
+from logger import console_logger, file_logger
 from property import log_error
 
 from overlap import remove_overlapping_segments
 
 pd.set_option('display.max_rows', None)
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 @log_error()
@@ -63,7 +64,7 @@ def calculate_position(position, variant_length, operation):
     elif operation.endswith("minus"):
         return str(position - variant_length)
     else:
-        logger.error(f"Invalid operation provided: {operation}")
+        console_log.error(f"Invalid operation provided: {operation}")
         raise ValueError(f"Invalid operation: {operation}")
 
 
@@ -95,7 +96,7 @@ def rss_type(start, end, combi, rss_variant, strand, config):
     elif layout == "start_minus":
         return [calculate_position(start, variant_length, layout), str(start)]
     else:
-        logger.error(f"Invalid layout or combination: {combi}, {strand}")
+        console_log.error(f"Invalid layout or combination: {combi}, {strand}")
         raise KeyError(f"Invalid combination or strand: {combi}, {strand}")
 
 
@@ -605,7 +606,7 @@ def create_rss_excel_file(cwd, final_df, no_split):
     known_df = final_df.query("Status == 'Known'")
     for df, filename in zip([novel_df, known_df], ["annotation_report_novel", "annotation_report_known"]):
         if not no_split:
-            logger.info("Creating individual sample excel files...")
+            console_log.info("Creating individual sample excel files...")
             df.groupby("Sample").apply(lambda group: seperate_annotation(
                 group, cwd / "annotation", f"{filename}_rss.xlsx"))
         wrtie_rss_excel_file(cwd, df, filename)
@@ -625,7 +626,7 @@ def wrtie_rss_excel_file(cwd, df, filename):
     Raises:
         OSError: If the file creation fails, logs the error and raises an exception.
     """
-    logger.info(f"Generating {filename}_rss.xlsx!")
+    console_log.info(f"Generating {filename}_rss.xlsx!")
     df.to_excel(cwd / 'annotation' / f'{filename}_rss.xlsx', index=False)
 
 

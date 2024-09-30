@@ -5,12 +5,14 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from logger import custom_logger
 from util import make_dir
 from property import log_error
 
+from logger import console_logger, file_logger
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
+
 
 
 @log_error()
@@ -44,9 +46,9 @@ def make_blast_db(cwd: Path, library: str) -> Path:
         make_dir(blast_db_path)
         command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logger.info("BLAST database created successfully.")
+        console_log.info("BLAST database created successfully.")
     else:
-        logger.info("BLAST database already exists.")
+        console_log.info("BLAST database already exists.")
     return blast_db_path
 
 
@@ -130,15 +132,14 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"]
 
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
-        fasta_header = f">{header}:{start}:{stop}:{
-            strand}:{fasta_file_name}:{haplotype}\n"
+        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 
         blast_result_path = Ntf(mode='w+', delete=False, suffix='_blast.txt').name
         command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
         subprocess.run(command, shell=True, check=True)
-        logger.info(f"Executed BLAST search for {header}")
+        file_log.info(f"Executed BLAST search for {header}")
     return blast_result_path
 
 
@@ -189,7 +190,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
                     Path(result_file_path_str).unlink()
                     pbar.update(1)
 
-    logger.info("Aggregation of BLAST results completed.")
+    console_log.info("Aggregation of BLAST results completed.")
     return aggregated_results
 
 
@@ -219,7 +220,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
     
-    logger.info("BLAST operations completed and results saved to csv.")
+    console_log.info("BLAST operations completed and results saved to csv.")
 
 
 def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
@@ -247,4 +248,4 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
     cwd = Path.cwd()
     db_path = make_blast_db(cwd, library)
     run_blast_operations(df, db_path, Path(blast_file))
-    logger.info("BLAST main process completed.")
+    console_log.info("BLAST main process completed.")

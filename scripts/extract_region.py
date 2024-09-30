@@ -7,11 +7,13 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
 from util import make_dir
-from logger import custom_logger
 from property import log_error
 
+from logger import console_logger, file_logger
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
+
 
 
 @log_error()
@@ -52,7 +54,7 @@ def write_seq(record_dict: dict, name: str, start: int, stop: int, output: str |
     with open(output, 'w') as out_file:
         record = record_dict[name]
         out_file.write(f">{output.stem}\n{record.seq[start:stop]}")
-    logger.info(f"Sequence written to {output}")
+    console_log.info(f"Sequence written to {output}")
 
 
 @log_error()
@@ -131,7 +133,7 @@ def get_positions_and_name(sam: str | Path, first: str, second: str, record_dict
                     line = subprocess.run(
                         commands[i], shell=True, capture_output=True, text=True)
                     if line.returncode != 0:
-                        logger.error(f"Failed to run command: {commands[i]}")
+                        console_log.error(f"Failed to run command: {commands[i]}")
                         continue
                     sam_list = line.stdout.strip().split()
                     if sam_list:
@@ -143,17 +145,17 @@ def get_positions_and_name(sam: str | Path, first: str, second: str, record_dict
         if len(coords) == 2:
             region_length = abs(coords[1] - coords[0])
             if region_length < 100:
-                logger.warning(f"Region is too short: {region_length} base pairs. No region extracted.")
+                console_log.warning(f"Region is too short: {region_length} base pairs. No region extracted.")
                 return [], []
 
         if not coords or not name:
-            logger.warning("No coordinates or contig names could be found. Region could not be extracted.")
+            console_log.warning("No coordinates or contig names could be found. Region could not be extracted.")
             return [], []
 
         return coords, name
 
     except Exception as e:
-        logger.warning(f"Failed to get positions and name from SAM file: {e}")
+        console_log.warning(f"Failed to get positions and name from SAM file: {e}")
         return [], []
 
 
@@ -182,12 +184,12 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
 
         if coords:
             if len(set(name)) == 1:
-                logger.info(f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
+                console_log.info(f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
                 write_seq(record_dict, name[0], min(coords), max(coords), outfile)
             else:
-                logger.warning("Broken region detected, unable to create a valid region.")
+                console_log.warning("Broken region detected, unable to create a valid region.")
         else:
-            logger.warning(f"No coordinates found for {first} and {second}. Region could not be extracted.")
+            console_log.warning(f"No coordinates found for {first} and {second}. Region could not be extracted.")
 
 
 
@@ -276,7 +278,7 @@ def region_main(flanking_genes: list[str], assembly_dir=""):
             chrom, sample, haplotype = parse_name(assembly)
             extract(cwd, assembly, directory, first, second, sample, haplotype)
     if any(directory.iterdir()):
-        logger.info("Region extraction completed successfully")
+        console_log.info("Region extraction completed successfully")
     else:
-        logger.error("No regions where extracted")
+        console_log.error("No regions where extracted")
         raise

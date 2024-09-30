@@ -6,10 +6,12 @@ from Bio import SeqIO
 from order_segments import order_main
 
 from util import make_dir
-from logger import custom_logger
+from logger import console_logger, file_logger
 
 cwd = Path.cwd()
-logger = custom_logger(__name__)
+
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 def read_excel_files(filenames):
@@ -28,7 +30,7 @@ def read_excel_files(filenames):
             df = pd.read_excel(filename)
             df_list.append(df)
         except Exception as e:
-            logger.error(f"Failed to read {filename}: {e}")
+            console_log.error(f"Failed to read {filename}: {e}")
     return pd.concat(df_list, ignore_index=True)
 
 
@@ -68,7 +70,7 @@ def write_read_to_file(read_data, header, seperated):
     filename = seperated / f"{header}.fasta"
     with open(filename, 'w') as output_file:
         output_file.write(read_data)
-    logger.info(f"Written {filename}")
+    console_log.info(f"Written {filename}")
 
 
 def seperate_fasta(aligned_path, seperated):
