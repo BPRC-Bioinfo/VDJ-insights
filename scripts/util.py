@@ -3,6 +3,7 @@ import pandas as pd
 import yaml
 import zipfile
 import argparse
+import psutil
 
 from logger import custom_logger
 
@@ -10,7 +11,7 @@ from logger import custom_logger
 logger = custom_logger(__name__)
 
 
-def make_dir(path: str | Path) -> Path:
+def make_dir(path: str | Path) -> Path | Path:
     """
     Ensures the specified directory exists by creating it if necessary. Checks if the directory exists,
     and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation
@@ -34,7 +35,7 @@ def make_dir(path: str | Path) -> Path:
     return Path(path)
 
 
-def validate_directory(path: str) -> str:
+def validate_directory(path: str | Path) -> str | Path:
     """
     Validates that the specified directory exists. Checks if the provided path corresponds to an existing directory.
     If the directory does not exist, raises an `argparse.ArgumentTypeError`.
@@ -49,10 +50,7 @@ def validate_directory(path: str) -> str:
         argparse.ArgumentTypeError: If the directory does not exist.
     """
     if not Path(path).is_dir():
-        raise argparse.ArgumentTypeError(
-            f"The directory {path} does not exist. "
-            "Try another directory!"
-        )
+        raise argparse.ArgumentTypeError(f"The directory {path} does not exist. Try another directory!")
     return path
 
 
@@ -71,9 +69,7 @@ def validate_file(path: str) -> str:
         argparse.ArgumentTypeError: If the file does not exist.
     """
     if not Path(path).is_file():
-        raise argparse.ArgumentTypeError(
-            f"The file {path} does not exist. Try another file, please!"
-        )
+        raise argparse.ArgumentTypeError(f"The file {path} does not exist. Try another file, please!")
     return path
 
 
@@ -161,3 +157,35 @@ def seperate_annotation(sample_df: pd.DataFrame, annotation_folder: Path, filena
     make_dir(path)
     new_file = path / filename
     sample_df.to_excel(new_file, index=False)
+
+
+def calculate_available_resources(max_cores: int, threads: int, memory_per_process: int = 12,
+                                  buffer_percentage: int = 10) -> int:
+    """
+    Calculate the maximum number of parallel jobs that can be run based on the available system resources.
+
+    This function determines the available physical memory (RAM) after applying a buffer for system overhead
+    and calculates the maximum number of processes that can be run concurrently, considering both memory
+    and CPU core limitations.
+
+    Args:
+        max_cores (int): Total number of CPU cores available.
+        cores_per_process (int): Number of CPU cores required per process.
+        memory_per_process (int, optional): Memory (in GB) required per process. Defaults to 16 GB.
+        buffer_percentage (int, optional): Percentage of total memory reserved for system and overhead. Defaults to 10%.
+
+    Returns:
+        int: Maximum number of processes that can be run in parallel based on available memory and cores.
+    """
+    memory = psutil.virtual_memory().available
+    total_memory = psutil.virtual_memory().total
+
+    buffer_memory = total_memory * (buffer_percentage / 100)
+    available_memory_after_buffer = (memory - buffer_memory) / (1024 ** 3)
+    available_memory = max(available_memory_after_buffer, 0)
+
+    max_jobs_by_memory = max(1, int(available_memory // memory_per_process))
+    max_jobs_by_cores = max_cores // threads
+
+    logger.info(f"Running with max workers : {min(max_jobs_by_memory, max_jobs_by_cores)}")
+    return min(max_jobs_by_memory, max_jobs_by_cores)

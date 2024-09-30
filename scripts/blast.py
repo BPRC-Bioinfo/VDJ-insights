@@ -7,11 +7,13 @@ from tqdm import tqdm
 
 from logger import custom_logger
 from util import make_dir
+from property import log_error
 
 
 logger = custom_logger(__name__)
 
 
+@log_error()
 def make_blast_db(cwd: Path, library: str) -> Path:
     """
     Checks if the BLAST database directory exists. If not, creates the directory
@@ -40,15 +42,9 @@ def make_blast_db(cwd: Path, library: str) -> Path:
     if not blast_db_path.exists():
         reference = cwd / library
         make_dir(blast_db_path)
-        command = f"makeblastdb -in {
-            reference} -dbtype nucl -out {blast_db_path}/blast_db"
-        try:
-            subprocess.run(command, shell=True, check=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
-            logger.info("BLAST database created successfully.")
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Error creating BLAST database: {e}")
-            raise
+        command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
+        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        logger.info("BLAST database created successfully.")
     else:
         logger.info("BLAST database already exists.")
     return blast_db_path
@@ -106,6 +102,7 @@ def construct_blast_command(fasta_file_path: str | Path,
     return command
 
 
+@log_error()
 def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: int) -> str:
     """
     Executes a BLAST search for a given row from a DataFrame. Creates a temporary FASTA 
@@ -132,27 +129,21 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
     header, sequence, start, stop, fasta_file_name, strand, haplotype = row["name"], row[
         "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"]
 
-    # Create a temporary FASTA file
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
         fasta_header = f">{header}:{start}:{stop}:{
             strand}:{fasta_file_name}:{haplotype}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 
-        # Create a temporary file for BLAST output
-        blast_result_path = Ntf(mode='w+', delete=False,
-                                suffix='_blast.txt').name
-        command = construct_blast_command(
-            fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
-        try:
-            subprocess.run(command, shell=True, check=True)
-            # logger.info(f"Executed BLAST search for {header}")
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Error executing BLAST command for {header}: {e}")
-            raise
-        return blast_result_path
+        blast_result_path = Ntf(mode='w+', delete=False, suffix='_blast.txt').name
+        command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
+        subprocess.run(command, shell=True, check=True)
+        logger.info(f"Executed BLAST search for {header}")
+    return blast_result_path
 
 
+
+@log_error()
 def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFFS=[100, 75, 50]) -> pd.DataFrame:
     """
     Iterates over a set of identity cutoffs (100%, 75%, 50%) and performs parallel BLAST 
@@ -222,16 +213,16 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
         OSError: If any file operation fails during the process.
     """
     blast_results = aggregate_blast_results(df, db_path)
-    blast_results['query cov'] = pd.to_numeric(
-        blast_results['query cov'], errors='coerce')
+    blast_results['query cov'] = pd.to_numeric(blast_results['query cov'], errors='coerce')
     blast_results = blast_results.query("`query cov` == 100")
     path_df = blast_results['query'].str.split(':', expand=True)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
+    
     logger.info("BLAST operations completed and results saved to csv.")
 
 
-def blast_main(df: pd.DataFrame, blast_file: str, library: str) -> None:
+def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
     """
     Manages the entire BLAST process, from database creation to saving results.
 

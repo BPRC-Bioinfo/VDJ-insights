@@ -9,6 +9,7 @@ from map_genes import map_main
 from extract_region import region_main
 from util import make_dir, validate_file, validate_input
 from logger import custom_logger
+from property import log_error
 
 logger = custom_logger(__name__)
 
@@ -35,35 +36,9 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
         logger.info(f"Processing tool: {tool}")
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
-        df["haplotype"] = df['file'].apply(
-            lambda x: Path(x).stem.split('_')[-1])
-    unique_combinations = df.drop_duplicates(
-        subset=["start", "stop", "haplotype"])
+        df["haplotype"] = df['file'].apply(lambda x: Path(x).stem.split('_')[-1])
+    unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
-
-
-def write_report(df: pd.DataFrame, report: Path) -> None:
-    """
-    Saves a DataFrame to an Excel file at the specified path. Takes a DataFrame and writes it to an Excel 
-    file (.xlsx) at the given path. Logs the success or failure of the operation. If an error occurs during 
-    the file writing process, raises an `OSError`.
-
-    Args:
-        df (pd.DataFrame): The DataFrame to be saved.
-        report (Path): The path where the Excel file should be saved.
-
-    Returns:
-        None
-
-    Raises:
-        OSError: If the file cannot be written to the specified path.
-    """
-    try:
-        df.to_excel(report, index=False)
-        logger.info(f"Report successfully saved to {report}")
-    except Exception as e:
-        logger.error(f"Failed to save the report to {report}: {e}")
-        raise OSError(f"Failed to save the report to {report}") from e
 
 
 def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, input_dir: str, library: str, threads: int) -> pd.DataFrame:
@@ -91,18 +66,15 @@ def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, i
     if not report.exists():
         logger.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, cell_type, input_dir, library, threads)
-        write_report(df, report)
-        return df
+        df.to_excel(report, index=False)
+        logger.info(f"Report successfully saved to {report}")
     else:
-        try:
-            df = pd.read_excel(report)
-            logger.info(f"Loaded existing report from {report}")
-            return df
-        except Exception as e:
-            logger.error(f"Failed to read the report from {report}: {e}")
-            raise OSError(f"Failed to read the report from {report}") from e
+        df = pd.read_excel(report)
+        logger.info(f"Loaded existing report from {report}")
+    return df
 
 
+@log_error()
 def validate_flanking_genes(value: str) -> list:
     """
     Validates and processes a list of flanking genes, ensuring they are uppercase and handles empty values. 
@@ -119,14 +91,9 @@ def validate_flanking_genes(value: str) -> list:
     Raises:
         argparse.ArgumentTypeError: If the number of flanking genes is odd.
     """
-    flanking_genes = [
-        gene.strip().upper() for gene in value.split(',')
-    ]
+    flanking_genes = [gene.strip().upper() for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
-        raise argparse.ArgumentTypeError(
-            f"""The specified flanking genes: {
-                flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5)."""
-        )
+        raise argparse.ArgumentTypeError(f"""The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).""")
     return flanking_genes
 
 
@@ -142,53 +109,25 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
     Returns:
         argparse.ArgumentParser: Configured argument parser ready for parsing input arguments.
     """
-    parser = argparse.ArgumentParser(
-        description='A tool for finding known and novel VDJ segments in certain data, with a library of choice.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        add_help=include_help
-    )
-
+    parser = argparse.ArgumentParser(description='A tool for finding known and novel VDJ segments in certain data, with a library of choice.',formatter_class=argparse.ArgumentDefaultsHelpFormatter,add_help=include_help)
     required_group = parser.add_argument_group('Required Options')
-    required_group.add_argument('-l', '--library', required=True, type=validate_file,
-                                help='Path to the library file. Expected to be in FASTA format.')
-    required_group.add_argument(
-        '-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
-        help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).'
-    )
-
-    regions_or_assembly_group = parser.add_argument_group('Data Source Options',
-                                                          'Select the data source: regions or assembly. These options are mutually exclusive.')
-    data_choice = regions_or_assembly_group.add_mutually_exclusive_group(
-        required=True
-    )
-    data_choice.add_argument('-i', '--input', type=validate_input,
-                             help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
-    data_choice.add_argument('-a', '--assembly', type=validate_input,
-                             help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
-
-    assembly_options = parser.add_argument_group('Assembly-Specific Options',
-                                                 'These options are required if -a/--assembly is chosen:')
-    assembly_options.add_argument('-s', '--species', type=str,
-                                  help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
-
+    required_group.add_argument('-l', '--library', required=True, type=validate_file, help='Path to the library file. Expected to be in FASTA format.')
+    required_group.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    regions_or_assembly_group = parser.add_argument_group('Data Source Options','Select the data source: regions or assembly. These options are mutually exclusive.')
+    data_choice = regions_or_assembly_group.add_mutually_exclusive_group(required=True)
+    data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
+    data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
+    assembly_options = parser.add_argument_group('Assembly-Specific Options','These options are required if -a/--assembly is chosen:')
+    assembly_options.add_argument('-s', '--species', type=str.capitalize, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     exclusive_group = parser.add_argument_group('Exclusive Options')
     exclusive_mutually_exclusive = exclusive_group.add_mutually_exclusive_group()
-    exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
-                                              help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
-    exclusive_mutually_exclusive.add_argument('--default', action='store_true',
-                                              help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
-
+    exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
+    exclusive_mutually_exclusive.add_argument('--default', action='store_true', help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
     optional_group = parser.add_argument_group('Optional Options')
-    optional_group.add_argument('-o', '--output', type=str,
-                                default='annotation',
-                                help='Output directory for the results.')
+    optional_group.add_argument('-o', '--output', type=str, default='annotation', help='Output directory for the results.')
     mapping_options = ['minimap2', 'bowtie', 'bowtie2']
-    optional_group.add_argument('-m', '--mapping-tool', nargs='*',
-                                choices=mapping_options, default=mapping_options,
-                                help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
-
-    optional_group.add_argument('-t', '--threads', type=int,
-                                required=False, default=8, help='Number of threads to run the analysis.')
+    optional_group.add_argument('-m', '--mapping-tool', nargs='*', choices=mapping_options, default=mapping_options, help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
+    optional_group.add_argument('-t', '--threads', type=int,required=False, default=8, help='Number of threads to run the analysis.')
 
     return parser
 
@@ -244,6 +183,7 @@ def main(args=None):
             '-i/--input cannot be used with -f/--flanking-genes or -s/--species.'
         )
 
+
     if args.input:
         region_dir = args.input
 
@@ -254,21 +194,14 @@ def main(args=None):
         map_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
 
-    df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool,
-                       region_dir, args.library, args.threads)
+    df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool, region_dir, args.library, args.threads)
 
     blast_file = annotation_folder / "blast_results.csv"
     if not blast_file.exists():
         blast_main(df, blast_file, args.library)
 
-    report_main(annotation_folder, blast_file,
-                args.receptor_type, args.library, args.no_split)
+    report_main(annotation_folder, blast_file,args.receptor_type, args.library, args.no_split)
     RSS_main(args.no_split)
-    logger.info(
-        f"""Annotation process completed. Results are available in {
-            annotation_folder}.xlsx"""
-    )
 
+    logger.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
 
-if __name__ == '__main__':
-    main()
