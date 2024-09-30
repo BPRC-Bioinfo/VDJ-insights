@@ -6,7 +6,7 @@ from Bio import SeqIO
 from multiprocessing import cpu_count
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from util import make_dir, unzip_file
+from util import make_dir, unzip_file, calculate_available_resources
 from logger import custom_logger
 from property import log_error
 
@@ -109,7 +109,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         logger.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) -> None:
+def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, memory_per_process=8, buffer_percentage=20) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 
@@ -138,15 +138,13 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) 
     extensions = ["*.fna", "*.fasta", "*.fa"]
     assembly_files = [file for ext in extensions for file in assembly_dir.glob(ext)]
 
-    threads = 4
-    num_cores = cpu_count() // threads
-    logger.info(f"Threads found on server: {cpu_count()}")
+    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=8)
 
     args = [
-        (map_flanking_genes_dir, gene_output, Path(assembly_file), threads)
+        (map_flanking_genes_dir, gene_output, Path(assembly_file), memory_per_process)
         for assembly_file in assembly_files
     ]
-    with ProcessPoolExecutor(max_workers=num_cores) as executor:
+    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(map_flanking_genes, *arg): arg for arg in args}
         for future in as_completed(futures):
             future.result()
