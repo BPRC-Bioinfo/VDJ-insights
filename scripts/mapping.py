@@ -1,16 +1,17 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
 import re
 import subprocess
 import pandas as pd
-from Bio import SeqIO
 from pathlib import Path
+from multiprocessing import cpu_count
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+from Bio import SeqIO
 
 from util import make_dir
-from logger import console_logger, file_logger
+from logger import custom_logger
 
-console_log = console_logger(__name__)
-file_log = file_logger(__name__)
+
+logger = custom_logger(__name__)
 
 
 class MappingFiles:
@@ -42,12 +43,12 @@ def get_sequence(line, fasta):
     returns the sequence.
 
     Args:
-        line (list): A list representing a line from a BED file, 
+        line (list): A list representing a line from a BED file,
         containing reference, start, and stop coordinates.
         fasta (str): Path to the FASTA file.
 
     Returns:
-        str: The sequence extracted from the FASTA file based on 
+        str: The sequence extracted from the FASTA file based on
         the coordinates in the BED file line.
     """
     reference, start, stop = line[0:3]
@@ -122,7 +123,7 @@ def run_command(command):
         subprocess.run(command, shell=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        console_log.error(
+        logger.error(
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
@@ -151,8 +152,7 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {
-        score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -180,8 +180,7 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie command string.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {
-        bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
@@ -262,7 +261,7 @@ def make_df(all_entries):
     from a BED file line) and constructs a pandas DataFrame.
 
     Args:
-        all_entries (list[list]): A nested list where each sublist contains 
+        all_entries (list[list]): A nested list where each sublist contains
         information for an entry.
 
     Returns:
@@ -320,11 +319,12 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
                 run_command(command)
         if files.bed.exists():
             entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
-            console_log.info(f"Parsed {len(entries)} entries from {files.bed}")
+            logger.info(f"Parsed {len(entries)} entries from {files.bed}")
             yield entries
         else:
-            console_log.warning(f"Required file missing: {files.bed}")
+            logger.warning(f"Required file missing: {files.bed}")
             yield list()
+
 
 
 def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
@@ -351,16 +351,35 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
     outdir = cwd / "mapping" / f"{mapping_type}_db"
     indir = cwd / input_dir
     rfasta = cwd / library
+
+    threads = 4
+    num_cores = cpu_count() // threads
+    logger.info(f"Threads found on server: {cpu_count()}")
+
     all_entries = []
     for acc in range(start, stop - 1, -1):
         beddir = cwd / "mapping" / mapping_type / f"{acc}%acc"
         make_dir(beddir)
         for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
             all_entries.extend(current_entry)
+
     df = make_df(all_entries)
     return df
 
 
+def run_mapping_types_parallel(mapping_types, cell_type, input_dir, library, threads, start=100, stop=70):
+    with ProcessPoolExecutor(max_workers=len(mapping_types)) as executor:
+        futures = [
+            executor.submit(
+                mapping_main, mapping_type, cell_type, input_dir, library, threads, start, stop
+            ) for mapping_type in mapping_types
+        ]
+        results = []
+        for future in as_completed(futures):
+            results.append(future.result())
+    return pd.concat(results)
+
 if __name__ == "__main__":
-    mapping_type = "minimap2"
-    mapping_main(mapping_type)
+    mapping_types = ['minimap2', 'bowtie', 'bowtie2']
+    df = run_mapping_types_parallel(mapping_types, cell_type="IG", input_dir="region", library="library/library.fasta", threads=4)
+    df.to_csv("output.csv", index=False)
