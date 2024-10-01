@@ -83,37 +83,22 @@ def find_non_best_rows(df: pd.DataFrame) -> pd.Index:
     """
     boolean_columns = ["12_heptamer_matched", "12_nonamer_matched",
                        "23_heptamer_matched", "23_nonamer_matched"]
-
-    # Ensure boolean columns are correctly handled
     df[boolean_columns] = df[boolean_columns].apply(
         pd.to_numeric, errors='coerce').fillna(0).astype(bool)
-
-    # Sort the DataFrame by Haplotype, Region, and Start coord
     df = df.sort_values(
         by=["Haplotype", "Region", "Start coord", "Sample"]).reset_index(drop=True)
-
-    # Create a column to track overlap groupings
     df['Group'] = (df['Start coord'] > df['End coord'].shift()).cumsum()
-
-    # Select non-best rows for each group
     non_best_indices = df.groupby(['Haplotype', 'Region', 'Group', 'Sample']).apply(
         lambda group: select_non_best_rows(group, boolean_columns)).explode()
-
-    # Return as a pandas Index object
     return pd.Index(non_best_indices.dropna())
 
 
 def is_overlapping(group):
-    # Extract start and end coordinates for each sequence in the group
     start_coords = group["Start coord"].tolist()
     end_coords = group["End coord"].tolist()
-
-    # Loop through and compare adjacent sequences
     for i in range(len(start_coords) - 1):
         if end_coords[i] >= start_coords[i + 1]:
-            # If the current end is greater than or equal to the next start, there is an overlap
             return True
-    # If no overlaps are found, return True
     return False
 
 
@@ -128,9 +113,13 @@ def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index
 
         best_group = group.query(f"True_Count == {max_true_count}")
         if len(best_group) > 1:
-            best_group["Length"] = best_group["Old name-like seq"].str.len()
-            rechecked = check_groups(best_group)
-            return group.index.difference(rechecked.index)
+            try:
+                best_group["Length"] = best_group["Old name-like seq"].str.len()
+                rechecked = check_groups(best_group)
+                return group.index.difference(rechecked.index)
+            except:
+                group.index
+
         non_best_rows = group[group['True_Count'] != max_true_count]
         return non_best_rows.index
 

@@ -1,17 +1,18 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 import re
 import subprocess
 import pandas as pd
 from pathlib import Path
-from multiprocessing import cpu_count
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from Bio import SeqIO
 
-from util import make_dir
-from logger import custom_logger
+from util import make_dir, calculate_available_resources
+from logger import console_logger, file_logger
 
 
-logger = custom_logger(__name__)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 class MappingFiles:
@@ -123,7 +124,7 @@ def run_command(command):
         subprocess.run(command, shell=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        logger.error(
+        console_log.error(
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
@@ -152,7 +153,8 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {
+        score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -180,7 +182,8 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie command string.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {
+        bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
@@ -286,7 +289,7 @@ def make_df(all_entries):
     return df.reset_index(drop=True)
 
 
-def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
+def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, threads_per_process):
     """
     Runs the mapping process for each FASTA file in the input directory.
 
@@ -305,26 +308,31 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
         cell_type (str): The type of cell (e.g., TR, IG).
         threads (int): Number of threads to use for the mapping process.
 
-    Yields:
+    Returns:
         list[list]: A nested list containing parsed entries for each FASTA file.
     """
-    for fasta in indir.glob("*.fasta"):
+    try:
+        beddir = outdir.parent / mapping_type / f"{acc}%acc"
+        make_dir(beddir)
         prefix = fasta.stem
         index = outdir / prefix
         if mapping_type != "minimap2":
             make_dir(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
-            for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads):
+            for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads_per_process):
                 run_command(command)
         if files.bed.exists():
             entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
-            logger.info(f"Parsed {len(entries)} entries from {files.bed}")
-            yield entries
+            file_log.info(f"Parsed {len(entries)} entries from {files.bed}")
+            return entries
         else:
-            logger.warning(f"Required file missing: {files.bed}")
-            yield list()
-
+            console_log.warning(f"Required file missing: {files.bed}")
+            return []
+    except Exception as e:
+        console_log.error(f"Error in run_single_task for {
+                          fasta} at {acc}%: {e}")
+        return []
 
 
 def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
@@ -351,35 +359,30 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
     outdir = cwd / "mapping" / f"{mapping_type}_db"
     indir = cwd / input_dir
     rfasta = cwd / library
-
-    threads = 4
-    num_cores = cpu_count() // threads
-    logger.info(f"Threads found on server: {cpu_count()}")
-
     all_entries = []
-    for acc in range(start, stop - 1, -1):
-        beddir = cwd / "mapping" / mapping_type / f"{acc}%acc"
-        make_dir(beddir)
-        for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
-            all_entries.extend(current_entry)
-
+    fasta_files = list(indir.glob("*.fasta"))
+    accuracy_levels = range(start, stop - 1, -1)
+    tasks = [(fasta, acc) for acc in accuracy_levels for fasta in fasta_files]
+    total_tasks = len(tasks)
+    max_jobs = calculate_available_resources(
+        max_cores=24, threads=2, memory_per_process=2)
+    with ThreadPoolExecutor(max_workers=max_jobs) as executor:
+        futures = [
+            executor.submit(run_single_task, fasta, acc, indir,
+                            outdir, rfasta, mapping_type, cell_type, 2)
+            for fasta, acc in tasks
+        ]
+        with tqdm(total=total_tasks, desc=f'Processing {mapping_type}:') as pbar:
+            for future in as_completed(futures):
+                try:
+                    entries = future.result()
+                    all_entries.extend(entries)
+                except Exception as e:
+                    console_log.error(f"Task resulted in an exception: {e}")
+                pbar.update(1)
     df = make_df(all_entries)
     return df
 
 
-def run_mapping_types_parallel(mapping_types, cell_type, input_dir, library, threads, start=100, stop=70):
-    with ProcessPoolExecutor(max_workers=len(mapping_types)) as executor:
-        futures = [
-            executor.submit(
-                mapping_main, mapping_type, cell_type, input_dir, library, threads, start, stop
-            ) for mapping_type in mapping_types
-        ]
-        results = []
-        for future in as_completed(futures):
-            results.append(future.result())
-    return pd.concat(results)
-
 if __name__ == "__main__":
-    mapping_types = ['minimap2', 'bowtie', 'bowtie2']
-    df = run_mapping_types_parallel(mapping_types, cell_type="IG", input_dir="region", library="library/library.fasta", threads=4)
-    df.to_csv("output.csv", index=False)
+    pass
