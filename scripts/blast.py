@@ -1,11 +1,11 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import subprocess
 from tempfile import NamedTemporaryFile as Ntf
 from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from util import make_dir
+from util import make_dir, calculate_available_resources
 from property import log_error
 
 from logger import console_logger, file_logger
@@ -14,19 +14,18 @@ console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
 
-
 @log_error()
 def make_blast_db(cwd: Path, library: str) -> Path:
     """
     Checks if the BLAST database directory exists. If not, creates the directory
-    and initializes the database using the provided library file. Uses the `makeblastdb` 
+    and initializes the database using the provided library file. Uses the `makeblastdb`
     command with the following parameters:
 
     - `-in`: Specifies the input FASTA file to use as the reference.
     - `-dbtype nucl`: Indicates that the database will be nucleotide-based.
     - `-out`: Specifies the output path and prefix for the BLAST database files.
 
-    Logs if the database is created successfully or if it already exists. Returns the 
+    Logs if the database is created successfully or if it already exists. Returns the
     path to the BLAST database directory.
 
     Args:
@@ -57,22 +56,23 @@ def construct_blast_command(fasta_file_path: str | Path,
                             identity_cutoff: int,
                             output_file_path: str | Path,
                             length: int,
-                            LENGTH_THRESHOLD: int = 15) -> str:
+                            LENGTH_THRESHOLD: int = 15,
+                            THREADS: int = 2) -> str:
     """
-    Constructs a BLAST command string for sequence alignment. This function builds 
+    Constructs a BLAST command string for sequence alignment. This function builds
     the command using the `blastn` tool with the following parameters:
 
     - `-task megablast`: Uses the `megablast` algorithm optimized for highly similar sequences.
     - `-query`: Specifies the path to the input FASTA file.
     - `-db`: Specifies the path to the BLAST database.
-    - `-outfmt '6 ...'`: Defines custom output columns, including alignment details like 
-      query ID, subject ID, percent identity, alignment length, mismatches, gap opens, 
-      query and subject start and end positions, e-value, bit score, query and subject 
+    - `-outfmt '6 ...'`: Defines custom output columns, including alignment details like
+      query ID, subject ID, percent identity, alignment length, mismatches, gap opens,
+      query and subject start and end positions, e-value, bit score, query and subject
       sequences, and query coverage.
     - `-perc_identity`: Sets the minimum percentage identity for alignments.
     - `-out`: Specifies the path to the output file for the BLAST results.
 
-    If the sequence length is below the defined `LENGTH_THRESHOLD`, additional parameters 
+    If the sequence length is below the defined `LENGTH_THRESHOLD`, additional parameters
     are included to fine-tune the alignment:
 
     - `-word_size 7`: Sets the word size (k-mer length) to 7, enhancing sensitivity for short alignments.
@@ -97,8 +97,9 @@ def construct_blast_command(fasta_file_path: str | Path,
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"
     extra = "-word_size 7 -evalue 1000 -max_target_seqs 100 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
-    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{
-        blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
+    # command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
+    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path} -num_threads {THREADS}"
+
     if length <= LENGTH_THRESHOLD:
         command += f" {extra}"
     return command
@@ -107,14 +108,14 @@ def construct_blast_command(fasta_file_path: str | Path,
 @log_error()
 def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: int) -> str:
     """
-    Executes a BLAST search for a given row from a DataFrame. Creates a temporary FASTA 
+    Executes a BLAST search for a given row from a DataFrame. Creates a temporary FASTA
     file from the row data and runs the BLAST command against the specified database.
 
-    Extracts the necessary data from the DataFrame row, including the sequence and 
-    associated metadata. A temporary FASTA file is generated with a header that includes 
+    Extracts the necessary data from the DataFrame row, including the sequence and
+    associated metadata. A temporary FASTA file is generated with a header that includes
     information like the sequence name, start and stop positions, strand, file name, and haplotype.
 
-    The BLAST search is executed using the constructed command, and the results are 
+    The BLAST search is executed using the constructed command, and the results are
     saved in a temporary output file. If an error occurs during the execution, it is logged.
 
     Args:
@@ -137,22 +138,22 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         fasta_temp.flush()
 
         blast_result_path = Ntf(mode='w+', delete=False, suffix='_blast.txt').name
-        command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
+        command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path,
+                                          len(sequence))
         subprocess.run(command, shell=True, check=True)
         file_log.info(f"Executed BLAST search for {header}")
     return blast_result_path
 
 
-
-@log_error()
+# @log_error()
 def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFFS=[100, 75, 50]) -> pd.DataFrame:
     """
-    Iterates over a set of identity cutoffs (100%, 75%, 50%) and performs parallel BLAST 
-    searches for each row in the input DataFrame. Uses `execute_blast_search()` to obtain 
+    Iterates over a set of identity cutoffs (100%, 75%, 50%) and performs parallel BLAST
+    searches for each row in the input DataFrame. Uses `execute_blast_search()` to obtain
     the results for each row, aggregating them into a single DataFrame.
 
-    For each cutoff, the function creates temporary result files for storing the BLAST outputs. 
-    Once the results are read, the temporary files are deleted. The resulting DataFrame 
+    For each cutoff, the function creates temporary result files for storing the BLAST outputs.
+    Once the results are read, the temporary files are deleted. The resulting DataFrame
     includes an additional 'cutoff' column indicating the identity cutoff used for each search.
 
     Args:
@@ -169,12 +170,15 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
     """
     aggregated_results = pd.DataFrame()
     total_searches = len(dataframe) * len(CUTOFFS)
+
+    max_jobs = calculate_available_resources(max_cores=24, threads=2, memory_per_process=2)
+
     with tqdm(total=total_searches, desc="Running all BLAST searches", unit="search") as pbar:
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=max_jobs) as executor:
             for cutoff in CUTOFFS:
-                futures = {executor.submit(
-                    execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
-                for future in futures:
+                futures = {executor.submit(execute_blast_search, row, database_path, cutoff): row for _, row in
+                           dataframe.iterrows()}
+                for future in as_completed(futures):
                     result_file_path_str = future.result()
                     blast_columns = [
                         'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
@@ -198,8 +202,8 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     """
     Runs BLAST operations on the input DataFrame and saves the results to an Excel file.
 
-    Aggregates BLAST results by performing searches with different identity cutoffs. 
-    Filters the results to include only alignments with 100% query coverage. Extracts 
+    Aggregates BLAST results by performing searches with different identity cutoffs.
+    Filters the results to include only alignments with 100% query coverage. Extracts
     additional columns from the BLAST output and saves the final results to an Excel file.
 
     Args:
@@ -219,7 +223,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     path_df = blast_results['query'].str.split(':', expand=True)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
-    
+
     console_log.info("BLAST operations completed and results saved to csv.")
 
 
@@ -249,3 +253,10 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
     db_path = make_blast_db(cwd, library)
     run_blast_operations(df, db_path, Path(blast_file))
     console_log.info("BLAST main process completed.")
+
+
+if __name__ == '__main__':
+    import pandas as pd
+
+    df = pd.read_excel("report.xlsx")
+    blast_main(df, "blast_results.csv", "library.fasta")

@@ -6,11 +6,13 @@ from Bio import SeqIO
 from pathlib import Path
 from Bio.Seq import Seq
 
-from util import make_dir, load_config, seperate_annotation
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from util import make_dir, load_config, seperate_annotation, calculate_available_resources
 from logger import console_logger, file_logger
 from property import log_error
 
 from overlap import remove_overlapping_segments
+from tqdm import tqdm
 
 pd.set_option('display.max_rows', None)
 
@@ -239,7 +241,7 @@ def add_base_rss_parts(row, config):
     return row
 
 @log_error()
-def run_meme(out, rss_file, rss_variant):
+def run_meme(out, rss_file, rss_variant, THREADS=8):
     """
     Executes the MEME suite to identify motifs in the RSS sequences.
     Chooses between a single-command or multi-command MEME run based on the number of sequences in the input file.
@@ -316,6 +318,24 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     return ref_rss_dict
 
 
+def run_meme_on_file(meme_directory: Path, rss_file: Path, config: dict) -> None:
+    """
+    Helper function to run the MEME suite on a single RSS file.
+
+    Args:
+        meme_directory (Path): Path to the directory where MEME results will be saved.
+        rss_file (Path): Path to the RSS FASTA file.
+        config (dict): Configuration dictionary containing RSS length mappings.
+    """
+    stem = rss_file.stem
+    rss_variant = stem.split("_")[-1]
+    RSS_convert = config.get("RSS_LENGTH", {})
+    out = meme_directory / stem
+    meme = out / "meme.txt"
+
+    if not meme.exists():
+        run_meme(out, rss_file, RSS_convert.get(rss_variant))
+
 @log_error()
 def create_meme_directory(meme_directory, RSS_directory, config):
     """
@@ -331,14 +351,25 @@ def create_meme_directory(meme_directory, RSS_directory, config):
     """
     make_dir(meme_directory)
 
-    for rss_file in Path(RSS_directory).iterdir():
-        stem = rss_file.stem
-        rss_variant = stem.split("_")[-1]
-        RSS_convert = config.get("RSS_LENGTH", {})
-        out = meme_directory / stem
-        meme = out / "meme.txt"
-        if not meme.exists():
-            run_meme(out, rss_file, RSS_convert[rss_variant])
+    RSS_directory = Path(RSS_directory)
+    rss_files = [rss_file for rss_file in RSS_directory.iterdir() if rss_file.suffix in ['.fasta', '.fa']]
+
+    max_jobs = calculate_available_resources(max_cores=24, threads=8, memory_per_process=2)
+
+    with tqdm(total=len(rss_files), desc="Running MEME on RSS sequences", unit="file") as pbar:
+        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+            futures = {
+                executor.submit(run_meme_on_file, meme_directory, rss_file, config): rss_file
+                for rss_file in rss_files
+            }
+            for future in as_completed(futures):
+                rss_file = futures[future]
+                try:
+                    future.result()
+                    pbar.set_postfix({"file": rss_file.name})
+                except Exception as e:
+                    console_log.error(f"Error processing {rss_file}: {e}")
+                pbar.update(1)
 
 
 @log_error()
@@ -668,4 +699,4 @@ def RSS_main(no_split):
 
 
 if __name__ == '__main__':
-    RSS_main(True)
+    RSS_main(False)
