@@ -27,9 +27,10 @@ def make_dir(path: str | Path) -> Path | Path:
     """
     try:
         Path(path).mkdir(parents=True, exist_ok=True)
-        # console_log.info(f"Directory created or already exists: {path}")
+        file_log.info(f"Directory created or already exists: {path}")
     except Exception as e:
         console_log.error(f"Failed to create directory {path}: {e}")
+        file_log.error(f"Failed to create directory {path}: {e}")
         raise OSError(f"Failed to create directory {path}") from e
     return Path(path)
 
@@ -115,9 +116,11 @@ def load_config(path: str | Path) -> dict:
         with open(path) as f:
             config = yaml.safe_load(f)
             console_log.info("Config file loaded successfully")
+            file_log.info("Config file loaded successfully")
             return config
     except Exception as e:
         console_log.error(f"Failed to load config file: {e}")
+        file_log.error(f"Failed to load config file: {e}")
         raise
 
 
@@ -137,8 +140,10 @@ def unzip_file(file_path: str | Path, unzip_path: str | Path) -> None:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(extract_to_path)
         console_log.info(f'Extracted {file_path} to {extract_to_path}')
+        file_log.info(f'Extracted {file_path} to {extract_to_path}')
     except Exception as e:
         console_log.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
+        file_log.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
         raise
 
 
@@ -186,5 +191,6 @@ def calculate_available_resources(max_cores: int, threads: int, memory_per_proce
     max_jobs_by_memory = max(1, int(available_memory // memory_per_process))
     max_jobs_by_cores = max_cores // threads
 
-    console_log.info(f"Running with max workers : {min(max_jobs_by_memory, max_jobs_by_cores)}")
+    console_log.info(f"Running with max workers: {min(max_jobs_by_memory, max_jobs_by_cores)}")
+    file_log.info(f"Running with max workers: {min(max_jobs_by_memory, max_jobs_by_cores)}")
     return min(max_jobs_by_memory, max_jobs_by_cores)
