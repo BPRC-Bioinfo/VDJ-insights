@@ -191,12 +191,13 @@ def main(args=None):
         region_dir = args.input
 
     annotation_folder = cwd / 'annotation'
-    make_dir(annotation_folder)
-    #"""
-    if args.assembly:
+    
+    if args.assembly and not annotation_folder.is_dir():
         map_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
-    #"""
+    
+    make_dir(annotation_folder)
+    
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool, region_dir, args.library, args.threads)
 
     blast_file = annotation_folder / "blast_results.csv"

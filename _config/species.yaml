@@ -11,7 +11,7 @@ default:
      FLANKING_GENES:
       - TMEM121
       - "-" 
-      - PAX8
+      - LSP1P4
       - RPIA
       - GNAZ
       - TOP3B
@@ -83,7 +83,7 @@ Homo_sapiens:
      FLANKING_GENES:
       - TMEM121
       - "-" 
-      - PAX8
+      - LSP1P4
       - RPIA
       - GNAZ
       - TOP3B
