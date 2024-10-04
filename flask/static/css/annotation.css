@@ -213,6 +213,47 @@
     margin-bottom: 10px;
 }
 
+.floating-row-count {
+    background-color: #f9f9f9;
+    color: #333333;
+    padding: 12px 15px;
+    border: 1px solid #007acc;
+    border-radius: 4px;
+    font-size: 1em;
+    font-weight: 600;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 122, 204, 0.2);
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    outline: none;
+    opacity: 0.6;          
+    width: 50px;           
+    transform: scale(0.9); 
+    transition: all 0.4s ease-in-out;
+}
+
+.floating-row-count:hover {
+    opacity: 1;          
+    width: 160px;        
+    transform: scale(1);
+}
+
+.floating-row-count span#totalRowCount {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+
+
+
 /* Labels inside modal */
 #columnToggleModal .action-btn {
     display: flex;

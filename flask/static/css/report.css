@@ -223,6 +223,19 @@
 .report-table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
+.region-file .table-container {
+    max-height: 400px; /* Adjust as needed */
+    overflow-y: auto;
+    margin-top: 20px;
+}
+
+/* Make the table header sticky when scrolling */
+.region-file .table-container thead th {
+    position: sticky;
+    top: 0;
+    background-color: #0063a5;
+    z-index: 1;
+}
 
 /* Responsive design adjustments */
 @media (max-width: 768px) {

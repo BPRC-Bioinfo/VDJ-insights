@@ -147,6 +147,7 @@
     flex: 1; /* Allow main content to take up the full height */
     flex-direction: column;
     overflow-y: scroll; /* Prevent main content from scrolling */
+    margin-bottom: 2rem;
 }
 
 .main-content.shifted {

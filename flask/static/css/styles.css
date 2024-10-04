@@ -114,7 +114,7 @@ body {
 
 .report-heading {
     font-size: 2em;
-    margin-top: 1.5em;
+    margin-top: 0.5em;
     padding-bottom: 0.2em;
     border-bottom: 1px solid #34495e;
 }
@@ -175,8 +175,7 @@ body {
 .table-container {
     flex: 1; /* Make table container grow to fill the remaining space */
     overflow: auto;
-    width: 100%; /* Make sure the container takes the full width */
-    margin-top: 20px;
+    width: 100%;
 }
 /* Keyframes for animations */
 @keyframes fadeInUp {
