@@ -12,9 +12,9 @@ def log_error():
                 return func(*args, **kwargs)
             except Exception as e:
                 if hasattr(e, 'value'):
-                    console_log.error(f"Error '{func.__name__}': {e} | Input: {e.value}")
+                    file_log.error(f"Error '{func.__name__}': {e} | Input: {e.value}")
                 else:
-                    console_log.error(f"Error '{func.__name__}': {e}")
+                    file_log.error(f"Error '{func.__name__}': {e}")
                 sys.exit(1)
         return wrapper
     return decorator

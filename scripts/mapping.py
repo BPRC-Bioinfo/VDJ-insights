@@ -124,7 +124,7 @@ def run_command(command):
         subprocess.run(command, shell=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        console_log.error(
+        file_log.error(
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
@@ -327,10 +327,10 @@ def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 
             file_log.info(f"Parsed {len(entries)} entries from {files.bed}")
             return entries
         else:
-            console_log.warning(f"Required file missing: {files.bed}")
+            file_log.warning(f"Required file missing: {files.bed}")
             return []
     except Exception as e:
-        console_log.error(f"Error in run_single_task for {
+        file_log.error(f"Error in run_single_task for {
                           fasta} at {acc}%: {e}")
         return []
 
@@ -364,21 +364,16 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
     accuracy_levels = range(start, stop - 1, -1)
     tasks = [(fasta, acc) for acc in accuracy_levels for fasta in fasta_files]
     total_tasks = len(tasks)
-    max_jobs = calculate_available_resources(
-        max_cores=24, threads=2, memory_per_process=2)
+    max_jobs = calculate_available_resources(max_cores=24, threads=2, memory_per_process=2)
     with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [
-            executor.submit(run_single_task, fasta, acc, indir,
-                            outdir, rfasta, mapping_type, cell_type, 2)
-            for fasta, acc in tasks
-        ]
-        with tqdm(total=total_tasks, desc=f'Processing {mapping_type}:') as pbar:
+        futures = [executor.submit(run_single_task, fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 2) for fasta, acc in tasks]
+        with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:
             for future in as_completed(futures):
                 try:
                     entries = future.result()
                     all_entries.extend(entries)
                 except Exception as e:
-                    console_log.error(f"Task resulted in an exception: {e}")
+                    file_log.error(f"Task resulted in an exception: {e}")
                 pbar.update(1)
     df = make_df(all_entries)
     return df

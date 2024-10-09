@@ -66,7 +66,7 @@ def calculate_position(position, variant_length, operation):
     elif operation.endswith("minus"):
         return str(position - variant_length)
     else:
-        console_log.error(f"Invalid operation provided: {operation}")
+        file_log.error(f"Invalid operation provided: {operation}")
         raise ValueError(f"Invalid operation: {operation}")
 
 
@@ -98,7 +98,7 @@ def rss_type(start, end, combi, rss_variant, strand, config):
     elif layout == "start_minus":
         return [calculate_position(start, variant_length, layout), str(start)]
     else:
-        console_log.error(f"Invalid layout or combination: {combi}, {strand}")
+        file_log.error(f"Invalid layout or combination: {combi}, {strand}")
         raise KeyError(f"Invalid combination or strand: {combi}, {strand}")
 
 
@@ -337,7 +337,7 @@ def run_meme_on_file(meme_directory: Path, rss_file: Path, config: dict) -> None
         run_meme(out, rss_file, RSS_convert.get(rss_variant))
 
 @log_error()
-def create_meme_directory(meme_directory, RSS_directory, config):
+def create_meme_directory(meme_directory, RSS_directory, config, pbar):
     """
     Creates a directory for storing MEME results and runs the MEME suite on RSS sequences.
     Iterates over all RSS files in the specified directory, running MEME to generate motifs.
@@ -356,20 +356,18 @@ def create_meme_directory(meme_directory, RSS_directory, config):
 
     max_jobs = calculate_available_resources(max_cores=24, threads=8, memory_per_process=2)
 
-    with tqdm(total=len(rss_files), desc="Running MEME on RSS sequences", unit="file") as pbar:
-        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-            futures = {
-                executor.submit(run_meme_on_file, meme_directory, rss_file, config): rss_file
-                for rss_file in rss_files
-            }
-            for future in as_completed(futures):
-                rss_file = futures[future]
-                try:
-                    future.result()
-                    pbar.set_postfix({"file": rss_file.name})
-                except Exception as e:
-                    console_log.error(f"Error processing {rss_file}: {e}")
-                pbar.update(1)
+    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+        futures = {
+            executor.submit(run_meme_on_file, meme_directory, rss_file, config): rss_file
+            for rss_file in rss_files
+        }
+        for future in as_completed(futures):
+            rss_file = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                file_log.error(f"Error processing {rss_file}: {e}")
+            pbar.update(1)
 
 
 @log_error()
@@ -604,9 +602,18 @@ def create_all_RSS_meme_files(cwd, df, config):
     rss_filenames = ["reference_RSS", "new_RSS", "combined_RSS"]
     meme_directories = ["reference_meme", "new_meme", "complete_meme"]
 
-    for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
-        create_RSS_files(dataset, base / rss_filename, config)
-        create_meme_directory(base / meme_directory, base / rss_filename, config)
+    rss_files = [
+        rss_file
+        for filename in rss_filenames
+        for rss_file in (base / filename).iterdir()
+        if rss_file.suffix in ['.fasta', '.fa'] and (base / filename).exists() and (base / filename).is_dir()
+    ]
+    total_tasks = len(rss_files)
+    with tqdm(total=total_tasks, desc="Running MEME on RSS sequences", unit="file") as pbar:
+        for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
+            create_RSS_files(dataset, base / rss_filename, config)
+            create_meme_directory(base / meme_directory, base / rss_filename, config, pbar)
+
     return base / meme_directories[0]
 
 
@@ -641,7 +648,7 @@ def create_rss_excel_file(cwd, final_df, no_split):
     known_df = final_df.query("Status == 'Known'")
     for df, filename in zip([novel_df, known_df], ["annotation_report_novel", "annotation_report_known"]):
         if not no_split:
-            console_log.info("Creating individual sample excel files...")
+            file_log.info("Creating individual sample excel files...")
             df.groupby("Sample").apply(lambda group: seperate_annotation(
                 group, cwd / "annotation", f"{filename}_rss.xlsx"))
         wrtie_rss_excel_file(cwd, df, filename)
@@ -661,7 +668,7 @@ def wrtie_rss_excel_file(cwd, df, filename):
     Raises:
         OSError: If the file creation fails, logs the error and raises an exception.
     """
-    console_log.info(f"Generating {filename}_rss.xlsx!")
+    file_log.info(f"Generating {filename}_rss.xlsx!")
     df.to_excel(cwd / 'annotation' / f'{filename}_rss.xlsx', index=False)
 
 
@@ -703,4 +710,4 @@ def RSS_main(no_split):
 
 
 if __name__ == '__main__':
-    RSS_main(False)
+    RSS_main()

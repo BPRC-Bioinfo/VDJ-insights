@@ -4,6 +4,7 @@ import re
 import subprocess
 from typing import Tuple
 import json
+from tqdm import tqdm
 
 from Bio.Seq import Seq
 
@@ -34,7 +35,7 @@ def write_seq(seq: str, output: str | Path):
     """
     with open(output, 'w') as out_file:
         out_file.write(f">{output.stem}\n{seq}")
-    console_log.info(f"Sequence written to {output}")
+    file_log.info(f"Sequence written to {output}")
 
 
 @log_error()
@@ -116,7 +117,7 @@ def get_positions_and_name(sam: str | Path, first: str, second: str):
                     line = subprocess.run(
                         commands[i], shell=True, capture_output=True, text=True)
                     if line.returncode != 0:
-                        console_log.error(f"Failed to run command: {commands[i]}")
+                        file_log.error(f"Failed to run command: {commands[i]}")
                         continue
                     sam_list = line.stdout.strip().split()
                     if sam_list:
@@ -128,17 +129,17 @@ def get_positions_and_name(sam: str | Path, first: str, second: str):
         if len(coords) == 2:
             region_length = abs(coords[1] - coords[0])
             if region_length < 100:
-                console_log.warning(f"Region is too short: {region_length} base pairs. No region extracted.")
+                file_log.warning(f"Region is too short: {region_length} base pairs. No region extracted.")
                 return [], []
 
         if not coords or not name:
-            console_log.warning("No coordinates or contig names could be found. Region could not be extracted.")
+            file_log.warning("No coordinates or contig names could be found. Region could not be extracted.")
             return [], []
 
         return coords, name
 
     except Exception as e:
-        console_log.warning(f"Failed to get positions and name from SAM file: {e}")
+        file_log.warning(f"Failed to get positions and name from SAM file: {e}")
         return [], []
 
 
@@ -166,7 +167,7 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
 
         if coords:
             if len(set(name)) == 1:
-                console_log.info(f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
+                file_log.info(f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
 
                 cmd = f"samtools faidx {assembly_fasta} {name[0]}:{min(coords)+1}-{max(coords)}"
                 result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -174,7 +175,7 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
 
                 write_seq(str(Seq(concatenated_sequence)), outfile)
             else:
-                console_log.debug(
+                file_log.debug(
                     f"Broken region detected, unable to create a valid region.: {assembly_fasta.name}, {first}, {second}, {name[0]}, {name[1]}, {min(coords)}, {max(coords)}")
                 return {
                     "flanking_regions": f"{first}-{second}",
@@ -182,7 +183,7 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
                     "3_Contig": name[1]
                 }
         else:
-            console_log.debug(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
+            file_log.debug(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
 
 
 
@@ -293,9 +294,9 @@ def region_mainw(flanking_genes: list[str], assembly_dir=""):
     with open(log_file, 'w') as f:
         json.dump(output_json, f, indent=4)
     if any(directory.iterdir()):
-        console_log.info("Region extraction completed successfully")
+        file_log.info("Region extraction completed successfully")
     else:
-        console_log.error("No regions where extracted")
+        file_log.error("No regions where extracted")
         raise
 
 
@@ -327,31 +328,35 @@ def region_main(flanking_genes: list[str], assembly_dir=""):
             tasks.append((cwd, assembly, directory, first, second, sample, haplotype))
 
     max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
+    total_tasks = len(tasks)
 
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(extract, *task): task for task in tasks}
-        for future in as_completed(futures):
-            log_data = future.result()
-            if log_data:
-                assembly_name = futures[future][1].name
-                flanking_key = log_data["flanking_regions"]
+        with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
 
-                if assembly_name not in output_json:
-                    output_json[assembly_name] = {}
-                if flanking_key not in output_json[assembly_name]:
-                    output_json[assembly_name][flanking_key] = {}
+            for future in as_completed(futures):
+                log_data = future.result()
+                if log_data:
+                    assembly_name = futures[future][1].name
+                    flanking_key = log_data["flanking_regions"]
 
-                output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
-                output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]
+                    if assembly_name not in output_json:
+                        output_json[assembly_name] = {}
+                    if flanking_key not in output_json[assembly_name]:
+                        output_json[assembly_name][flanking_key] = {}
+
+                    output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
+                    output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]
+                pbar.update(1)
 
     log_file = cwd / "broken_regions.json"
     with open(log_file, 'w') as f:
         json.dump(output_json, f, indent=4)
 
     if any(directory.iterdir()):
-        console_log.info("Region extraction completed successfully")
+        file_log.info("Region extraction completed successfully")
     else:
-        console_log.error("No regions were extracted")
+        file_log.error("No regions were extracted")
         raise Exception("No regions extracted.")
 
 

@@ -36,7 +36,7 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
     df = pd.DataFrame()
 
     for tool in mapping_tools:
-        console_log.info(f"Processing tool: {tool}")
+        file_log.info(f"Processing tool: {tool}")
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
         df["haplotype"] = df['file'].apply(lambda x: Path(x).stem.split('_')[-1])
@@ -67,13 +67,13 @@ def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, i
     """
     report = annotation_folder / "report.xlsx"
     if not report.exists():
-        console_log.info("The report.xlsx file does not exist! Creating it!")
+        file_log.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, cell_type, input_dir, library, threads)
         df.to_excel(report, index=False)
-        console_log.info(f"Report successfully saved to {report}")
+        file_log.info(f"Report successfully saved to {report}")
     else:
         df = pd.read_excel(report)
-        console_log.info(f"Loaded existing report from {report}")
+        file_log.info(f"Loaded existing report from {report}")
     return df
 
 
@@ -192,11 +192,10 @@ def main(args=None):
 
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
-    #"""
+
     if args.assembly:
         map_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
-    #"""
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool, region_dir, args.library, args.threads)
 
     blast_file = annotation_folder / "blast_results.csv"
@@ -204,7 +203,8 @@ def main(args=None):
         blast_main(df, blast_file, args.library)
 
     report_main(annotation_folder, blast_file,args.receptor_type, args.library, args.no_split)
+
     RSS_main(args.no_split)
 
-    console_log.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
+    file_log.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
 

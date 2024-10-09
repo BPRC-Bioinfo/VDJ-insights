@@ -46,7 +46,7 @@ def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     """
     report = annotation_folder / "report.xlsx"
     if not report.exists():
-        console_log.info("The report.xlsx file does not exist! Creating it!")
+        file_log.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, input_dir, library)
         df.to_excel(report, index=False)
         return df
@@ -107,9 +107,9 @@ def order_main(library, input_dir: str) -> str:
     filtered_df = filter_data_frame(renamed)
     file_path = cwd / 'reevaluated.xlsx'
     filtered_df.to_excel(file_path, index=False)
-    console_log.info(f"DataFrame saved to: {file_path}")
+    file_log.info(f"DataFrame saved to: {file_path}")
     return 'reevaluated.xlsx'
 
 
 if __name__ == "__main__":
-    pass
+    order_main("library/library.fasta", "seq")

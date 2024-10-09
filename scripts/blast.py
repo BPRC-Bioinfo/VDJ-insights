@@ -45,9 +45,9 @@ def make_blast_db(cwd: Path, library: str) -> Path:
         make_dir(blast_db_path)
         command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        console_log.info("BLAST database created successfully.")
+        file_log.info("BLAST database created successfully.")
     else:
-        console_log.info("BLAST database already exists.")
+        file_log.info("BLAST database already exists.")
     return blast_db_path
 
 
@@ -173,7 +173,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
 
     max_jobs = calculate_available_resources(max_cores=24, threads=2, memory_per_process=2)
 
-    with tqdm(total=total_searches, desc="Running all BLAST searches", unit="search") as pbar:
+    with tqdm(total=total_searches, desc="Running BLAST searches", unit="search") as pbar:
         with ThreadPoolExecutor(max_workers=max_jobs) as executor:
             for cutoff in CUTOFFS:
                 futures = {executor.submit(execute_blast_search, row, database_path, cutoff): row for _, row in
@@ -194,7 +194,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
                     Path(result_file_path_str).unlink()
                     pbar.update(1)
 
-    console_log.info("Aggregation of BLAST results completed.")
+    file_log.info("Aggregation of BLAST results completed.")
     return aggregated_results
 
 
@@ -224,7 +224,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
 
-    console_log.info("BLAST operations completed and results saved to csv.")
+    file_log.info("BLAST operations completed and results saved to csv.")
 
 
 def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
@@ -252,7 +252,7 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
     cwd = Path.cwd()
     db_path = make_blast_db(cwd, library)
     run_blast_operations(df, db_path, Path(blast_file))
-    console_log.info("BLAST main process completed.")
+    file_log.info("BLAST main process completed.")
 
 
 if __name__ == '__main__':
