@@ -27,25 +27,25 @@
 }
 
 .number-tag {
-    background-color: #004080; /* Dark blue color matching the sidebar */
+    background-color: #004080;
     color: #ffffff;
     padding: 10px 20px;
-    border-radius: 30px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     font-size: 0.8em;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Softer shadow for consistency */
-    font-family: 'Poppins', sans-serif; /* Keep the font consistent */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-family: 'Poppins', sans-serif;
 }
 
 .number-text {
     margin: 0;
     font-weight: 500;
-    color: #ffffff; /* White color to match the number tag */
+    color: #ffffff;
 }
 
 .number {
-    background-color: #0066cc; /* Lighter blue matching the overall app style */
+    background-color: #0066cc;
     display: inline-flex;
     border-radius: 50%;
     width: 30px;
@@ -56,7 +56,7 @@
     font-size: 1em;
     margin-left: 10px;
     color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Softer shadow */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     font-family: 'Poppins', sans-serif;
 }
 
@@ -67,7 +67,8 @@
     font-size: 1em;
 }
 
-.library-table th, .library-table td {
+.library-table th,
+.library-table td {
     padding: 10px 15px;
     text-align: left;
     border-bottom: 1px solid #eaeaea;
@@ -77,4 +78,3 @@
     background-color: #4d96fb;
     color: #fff;
 }
-

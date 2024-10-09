@@ -174,6 +174,10 @@ def load_BUSCO_files(busco_dir: Path) -> dict:
                     data.setdefault(number, {}).setdefault(haplotype, metrics)
     return data
 
+@app.errorhandler(404)
+def page_not_found(e):
+    # You can return a custom template or plain text response
+    return render_template('404.html'), 404
 
 # Route for the home page
 @app.route('/')
@@ -220,6 +224,78 @@ def report():
 
     return render_template('report.html', **data)
 
+@app.route('/<string:sample_id>')
+def sample_details(sample_id):
+    cwd = Path.cwd()
+    individual_path = cwd / 'annotation' / 'individual' / sample_id
+
+    if not individual_path.exists():
+        return render_template('404.html'), 404
+
+    # Load sample-specific region data
+    region_data = parse_region_files(cwd / 'region')
+    sample_region_data = [item for item in region_data if item['sample_name'] == sample_id]
+
+    # Load annotation data for the sample using pandas
+    known_report_file = individual_path / 'annotation_report_known_rss.xlsx'
+    novel_report_file = individual_path / 'annotation_report_novel_rss.xlsx'
+
+    known_annotation_summary = {}
+    novel_annotation_summary = {}
+
+    # Load and process known annotations
+    if known_report_file.exists():
+        known_df = pd.read_excel(known_report_file)
+
+        # Compute statistics
+        known_annotation_summary = {
+            'total_annotations': len(known_df),
+            'unique_segments': known_df['Segment'].nunique(),
+            'segments': known_df['Segment'].value_counts().to_dict(),
+            'functions': known_df['Function'].value_counts().to_dict(),
+            'regions': known_df['Region'].value_counts().to_dict(),
+            'haplotypes': known_df['Haplotype'].value_counts().to_dict(),
+            'average_mismatches': known_df['Mismatches'].mean(),
+            'max_mismatches': known_df['Mismatches'].max(),
+        }
+    else:
+        known_annotation_summary = None
+
+    # Load and process novel annotations
+    if novel_report_file.exists():
+        novel_df = pd.read_excel(novel_report_file)
+
+        # Compute statistics
+        novel_annotation_summary = {
+            'total_annotations': len(novel_df),
+            'unique_segments': novel_df['Segment'].nunique(),
+            'segments': novel_df['Segment'].value_counts().to_dict(),
+            'functions': novel_df['Function'].value_counts().to_dict(),
+            'regions': novel_df['Region'].value_counts().to_dict(),
+            'haplotypes': novel_df['Haplotype'].value_counts().to_dict(),
+            'average_mismatches': novel_df['Mismatches'].mean(),
+            'max_mismatches': novel_df['Mismatches'].max(),
+        }
+    else:
+        novel_annotation_summary = None
+
+    # Sample metadata (replace with actual data retrieval)
+    sample_metadata = {
+        'source': 'Blood',
+        'collection_date': '2023-10-01',
+        'description': 'Sample collected from patient XYZ.'
+    }
+
+    context = {
+        'sample_id': sample_id,
+        'sample_region_data': sample_region_data,
+        'known_annotation_summary': known_annotation_summary,
+        'novel_annotation_summary': novel_annotation_summary,
+        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'sample_metadata': sample_metadata
+    }
+
+    return render_template('sample_details.html', **context)
 
 @app.route('/annotation/<string:annotation_type>', defaults={'sample_id': 'all'})
 @app.route('/annotation/<string:annotation_type>/<string:sample_id>')

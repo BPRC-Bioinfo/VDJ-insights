@@ -186,16 +186,17 @@ def main(args=None):
             '-i/--input cannot be used with -f/--flanking-genes or -s/--species.'
         )
 
+
     if args.input:
         region_dir = args.input
 
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
-
+    #"""
     if args.assembly:
         map_main(args.flanking_genes, args.assembly, args.species)
         region_main(args.flanking_genes, args.assembly)
-
+    #"""
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool, region_dir, args.library, args.threads)
 
     blast_file = annotation_folder / "blast_results.csv"

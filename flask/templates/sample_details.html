@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ sample_id }}
+{% endblock %}
+
+{% block extra_css %}
+    <!-- Include your own stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sample_details.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="main-content" id="main-content">
+        <!-- Sample Summary Card -->
+        <div class="sample-summary-card">
+            <div class="sample-summary-header">
+                <h1>{{ sample_id }}</h1>
+                <p><strong>Date and Time:</strong> {{ date_time }}</p>
+            </div>
+            <div class="sample-summary-body">
+                <!-- Add any key sample information here -->
+                <p><strong>Sample Source:</strong> {{ sample_metadata.source }}</p>
+                <p><strong>Collection Date:</strong> {{ sample_metadata.collection_date }}</p>
+                <p><strong>Description:</strong> {{ sample_metadata.description }}</p>
+            </div>
+            <!-- Removed the footer with buttons from here -->
+        </div>
+
+        <!-- Collapsible Region Data Section -->
+        {% if sample_region_data %}
+            <div class="collapsible-section">
+                <button class="collapsible" aria-expanded="false">Region Data</button>
+                <div class="collapsible-content">
+                    <div class="table-container">
+                        <table class="report-table" id="regionDataTable">
+                            <thead>
+                                <tr>
+                                    <th>5' Flanking Gene</th>
+                                    <th>3' Flanking Gene</th>
+                                    <th>Haplotype</th>
+                                    <th>Length</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in sample_region_data %}
+                                    <tr>
+                                        {% set flanking_genes = item.region_name.split('/') %}
+                                        <td>{{ flanking_genes[0] }}</td>
+                                        <td>{{ flanking_genes[1] }}</td>
+                                        <td>{{ item.haplotype }}</td>
+                                        <td>{{ item.length }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Collapsible Footer -->
+                    <div class="collapsible-footer">
+                        <button id="downloadRegionData" class="action-btn">Download Region Data</button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Collapsible Annotation Statistics Section -->
+        <div class="collapsible-section">
+            <button class="collapsible" aria-expanded="false">Annotation Statistics</button>
+            <div class="collapsible-content">
+                <div class="statistics-container">
+                    <!-- Known Annotations Statistics -->
+                    <h3>Known Annotations</h3>
+                    {% if known_annotation_summary %}
+                        <table class="statistics-table">
+                            <tr>
+                                <th>Total Annotations</th>
+                                <td>{{ known_annotation_summary.total_annotations }}</td>
+                            </tr>
+                            <tr>
+                                <th>Unique Segments</th>
+                                <td>{{ known_annotation_summary.unique_segments }}</td>
+                            </tr>
+                            <tr>
+                                <th>Average Mismatches</th>
+                                <td>{{ known_annotation_summary.average_mismatches | round(2) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Max Mismatches</th>
+                                <td>{{ known_annotation_summary.max_mismatches }}</td>
+                            </tr>
+                        </table>
+                        <!-- Segments Distribution -->
+                        <h4>Segments Distribution</h4>
+                        <table class="statistics-table">
+                            <tr>
+                                <th>Segment</th>
+                                <th>Count</th>
+                            </tr>
+                            {% for segment, count in known_annotation_summary.segments.items() %}
+                                <tr>
+                                    <td>{{ segment }}</td>
+                                    <td>{{ count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <!-- Functions Distribution -->
+                        <h4>Functions Distribution</h4>
+                        <table class="statistics-table">
+                            <tr>
+                                <th>Function</th>
+                                <th>Count</th>
+                            </tr>
+                            {% for function, count in known_annotation_summary.functions.items() %}
+                                <tr>
+                                    <td>{{ function }}</td>
+                                    <td>{{ count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <!-- Add more distributions as needed -->
+                    {% else %}
+                        <p>No known annotations available.</p>
+                    {% endif %}
+
+                    <!-- Novel Annotations Statistics -->
+                    <h3>Novel Annotations</h3>
+                    {% if novel_annotation_summary %}
+                        <table class="statistics-table">
+                            <tr>
+                                <th>Total Annotations</th>
+                                <td>{{ novel_annotation_summary.total_annotations }}</td>
+                            </tr>
+                            <tr>
+                                <th>Unique Segments</th>
+                                <td>{{ novel_annotation_summary.unique_segments }}</td>
+                            </tr>
+                            <tr>
+                                <th>Average Mismatches</th>
+                                <td>{{ novel_annotation_summary.average_mismatches | round(2) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Max Mismatches</th>
+                                <td>{{ novel_annotation_summary.max_mismatches }}</td>
+                            </tr>
+                        </table>
+                        <!-- Segments Distribution -->
+                        <h4>Segments Distribution</h4>
+                        <table class="statistics-table">
+                            <tr>
+                                <th>Segment</th>
+                                <th>Count</th>
+                            </tr>
+                            {% for segment, count in novel_annotation_summary.segments.items() %}
+                                <tr>
+                                    <td>{{ segment }}</td>
+                                    <td>{{ count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <!-- Functions Distribution -->
+                        <h4>Functions Distribution</h4>
+                        <table class="statistics-table">
+                            <tr>
+                                <th>Function</th>
+                                <th>Count</th>
+                            </tr>
+                            {% for function, count in novel_annotation_summary.functions.items() %}
+                                <tr>
+                                    <td>{{ function }}</td>
+                                    <td>{{ count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <!-- Add more distributions as needed -->
+                    {% else %}
+                        <p>No novel annotations available.</p>
+                    {% endif %}
+                </div>
+                <!-- Collapsible Footer with Buttons -->
+                <div class="collapsible-footer">
+                    <a href="{{ url_for('annotation', annotation_type='known', sample_id=sample_id) }}" class="action-btn">
+                        View Known Annotations
+                    </a>
+                    <a href="{{ url_for('annotation', annotation_type='novel', sample_id=sample_id) }}" class="action-btn">
+                        View Novel Annotations
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Collapsible Sections (if any) -->
+        {% if sample_additional_data %}
+            <div class="collapsible-section">
+                <button class="collapsible" aria-expanded="false">Additional Data</button>
+                <div class="collapsible-content">
+                    <!-- Content goes here -->
+                    <div class="table-container">
+                        <!-- Your table or content -->
+                    </div>
+                    <!-- Collapsible Footer -->
+                    <div class="collapsible-footer">
+                        <button id="downloadAdditionalData" class="action-btn">Download Additional Data</button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/sample_details.js') }}"></script>
+{% endblock %}

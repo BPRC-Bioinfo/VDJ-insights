@@ -40,7 +40,7 @@
                 <tbody>
                     {% for file in fasta_files %}
                     <tr>
-                        <td>{{ file.name }}</td>
+                        <td><a href="{{ file.url}}" class="link-style" onclick="window.open('#','_blank');window.open(this.href,'_self');">{{ file.name }}</a></td>
                         <td>{{ file.entries }}</td>
                     </tr>
                     {% endfor %}
@@ -51,5 +51,6 @@
 {% endblock %}
 
 {% block extra_js %}
+    <script src="{{ url_for('static', filename='js/imgt_report.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 {% endblock %}

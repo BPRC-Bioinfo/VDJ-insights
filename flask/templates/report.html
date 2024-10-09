@@ -302,7 +302,7 @@
                         <tbody>
                             {% for row in region_data %}
                             <tr>
-                                <td>{{ row.sample_name }}</td>
+                                <td><a class="link-style" href="{{ url_for('sample_details', sample_id=row.sample_name) }}">{{ row.sample_name }}</a></td>
                                 <td>{{ row.region_name }}</td>
                                 <td>{{ row.haplotype }}</td>
                                 <td>{{ row.length }}</td>

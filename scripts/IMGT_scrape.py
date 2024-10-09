@@ -16,7 +16,7 @@ console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
 fasta_files_info = []
-
+fasta_file_urls = []
 
 def cleanup(directory: str | Path):
     """
@@ -55,6 +55,7 @@ def create_library(directory: str | Path, simple_headers):
                     record.description = new_header.replace(" ", "_")
                 w.write(f">{record.description}\n{record.seq.upper()}\n")
     console_log.info("Creating a library from generated files.")
+    return library
 
 
 def scrape(response):
@@ -148,7 +149,7 @@ def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str
         time.sleep(sleep_time)
     if attempt == retry_limit - 1 and response.status_code == 200 and not sequence:
         console_log.error(f"Max retries reached for {segment} of {species} without successful data retrieval.")
-
+    fasta_file_urls.append(url)
 
 def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: str):
     """
@@ -252,7 +253,7 @@ def argparser_setup():
     return args
 
 
-def save_json(release: str, fasta_files_info:list[str], file_path: str, args):
+def save_json(release: str, fasta_files_info:list[str], fasta_files_url:list[str], file_path: str | Path, args):
     """
     Save the collected log information to an HTML file using Jinja2 template.
 
@@ -262,19 +263,22 @@ def save_json(release: str, fasta_files_info:list[str], file_path: str, args):
         file_path (str): Path to the HTML file.
         args (argparse.Namespace): Parsed command line arguments.
     """
-
+    for info, url in zip(fasta_files_info, fasta_files_url):
+        info['url'] = url
+        
     json_dict = {
         "set_release": release,
         "species": args.species,
         "type": args.type,
-        "output": args.output,
+        "output": str(args.output),
         "frame_selection": args.frame_selection,
         "create_library": args.create_library,
         "cleanup": args.cleanup,
         "simple_headers": args.simple_headers,
-        "fasta_files": fasta_files_info
+        "fasta_files": fasta_files_info,
     }
-    with open(file_path, 'w') as w:
+    
+    with open(str(file_path), 'w') as w:  
         json.dump(json_dict, w, indent=4)
 
 
@@ -293,21 +297,27 @@ def main():
     args = argparser_setup()
     console_log.info(f"Starting scrape for species: {args.species}, type: {args.type}")
 
-    output_dir = Path(args.output) if args.output else Path.cwd(
-    ) / args.species.replace(" ", "_").lower()
+    cwd = Path.cwd()
+    if args.output:
+        path = cwd / args.output
+    else:
+        path = cwd
+    
     frame_selection = convert_frame(args.frame_selection)
-    make_dir(output_dir)
-    scrape_IMGT(args.species, args.type, output_dir, frame_selection)
+    imgt_dir = path / args.species.replace(" ", "_").lower()
+    make_dir(imgt_dir)
+    
+    scrape_IMGT(args.species, args.type, imgt_dir, frame_selection)
     if args.create_library:
-        create_library(output_dir, args.simple_headers)
+        library_dir = create_library(imgt_dir, args.simple_headers)
 
     if args.cleanup:
-        cleanup(output_dir)
+        cleanup(imgt_dir)
 
     console_log.info("Scrape completed successfully.")
+    json_file = library_dir / "library_info.json"
 
-
-    save_json(set_release(), fasta_files_info, Path.cwd() / "library" / "library_info.json", args)
+    save_json(set_release(), fasta_files_info, fasta_file_urls, json_file, args)
 
 
 if __name__ == '__main__':

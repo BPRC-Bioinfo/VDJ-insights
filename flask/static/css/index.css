@@ -110,32 +110,32 @@
 
 /* Individual Card Colors */
 .card-1 {
-    background-color: #34495e; /* Dark Blue-Grey */
-    color: #ecf0f1; /* Light grey for text */
+    background-color: #34495e;
+    color: #ecf0f1;
 }
 
 .card-2 {
-    background-color: #2c3e50; /* Dark Slate Grey */
+    background-color: #2c3e50;
     color: #ecf0f1;
 }
 
 .card-3 {
-    background-color: #2980b9; /* Light Blue */
+    background-color: #2980b9;
     color: #ecf0f1;
 }
 
 .card-4 {
-    background-color: #16a085; /* Sea Green */
+    background-color: #16a085;
     color: #ecf0f1;
 }
 
 .card-5 {
-    background-color: #8e44ad; /* Purple */
+    background-color: #8e44ad;
     color: #ecf0f1;
 }
 
 .card-6 {
-    background-color: #e67e22; /* Orange */
+    background-color: #e67e22;
     color: #ecf0f1;
 }
 
@@ -144,9 +144,10 @@
     width: 100%;
     transition: margin-left 0.8s ease;
     display: flex;
-    flex: 1; /* Allow main content to take up the full height */
+    flex: 1;
     flex-direction: column;
-    overflow-y: scroll; /* Prevent main content from scrolling */
+    overflow-y: scroll;
+    margin-bottom: 2rem;
 }
 
 .main-content.shifted {
@@ -207,4 +208,3 @@
         max-width: 100%;
     }
 }
-
