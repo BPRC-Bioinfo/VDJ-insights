@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 ENVIRONMENT_LEVEL = 25
 SUCCESS_LEVEL = 26
@@ -64,10 +65,13 @@ def file_logger(name=__name__, log_file='logging.log'):
     Returns:
         logger (Logger): Logger configured to write to a file.
     """
+    cwd = Path.cwd()
+    log_file_path = cwd / log_file
+
     logger = logging.getLogger(f'{name}_file')
     logger.setLevel(logging.DEBUG)
 
-    file_handler = logging.FileHandler(log_file)
+    file_handler = logging.FileHandler(log_file_path)
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     file_handler.setFormatter(file_formatter)
@@ -96,9 +100,9 @@ if __name__ == "__main__":
     console_log = console_logger(__name__)
     file_log = file_logger(__name__)
 
-    console_log.warning("This is a warning message printed to the console")
-    console_log.success("This is a success message printed to the console")
-    console_log.notice("This is a notice message printed to the console")
+    file_log.warning("This is a warning message printed to the console")
+    file_log.success("This is a success message printed to the console")
+    file_log.notice("This is a notice message printed to the console")
 
     file_log.error("This is an error message written to the file")
     file_log.warning("This is a trace message written to the file")

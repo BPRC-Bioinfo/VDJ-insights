@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 import subprocess
+from tqdm import tqdm
 from time import sleep
 from Bio import SeqIO
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -12,7 +13,6 @@ from logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
-
 
 
 def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> None:
@@ -49,7 +49,7 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
 
         shutil.rmtree(path / "ncbi_dataset")
         sleep(2)
-        console_log.info(f"Downloaded and processed flanking genes for {gene}")
+        file_log.info(f"Downloaded and processed flanking genes for {gene}")
 
 
 @log_error()
@@ -80,8 +80,8 @@ def combine_genes(path: str | Path, flanking_output: str | Path) -> Path:
                     with open(gene_file, 'r') as fasta:
                         for record in SeqIO.parse(fasta, 'fasta'):
                             outfile.write(f">{record.description.replace(' ', '_')}\n{record.seq}\n")
-                    console_log.info(f'Added {gene_file} to {flanking_output}')
-        console_log.info(f'All files in {path} have been combined into {flanking_output}')
+                    file_log.info(f'Added {gene_file} to {flanking_output}')
+        file_log.info(f'All files in {path} have been combined into {flanking_output}')
     return flanking_output
 
 
@@ -107,10 +107,10 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
             f'{assembly_file} {flanking_genes} | {awk_command} > {sam_file}'
         )
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        console_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
+        file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, memory_per_process=8, buffer_percentage=20) -> None:
+def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 
@@ -139,18 +139,22 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, 
     extensions = ["*.fna", "*.fasta", "*.fa"]
     assembly_files = [file for ext in extensions for file in assembly_dir.glob(ext)]
 
-    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
+    console_log.info(f"Number of assembly files: {len(assembly_files)}")
 
-    args = [
+    tasks = [
         (map_flanking_genes_dir, gene_output, Path(assembly_file), 4)
         for assembly_file in assembly_files
     ]
+    total_tasks = len(tasks)
+    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-        futures = {executor.submit(map_flanking_genes, *arg): arg for arg in args}
-        for future in as_completed(futures):
-            future.result()
+        futures = {executor.submit(map_flanking_genes, *arg): arg for arg in tasks}
+        with tqdm(total=total_tasks, desc="Mapping flanking genes", unit='task') as pbar:
+            for future in as_completed(futures):
+                future.result()
+                pbar.update(1)
 
-    console_log.info("Extract main process completed successfully")
+    file_log.info("Extract main process completed successfully")
 
 
 if __name__ == "__main__":

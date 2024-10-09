@@ -57,11 +57,11 @@ def validate_read_files(file_path):
     data_path = Path(file_path).resolve()
     validate_files(file_path)
     if data_path.suffixes != ['.fastq', '.gz']:
-        console_log.error(f"Invalid file type for {
+        file_log.error(f"Invalid file type for {
                      file_path}. Must be a '.fastq.gz' file.")
         raise argparse.ArgumentTypeError(
             f"The file {file_path} must be a '.fastq.gz' file.")
-    console_log.info(f"Validated read file: {file_path}")
+    file_log.info(f"Validated read file: {file_path}")
     return data_path
 
 
@@ -82,10 +82,10 @@ def validate_files(file_path):
     """
     data_path = Path(file_path)
     if not data_path.is_file():
-        console_log.error(f"File does not exist or is a directory: {file_path}")
+        file_log.error(f"File does not exist or is a directory: {file_path}")
         raise argparse.ArgumentTypeError(
             f"The file {file_path} does not exist or is a directory.")
-    console_log.info(f"Validated file: {file_path}")
+    file_log.info(f"Validated file: {file_path}")
     return data_path
 
 
@@ -109,7 +109,7 @@ def validate_reference(value):
     fasta_extensions = {".fasta", ".fna", ".fa"}
     if Path(value).suffix in fasta_extensions:
         validate_files(value)
-        console_log.info(f"Validated reference genome file: {value}")
+        file_log.info(f"Validated reference genome file: {value}")
         return value
 
     accession_patterns = [
@@ -120,10 +120,10 @@ def validate_reference(value):
     ]
 
     if any(re.match(pattern, value) for pattern in accession_patterns):
-        console_log.info(f"Validated reference genome accession: {value}")
+        file_log.info(f"Validated reference genome accession: {value}")
         return value
 
-    console_log.error(
+    file_log.error(
         f"Invalid reference genome input: '{value}'. Must be a .fasta or .fna file, or a valid accession code.")
     raise argparse.ArgumentTypeError(
         f"Invalid reference genome input: '{value}'. Must be a .fasta or .fna file, or a valid accession code.")
@@ -148,11 +148,11 @@ def validate_flanking_genes(value):
     flanking_genes = [gene.strip().upper() if gene.strip() !=
                       '-' else '' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
-        console_log.error(f"The specified flanking genes: {
+        file_log.error(f"The specified flanking genes: {
                      flanking_genes} should be even numbers.")
         raise argparse.ArgumentTypeError(f"The specified flanking genes: {
                                          flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
-    console_log.info(f"Validated flanking genes: {flanking_genes}")
+    file_log.info(f"Validated flanking genes: {flanking_genes}")
     return flanking_genes
 
 
@@ -176,10 +176,10 @@ def validate_chromosome(value):
     valid_chromosomes = set(map(str, range(1, 23))) | {"X", "Y"}
 
     if all(chromosome in valid_chromosomes for chromosome in chromosomes):
-        console_log.info(f"Validated chromosomes: {chromosomes}")
+        file_log.info(f"Validated chromosomes: {chromosomes}")
         return chromosomes
     else:
-        console_log.error(f"Invalid chromosome list: '{
+        file_log.error(f"Invalid chromosome list: '{
                      value}'. All values must be integers between 1-22, or 'X', 'Y'.")
         raise argparse.ArgumentTypeError(f"Invalid chromosome list: '{
                                          value}'. All values must be integers between 1-22, or 'X', 'Y'.")
@@ -364,7 +364,7 @@ def run_pipeline(args):
         cwd = Path.cwd()
         config = {}
         final_output = cwd / 'final'
-        console_log.info("Starting main process")
+        file_log.info("Starting main process")
 
         filter_and_move_files(cwd, args.nanopore, args.pacbio, config)
         if args.reference and Path(args.reference).suffix in {'.fasta', '.fna', 'fa'}:
@@ -381,12 +381,12 @@ def run_pipeline(args):
             snakefile = Path(settings_dir / 'Snakefile')
             run_snakemake(args, output_dir, str(snakefile))
     except Exception as e:
-        console_log.error(f"Pipeline execution failed: {str(e)}")
+        file_log.error(f"Pipeline execution failed: {str(e)}")
     finally:
         cleanup(config)
-        console_log.info("Cleanup completed")
+        file_log.info("Cleanup completed")
 
-    console_log.info("Main process completed successfully")
+    file_log.info("Main process completed successfully")
 
 
 def run_annotation(args):
@@ -402,18 +402,18 @@ def run_annotation(args):
     settings_dir, output_dir = cwd_setup(args.output)
     cwd = Path.cwd()
     config = {}
-    console_log.info('Running the annotation program')
+    file_log.info('Running the annotation program')
     library = cwd / 'library' / 'library.fasta'
     if not args.library:
         if not library.is_file():
-            console_log.info(
+            file_log.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
                 command = (f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "'
                            f'{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers')
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
-                console_log.info(
+                file_log.info(
                     f"Downloaded the library from the IMGT for {args.species}")
             except subprocess.CalledProcessError as e:
                 log_subprocess_error(e)
@@ -427,7 +427,7 @@ def run_annotation(args):
         create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
         annotation_main(args)
     except Exception as e:
-        console_log.error(f"Annotation failed with error: {str(e)}")
+        file_log.error(f"Annotation failed with error: {str(e)}")
     finally:
         deactivate_env()
 
@@ -498,7 +498,7 @@ def open_browser():
 
 
 def run_html(args):
-    console_log.info(
+    file_log.info(
         "Running the HTML report, which should automatically open in your browser.\n"
         "If it doesn't, try entering this address manually: http://127.0.0.1:5000.\n"
         "If that doesn't work, try http://localhost:8080.\n"
@@ -521,7 +521,7 @@ def run_html(args):
         )
         process.communicate()
     except KeyboardInterrupt:
-        console_log.info(
+        file_log.info(
             "Process interrupted by user (Ctrl + C), HTML report closed!")
 
 
@@ -581,7 +581,7 @@ def write_chromosomes(fasta_path, output_dir, new_genome_file, config):
     for file in files.values():
         file.close()
 
-    console_log.info(f"Files have been written to: {output_dir}")
+    file_log.info(f"Files have been written to: {output_dir}")
 
 
 def process_record(record, output_dir, files, config):
@@ -609,7 +609,7 @@ def process_record(record, output_dir, files, config):
         files[f"{chromosome}_txt"].write(f"{record.id}\n")
         SeqIO.write(record, files['all'], 'fasta')
     except (StopIteration, IndexError) as e:
-        console_log.warning(
+        file_log.warning(
             f"Error processing record: {record.description}. Error: {e}")
 
 
@@ -650,7 +650,7 @@ def rename_files(cwd: Path, file: Path, read_type: str):
     moved_dir = cwd / 'downloads'
     make_dir(moved_dir)
     new_file = get_new_file_path(file, read_type, moved_dir)
-    console_log.info(f"Renamed file {file} to {new_file}")
+    file_log.info(f"Renamed file {file} to {new_file}")
     return file.stem.split('_')[0].upper(), new_file
 
 
@@ -726,7 +726,7 @@ def move_files(original_nanopore, original_pacbio, moved_nanopore, moved_pacbio,
         moved_pacbio = moved_pacbio.with_name(f"SAMPLE_pacbio.fastq.gz")
     shutil.move(original_nanopore, moved_nanopore)
     shutil.move(original_pacbio, moved_pacbio)
-    console_log.info(
+    file_log.info(
         f"Moved {original_nanopore} to {moved_nanopore} and {original_pacbio} to {moved_pacbio}")
 
 
@@ -771,11 +771,11 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process_downloaded_files(output_zip, dir, output_fna)
-        console_log.info(f"Downloaded and processed flanking genes for {gene}")
+        file_log.info(f"Downloaded and processed flanking genes for {gene}")
     except subprocess.CalledProcessError as e:
         log_subprocess_error(e)
     except Exception as e:
-        console_log.error(f"An unexpected error occurred: {e}")
+        file_log.error(f"An unexpected error occurred: {e}")
 
 
 def process_downloaded_files(output_zip, dir, output_fna):
@@ -821,9 +821,9 @@ def log_subprocess_error(e):
     Args:
         e (subprocess.CalledProcessError): The exception object from a failed subprocess command.
     """
-    console_log.error(f"Error occurred while running command: {e}")
-    console_log.error(e.stdout.decode())
-    console_log.error(e.stderr.decode())
+    file_log.error(f"Error occurred while running command: {e}")
+    file_log.error(e.stdout.decode())
+    file_log.error(e.stderr.decode())
 
 
 def download_reference_genome(genome_code, reference_dir: Path):
@@ -867,7 +867,7 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
     try:
         command = f'datasets download genome accession {
             genome_code} --include genome --filename {output_zip}'
-        console_log.info(f"Running command: {command}")
+        file_log.info(f"Running command: {command}")
         result = subprocess.run(
             command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process_reference_files(output_zip, reference_dir,
@@ -875,7 +875,7 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
     except subprocess.CalledProcessError as e:
         log_subprocess_error(e)
     except Exception as e:
-        console_log.error(f"An unexpected error occurred: {e}")
+        file_log.error(f"An unexpected error occurred: {e}")
 
 
 def process_reference_files(output_zip, reference_dir, output_fna, genome_code):
@@ -896,7 +896,7 @@ def process_reference_files(output_zip, reference_dir, output_fna, genome_code):
     ncbi_fna_path = list(ncbi_fna_path)[0]
     ncbi_fna_path.rename(output_fna)
     cleanup_downloaded_files(output_zip, reference_dir)
-    console_log.info(f"Downloaded the reference genome: {genome_code}")
+    file_log.info(f"Downloaded the reference genome: {genome_code}")
 
 
 def deep_merge(d1, d2):
@@ -1089,16 +1089,16 @@ def run_snakemake(args, output_dir, config, snakefile="Snakefile"):
             f"snakemake -s {snakefile} --cores {
                 args.threads} --use-conda --configfile {config_file} -prn",
             shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        console_log.info("Snakemake check ran successfully.")
-        console_log.info("Running the complete pipeline.")
+        file_log.info("Snakemake check ran successfully.")
+        file_log.info("Running the complete pipeline.")
         subprocess.run(
             f"snakemake -s {snakefile} --cores {
                 args.threads} --use-conda --configfile {config_file} -pr",
             shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
-        console_log.error(f"Snakemake failed with return code {e.returncode}.")
-        console_log.error(f"Snakemake output: {e.stdout.decode()}")
-        console_log.error(f"Application is shutting down.")
+        file_log.error(f"Snakemake failed with return code {e.returncode}.")
+        file_log.error(f"Snakemake output: {e.stdout.decode()}")
+        file_log.error(f"Application is shutting down.")
         cleanup(config)
         sys.exit(e.returncode)
 

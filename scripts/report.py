@@ -361,7 +361,7 @@ def annotation_long(df, annotation_folder):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    console_log.info("Generating annotation_report_long.xlsx!")
+    file_log.info("Generating annotation_report_long.xlsx!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
@@ -382,7 +382,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    console_log.info(f"Generating {file_name}!")
+    file_log.info(f"Generating {file_name}!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
@@ -394,7 +394,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
     df.to_excel(full_annotation_path, index=False)
 
     if not no_split:
-        console_log.info("Creating individual sample excel files...")
+        file_log.info("Creating individual sample excel files...")
         df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
 
 
