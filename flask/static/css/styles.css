@@ -1,6 +1,6 @@
 /* General Styles */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Poppins', sans-serif;
     margin: 0;
     background-color: #ffffff;
     color: #333;
@@ -10,21 +10,24 @@ body {
     overflow: hidden;
 }
 
-/* The .container class will resize dynamically */
+button {
+    font-weight: 600;
+}
+
 .container {
-    margin-left: 200px; /* Offset by the sidebar width */
+    margin-left: 200px;
     padding: 20px;
     transition: margin-left 0.3s ease;
-    overflow-y: hidden; /* Disable vertical scrolling on the container */
-    overflow-x: hidden; /* Remove horizontal scrolling */
+    overflow-y: hidden;
+    overflow-x: hidden;
     width: 100%;
     display: flex;
     flex-direction: column;
-    height: 100%; /* Ensure the container takes up full height */
+    height: 100%;
 }
 
 .container.shifted {
-    margin-left: 100px; /* Adjust when sidebar is minimized */
+    margin-left: 100px;
 }
 
 /* Additional responsive adjustments */
@@ -74,28 +77,27 @@ body {
     color: #2c3e50;
     margin: 0;
     padding-bottom: 0.2em;
-    flex: 1; /* Allow title to take up available space */
+    flex: 1;
 }
 
 .header-info {
     display: flex;
-    flex-direction: column; /* Stack the date and mode vertically */
-    align-items: flex-end; /* Align to the right */
+    flex-direction: column;
+    align-items: flex-end;
     color: #7f8c8d;
     font-size: 1em;
-    white-space: nowrap; /* Prevents text wrapping */
+    white-space: nowrap;
 }
 
 .header-info p {
     margin: 0;
-    line-height: 1.2; /* Consistent spacing between lines */
+    line-height: 1.2;
 }
 
-/* Flexbox for main content */
 .report-main-content {
     display: flex;
     flex-direction: column;
-    width: 100%; /* Ensures it takes full width of parent */
+    width: 100%;
 }
 
 /* Styling for headings */
@@ -119,32 +121,66 @@ body {
     border-bottom: 1px solid #34495e;
 }
 
+/* Statistics Container */
+.statistics-container {
+    padding: 10px 0;
+}
+
+.statistics-container h3 {
+    font-size: 1.2em;
+    margin-top: 20px;
+    color: #007BFF;
+}
+
+.statistics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.statistics-table th,
+.statistics-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.statistics-table th {
+    background-color: #f2f2f2;
+    text-align: left;
+    width: 50%;
+}
+
+.statistics-table td {
+    width: 50%;
+}
+
+
 /* Media Queries for responsiveness */
 @media (max-width: 768px) {
     .header {
-        flex-direction: column; /* Stack items vertically */
-        align-items: center; /* Center align items */
-        text-align: center; /* Center text */
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
 
     .header .report-title {
-        font-size: 2em; /* Slightly smaller for mobile */
+        font-size: 2em;
         margin-bottom: 10px;
     }
 
     .header-info {
-        align-items: center; /* Center align for smaller screens */
+        align-items: center;
         margin-top: 10px;
     }
 }
 
 @media (max-width: 480px) {
     .header .report-title {
-        font-size: 1.8em; /* Further reduce font size for very small screens */
+        font-size: 1.8em;
     }
 
     .header-info {
-        font-size: 0.9em; /* Reduce the font size for date and mode */
+        font-size: 0.9em;
     }
 }
 
@@ -173,24 +209,53 @@ body {
 
 /* Styling for tables */
 .table-container {
-    flex: 1; /* Make table container grow to fill the remaining space */
+    flex: 1;
     overflow: auto;
     width: 100%;
 }
+
 /* Keyframes for animations */
 @keyframes fadeInUp {
     from {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
+
+/* Class for links with border and hover effect */
+.link-style {
+    color: inherit;
+    text-decoration: none;
+    position: relative;
+}
+
+/* Bar element is always visible with a non-filled look */
+.link-style::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    border-radius: 8px;
+    background-color: rgba(52, 152, 219, 0.2);
+    left: 0;
+    bottom: -5px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+.link-style:hover::after {
+    background-color: rgba(52, 152, 219, 1);
+}
+
 .report-table {
-    width: 100%; /* Ensure the table takes full width of the container */
-    min-width: 800px; /* Minimum width to trigger horizontal scrolling */
+    width: 100%;
+    min-width: 800px;
     border-collapse: collapse;
     border-spacing: 0;
     background-color: #ffffff;
@@ -224,7 +289,8 @@ body {
 }
 
 
-.report-table th, .report-table thead {
+.report-table th,
+.report-table thead {
     position: sticky;
     top: 0;
     z-index: 1;
@@ -289,6 +355,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    text-decoration: none;
     flex: 1;
     background-color: #1abc9c;
     padding: 10px 20px;
@@ -308,6 +375,7 @@ body {
 .warning {
     background-color: #FF4C4C;
 }
+
 .warning:hover {
     background-color: #CC3B3B;
 }
@@ -382,7 +450,7 @@ body {
 .sequence-cell {
     font-family: 'Courier New', Courier, monospace;
     color: #e74c3c;
-    max-width: 200px; /* Adjust this width as needed */
+    max-width: 200px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -1,8 +1,7 @@
-
 /* PDF grid */
 .pdf-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); /* Responsive grid layout */
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 20px;
     margin-top: 20px;
 }
@@ -36,36 +35,71 @@
     height: auto;
 }
 
-/* Tabs for switching between different reports/data */
+/* Tabs Container */
 .tabs {
     display: flex;
     gap: 0.5em;
     justify-content: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
+/* Tabs Container */
+.tabs {
+    display: flex;
+    gap: 0.5em;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+    /* Increased margin for better spacing */
+}
+
+/* Tab Links */
 .tab-link {
-    padding: 10px 20px;
-    background-color: #3498db;
+    padding: 12px 25px;
+    background: #2575fc;
     color: white;
     cursor: pointer;
-    flex: 0 0 150px; /* Fixed width but adjust as needed */
+    flex: 0 0 auto;
     text-align: center;
-    transition: background-color 0.3s ease;
-    border-radius: 8px;
+    border: none;
+    border-radius: 30px;
+    /* Rounded button */
+    font-size: 1em;
+    font-weight: bold;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    /* Prevent text from wrapping */
 }
 
+/* Active Tab Link */
 .tab-link.active {
-    background-color: #2980b9;
+    background: #0056b3;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
 
+/* Hover Effects */
+.tab-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Focus Effects for Accessibility */
+.tab-link:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(100, 150, 255, 0.5);
+}
+
+/* Tab Content */
 .tab {
-    display: none; /* Hide inactive tabs */
+    display: none;
 }
 
 .tab.active {
-    display: block; /* Show active tab */
+    display: block;
 }
+
+
 
 /* Button for showing more content */
 .show-more-btn {
@@ -78,12 +112,12 @@
     font-size: 1em;
     margin-top: 1em;
     margin-bottom: 1em;
-    width: 100%; /* Take full width */
+    width: 100%;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .show-more-btn:last-child {
-    margin-bottom: 0; /* Remove bottom margin for the last button */
+    margin-bottom: 0;
 }
 
 .show-more-btn:hover {
@@ -94,7 +128,7 @@
 /* Configuration dashboard for displaying configurations in grid format */
 .config-dashboard {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); /* Adjust based on screen size */
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 20px;
     margin-top: 20px;
 }
@@ -106,20 +140,14 @@
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     height: 250px;
-    /* Set a fixed height for the blocks */
     overflow-y: auto;
-    /* Allow scrolling within each block */
     position: relative;
-    /* Required for the scroll indicator */
     border: 2px solid transparent;
-    /* Default border color */
     transition: border-color 0.3s ease;
-    /* Smooth transition for border color */
 }
 
 .config-block:hover {
     border-color: #3498db;
-    /* Change border color on hover */
 }
 
 /* Scroll indicator styling */
@@ -144,7 +172,6 @@
 /* Scrollable indicator */
 .config-block.scrollable {
     border-color: #3498db;
-    /* Change border color when scrollable */
 }
 
 .config-subheading {
@@ -208,7 +235,10 @@
     overflow: hidden;
 }
 
-.report-table th, .report-table td {
+
+
+.report-table th,
+.report-table td {
     padding: 12px 15px;
     border: 1px solid #ddd;
     text-align: left;
@@ -223,8 +253,9 @@
 .report-table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
+
 .region-file .table-container {
-    max-height: 400px; /* Adjust as needed */
+    max-height: 400px;
     overflow-y: auto;
     margin-top: 20px;
 }
@@ -240,20 +271,20 @@
 /* Responsive design adjustments */
 @media (max-width: 768px) {
     .config-dashboard {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Adjust for smaller screens */
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
-    
+
     .tabs {
-        flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
+        flex-wrap: wrap;
     }
 }
 
 @media (max-width: 480px) {
     .pdf-grid {
-        grid-template-columns: 1fr; /* One column layout for small screens */
+        grid-template-columns: 1fr;
     }
 
     .config-dashboard {
-        grid-template-columns: 1fr; /* Stack config blocks in one column */
+        grid-template-columns: 1fr;
     }
 }
