@@ -26,8 +26,11 @@ def make_dir(path: str | Path) -> Path | Path:
         OSError: If the directory cannot be created due to a system-related error.
     """
     try:
+        if Path(path).exists():
+            file_log.info(f"Directory already exists: {path}")
+        else:
+            file_log.info(f"Directory created: {path}")
         Path(path).mkdir(parents=True, exist_ok=True)
-        file_log.info(f"Directory created or already exists: {path}")
     except Exception as e:
         console_log.error(f"Failed to create directory {path}: {e}")
         file_log.error(f"Failed to create directory {path}: {e}")

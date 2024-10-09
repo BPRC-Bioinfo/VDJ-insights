@@ -1,44 +1,25 @@
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import re
 import subprocess
-from typing import Tuple, Dict
+from typing import Tuple
+import json
 
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
 
-from util import make_dir
+from util import make_dir, calculate_available_resources
 from property import log_error
 
 from logger import console_logger, file_logger
+
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
 
-
-@log_error()
-def make_record_dict(fasta: str | Path) -> dict:
+def write_seq(seq: str, output: str | Path):
     """
-    Creates a dictionary of SeqIO records from a given FASTA file. 
-    The dictionary allows for efficient access to sequences by their IDs.
-
-    Args:
-        fasta (str or Path): Path to the FASTA file.
-
-    Returns:
-        dict: A dictionary where the keys are sequence IDs and the values are SeqRecord objects.
-
-    Raises:
-        Exception: If the FASTA file cannot be read or parsed, logs the error and raises an exception.
-    """
-    with open(fasta, 'r') as fasta_file:
-        record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
-    return record_dict
-
-
-def write_seq(record_dict: dict, name: str, start: int, stop: int, output: str | Path):
-    """
-    Writes a sequence from a given record dictionary to an output FASTA file, 
+    Writes a sequence from a given record dictionary to an output FASTA file,
     using specified start and stop coordinates.
 
     Args:
@@ -52,8 +33,7 @@ def write_seq(record_dict: dict, name: str, start: int, stop: int, output: str |
         Exception: If the sequence cannot be written, logs the error and raises an exception.
     """
     with open(output, 'w') as out_file:
-        record = record_dict[name]
-        out_file.write(f">{output.stem}\n{record.seq[start:stop]}")
+        out_file.write(f">{output.stem}\n{seq}")
     console_log.info(f"Sequence written to {output}")
 
 
@@ -82,9 +62,14 @@ def get_best_coords(sam_list: list[str]):
             bitwise_flag, contig_name, best = sam_bitwise, sublist[1], sublist
     return best[2:], contig_name
 
+def get_length_contig(sam_file: str | Path, contig: str) -> str:
+    cmd = f'grep "^@SQ" {sam_file} | awk \'$2 ~ /{contig}/ {{print $3}}\' | cut -d":" -f2'
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    length_contig = result.stdout.strip("\n")
+    return int(length_contig)
 
 
-def get_positions_and_name(sam: str | Path, first: str, second: str, record_dict: Dict[str, SeqRecord]):
+def get_positions_and_name(sam: str | Path, first: str, second: str):
     """
     Extracts the positions and contig name from a SAM file for given flanking genes.
     Handles reverse strand mapping and assigns missing genes to the telomere if necessary.
@@ -118,16 +103,14 @@ def get_positions_and_name(sam: str | Path, first: str, second: str, record_dict
             if gene == "-":
                 if i == 0:
                     if flag is not None and flag & 16:
-                        record = record_dict[contig_name]
-                        coords.append(len(record.seq))
+                        coords.append(get_length_contig(sam, contig_name))
                     else:
                         coords.append(0)
                 else:
                     if flag is not None and flag & 16:
                         coords.append(0)
                     else:
-                        record = record_dict[contig_name]
-                        coords.append(len(record.seq))
+                        coords.append(get_length_contig(sam, contig_name))
             else:
                 if commands[i]:
                     line = subprocess.run(
@@ -179,23 +162,33 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
     if not outfile.is_file():
         sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
 
-        record_dict = make_record_dict(assembly_fasta)
-        coords, name = get_positions_and_name(sam, first, second, record_dict)
+        coords, name = get_positions_and_name(sam, first, second)
 
         if coords:
             if len(set(name)) == 1:
                 console_log.info(f"Extracting region: {first}, {second}, {name[0]}, {min(coords)}, {max(coords)}")
-                write_seq(record_dict, name[0], min(coords), max(coords), outfile)
+
+                cmd = f"samtools faidx {assembly_fasta} {name[0]}:{min(coords)+1}-{max(coords)}"
+                result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
+
+                write_seq(str(Seq(concatenated_sequence)), outfile)
             else:
-                console_log.warning("Broken region detected, unable to create a valid region.")
+                console_log.debug(
+                    f"Broken region detected, unable to create a valid region.: {assembly_fasta.name}, {first}, {second}, {name[0]}, {name[1]}, {min(coords)}, {max(coords)}")
+                return {
+                    "flanking_regions": f"{first}-{second}",
+                    "5_Contig": name[0],
+                    "3_Contig": name[1]
+                }
         else:
-            console_log.warning(f"No coordinates found for {first} and {second}. Region could not be extracted.")
+            console_log.debug(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
 
 
 
 def clean_filename(filename: str):
     """
-    Cleans the filename by removing common prefixes or suffixes that are not part of the key identifiers, 
+    Cleans the filename by removing common prefixes or suffixes that are not part of the key identifiers,
     but preserves legitimate accession codes like GCA or GCF.
 
     Args:
@@ -254,6 +247,58 @@ def parse_name(filename: str | Path) -> Tuple[str, str, str]:
     return chrom, sample, haplotype
 
 
+def region_mainw(flanking_genes: list[str], assembly_dir=""):
+    """
+    Main function that processes SAM files to create region-specific assembly files
+    based on flanking genes specified in the configuration.
+
+    Args:
+        flanking_genes (list): List of flanking genes used to define regions.
+        assembly_dir (str, optional): Directory containing the assembly FASTA files. Defaults to "".
+
+    Raises:
+        Exception: If the main region processing fails, logs the error and raises an exception.
+    """
+    cwd = Path.cwd()
+    directory = cwd / "region"
+    make_dir(directory)
+
+    extensions = ["*.fna", "*.fasta", "*.fa"]
+    assembly_files = [file for ext in extensions for file in Path(assembly_dir).glob(ext)][:10]
+
+    output_json = {}
+    tasks = []
+
+    for first, second in zip(*[iter(flanking_genes)] * 2):
+        for assembly in assembly_files:
+            chrom, sample, haplotype = parse_name(assembly)
+            tasks.append((cwd, assembly, directory, first, second, sample, haplotype))
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(extract, *task): task for task in tasks}
+        for future in as_completed(futures):
+            log_data = future.result()
+            if log_data:
+                print(output_json)
+                if assembly.name not in output_json:
+                    output_json[assembly.name] = {}
+                flanking_key = log_data["flanking_regions"]
+
+                if flanking_key not in output_json[assembly.name]:
+                    output_json[assembly.name][flanking_key] = {}
+
+                output_json[assembly.name][flanking_key]["5_Contig"] = log_data["5_Contig"]
+                output_json[assembly.name][flanking_key]["3_Contig"] = log_data["3_Contig"]
+    log_file = cwd / f"broken_regions.json"
+
+    with open(log_file, 'w') as f:
+        json.dump(output_json, f, indent=4)
+    if any(directory.iterdir()):
+        console_log.info("Region extraction completed successfully")
+    else:
+        console_log.error("No regions where extracted")
+        raise
+
+
 def region_main(flanking_genes: list[str], assembly_dir=""):
     """
     Main function that processes SAM files to create region-specific assembly files
@@ -271,14 +316,44 @@ def region_main(flanking_genes: list[str], assembly_dir=""):
     make_dir(directory)
 
     extensions = ["*.fna", "*.fasta", "*.fa"]
+    assembly_files = [file for ext in extensions for file in Path(assembly_dir).glob(ext)]
 
-    for first, second in zip(*[iter(flanking_genes)]*2):
-        assembly_files = [file for ext in extensions for file in Path(assembly_dir).glob(ext)]
+    output_json = {}
+    tasks = []
+
+    for first, second in zip(*[iter(flanking_genes)] * 2):
         for assembly in assembly_files:
             chrom, sample, haplotype = parse_name(assembly)
-            extract(cwd, assembly, directory, first, second, sample, haplotype)
+            tasks.append((cwd, assembly, directory, first, second, sample, haplotype))
+
+    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
+
+    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+        futures = {executor.submit(extract, *task): task for task in tasks}
+        for future in as_completed(futures):
+            log_data = future.result()
+            if log_data:
+                assembly_name = futures[future][1].name
+                flanking_key = log_data["flanking_regions"]
+
+                if assembly_name not in output_json:
+                    output_json[assembly_name] = {}
+                if flanking_key not in output_json[assembly_name]:
+                    output_json[assembly_name][flanking_key] = {}
+
+                output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
+                output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]
+
+    log_file = cwd / "broken_regions.json"
+    with open(log_file, 'w') as f:
+        json.dump(output_json, f, indent=4)
+
     if any(directory.iterdir()):
         console_log.info("Region extraction completed successfully")
     else:
-        console_log.error("No regions where extracted")
-        raise
+        console_log.error("No regions were extracted")
+        raise Exception("No regions extracted.")
+
+
+if __name__ == '__main__':
+ region_main(["TMEM121", "-", "RPIA", "LSP1P4", "GNAZ", "TOP3B"], "/mnt/nanopore/Jaimy_intern/ensembl_human_unzip")

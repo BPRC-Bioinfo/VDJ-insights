@@ -492,8 +492,12 @@ def combine_df(original_df, new_df):
         'Reference', 'Old name-like', 'Start coord', 'End coord',
         '12_heptamer', '12_ref_heptamer', '12_heptamer_matched',
         '12_nonamer', '12_ref_nonamer', '12_nonamer_matched',
+        '13_heptamer', '13_ref_heptamer', '13_heptamer_matched',
+        '13_nonamer', '13_ref_nonamer', '13_nonamer_matched',
         '23_heptamer', '23_ref_heptamer', '23_heptamer_matched',
         '23_nonamer', '23_ref_nonamer', '23_nonamer_matched',
+        '24_heptamer', '24_ref_heptamer', '24_heptamer_matched',
+        '24_nonamer', '24_ref_nonamer', '24_nonamer_matched',
     ]
 
     for column in columns_to_merge:

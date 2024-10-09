@@ -101,5 +101,5 @@ if __name__ == "__main__":
     console_log.notice("This is a notice message printed to the console")
 
     file_log.error("This is an error message written to the file")
-    file_log.trace("This is a trace message written to the file")
+    file_log.warning("This is a trace message written to the file")
     file_log.environment("This is an environment message written to the file")
