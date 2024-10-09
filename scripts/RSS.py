@@ -230,7 +230,7 @@ def add_base_rss_parts(row, config):
     """
     region, segment = row["Region"], row["Segment"]
     full = region + segment
-    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
+    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"], row["24_heptamer"], row["24_nonamer"], row["13_heptamer"], row["13_nonamer"] = "", "", "", "", "", "", "", ""
     rss_variants = config['RSS_LAYOUT'].get(full, {}).keys()
 
     for rss_variant in rss_variants:
@@ -527,10 +527,9 @@ def apply_check_ref_rss(row, ref_rss_dict, config, options):
     region, segment = row["Region"], row["Segment"]
     full = region + segment
     rss_variants = config['RSS_LAYOUT'].get(full, {}).keys()
-
-    for rss_variant in rss_variants:
+    for rss_variant in list(rss_variants):
         if full in options:
-            return check_ref_rss(row, ref_rss_dict, rss_variant)
+            check_ref_rss(row, ref_rss_dict, rss_variant)
 
     return row
 

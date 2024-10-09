@@ -127,7 +127,9 @@ def find_non_best_rows(df: pd.DataFrame) -> pd.Index:
     'Best' is determined based on the row with the highest count of True values in the boolean columns.
     """
     boolean_columns = ["12_heptamer_matched", "12_nonamer_matched",
-                       "23_heptamer_matched", "23_nonamer_matched"]
+                       "13_heptamer_matched", "13_nonamer_matched", 
+                       "23_heptamer_matched", "23_nonamer_matched", 
+                       "24_heptamer_matched", "24_nonamer_matched",]
     df[boolean_columns] = df[boolean_columns].apply(
         pd.to_numeric, errors='coerce').fillna(0).astype(bool)
     df = df.sort_values(

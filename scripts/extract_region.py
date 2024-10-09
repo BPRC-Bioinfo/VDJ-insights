@@ -174,7 +174,7 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
 
                 write_seq(str(Seq(concatenated_sequence)), outfile)
             else:
-                console_log.debug(
+                file_log.warning(
                     f"Broken region detected, unable to create a valid region.: {assembly_fasta.name}, {first}, {second}, {name[0]}, {name[1]}, {min(coords)}, {max(coords)}")
                 return {
                     "flanking_regions": f"{first}-{second}",
@@ -182,7 +182,7 @@ def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path,
                     "3_Contig": name[1]
                 }
         else:
-            console_log.debug(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
+            file_log.warning(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
 
 
 
