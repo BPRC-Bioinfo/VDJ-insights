@@ -415,16 +415,19 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
     Raises:
         Exception: If any step fails, logs the error and raises an exception.
     """
-    cwd = Path.cwd()
-    record = make_record_dict(cwd / library)
-    df = pd.read_csv(blast_file)
-    df = add_values(df)
-    df, ref_df = main_df(df)
-    df = run_like_and_length(df, record, cell_type)
-    ref_df = run_like_and_length(ref_df, record, cell_type)
-    df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
-    annotation_long(df, annotation_folder)
-    df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
+    try:
+        cwd = Path.cwd()
+        record = make_record_dict(cwd / library)
+        df = pd.read_csv(blast_file)
+        df = add_values(df)
+        df, ref_df = main_df(df)
+        df = run_like_and_length(df, record, cell_type)
+        ref_df = run_like_and_length(ref_df, record, cell_type)
+        df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
+        annotation_long(df, annotation_folder)
+        df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
+    except Exception as e:
+        print("ddd",e)
 
     annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split)
     annotation(ref_df, annotation_folder,'annotation_report_known.xlsx', no_split)

@@ -248,58 +248,6 @@ def parse_name(filename: str | Path) -> Tuple[str, str, str]:
     return chrom, sample, haplotype
 
 
-def region_mainw(flanking_genes: list[str], assembly_dir=""):
-    """
-    Main function that processes SAM files to create region-specific assembly files
-    based on flanking genes specified in the configuration.
-
-    Args:
-        flanking_genes (list): List of flanking genes used to define regions.
-        assembly_dir (str, optional): Directory containing the assembly FASTA files. Defaults to "".
-
-    Raises:
-        Exception: If the main region processing fails, logs the error and raises an exception.
-    """
-    cwd = Path.cwd()
-    directory = cwd / "region"
-    make_dir(directory)
-
-    extensions = ["*.fna", "*.fasta", "*.fa"]
-    assembly_files = [file for ext in extensions for file in Path(assembly_dir).glob(ext)][:10]
-
-    output_json = {}
-    tasks = []
-
-    for first, second in zip(*[iter(flanking_genes)] * 2):
-        for assembly in assembly_files:
-            chrom, sample, haplotype = parse_name(assembly)
-            tasks.append((cwd, assembly, directory, first, second, sample, haplotype))
-    with ProcessPoolExecutor(max_workers=3) as executor:
-        futures = {executor.submit(extract, *task): task for task in tasks}
-        for future in as_completed(futures):
-            log_data = future.result()
-            if log_data:
-                print(output_json)
-                if assembly.name not in output_json:
-                    output_json[assembly.name] = {}
-                flanking_key = log_data["flanking_regions"]
-
-                if flanking_key not in output_json[assembly.name]:
-                    output_json[assembly.name][flanking_key] = {}
-
-                output_json[assembly.name][flanking_key]["5_Contig"] = log_data["5_Contig"]
-                output_json[assembly.name][flanking_key]["3_Contig"] = log_data["3_Contig"]
-    log_file = cwd / f"broken_regions.json"
-
-    with open(log_file, 'w') as f:
-        json.dump(output_json, f, indent=4)
-    if any(directory.iterdir()):
-        file_log.info("Region extraction completed successfully")
-    else:
-        file_log.error("No regions where extracted")
-        raise
-
-
 def region_main(flanking_genes: list[str], assembly_dir=""):
     """
     Main function that processes SAM files to create region-specific assembly files

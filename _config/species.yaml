@@ -83,7 +83,7 @@ Homo_sapiens:
      FLANKING_GENES:
       - TMEM121
       - "-" 
-      - PAX8
       - RPIA
+      - LSP1P4
       - GNAZ
       - TOP3B

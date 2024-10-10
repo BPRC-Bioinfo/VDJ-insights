@@ -10,11 +10,11 @@ import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from collections import Counter
 from reevaluate import re_evaluate_main
-from logger import custom_logger
+from logger import console_logger, file_logger
 
+logger = console_logger(__name__)
+file_log = file_logger(__name__)
 
-# Method for logger current states of the program.
-logger = custom_logger(__name__)
 
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
@@ -765,7 +765,6 @@ def main():
     sample = df.iloc[0]["Sample"]
     for region in regions:
         plot_generator.process_region_data(df, region, sample)
-    print("finnish")
 
 if __name__ == "__main__":
     main()

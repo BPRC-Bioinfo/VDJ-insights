@@ -40,7 +40,7 @@ def console_logger(name=__name__):
     Returns:
         logger (Logger): Logger configured to print to the console.
     """
-    logger = logging.getLogger(f'{name}_console')
+    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
@@ -68,7 +68,7 @@ def file_logger(name=__name__, log_file='logging.log'):
     cwd = Path.cwd()
     log_file_path = cwd / log_file
 
-    logger = logging.getLogger(f'{name}_file')
+    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     file_handler = logging.FileHandler(log_file_path)

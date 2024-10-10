@@ -256,7 +256,4 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
 
 
 if __name__ == '__main__':
-    import pandas as pd
-
-    df = pd.read_excel("report.xlsx")
-    blast_main(df, "blast_results.csv", "library.fasta")
+    pass
