@@ -25,7 +25,7 @@ def combine_df(mapping_tools, input_dir, library):
     """
     df = pd.DataFrame()
     for tool in mapping_tools:
-        mapping_df = mapping_main(tool, input_dir, library, 100, 100)
+        mapping_df = mapping_main(tool, "IG", input_dir, library, 100,)
         df = pd.concat([df, mapping_df])
     unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
@@ -74,7 +74,7 @@ def concatenate_and_clean(dfs):
     parts = final_df['name'].str.split('_')
     final_df['Status'] = parts.str[-1]
     final_df['Short name'] = parts.str[:-1].apply('_'.join)
-    final_df["Sample"] = str(final_df.iloc[0]["reference"]).split("_")[0]
+    #final_df["Sample"] = str(final_df.iloc[0]["reference"]).split("_")[0]
     return final_df
 
 
@@ -112,4 +112,5 @@ def order_main(library, input_dir: str) -> str:
 
 
 if __name__ == "__main__":
-    order_main("library/library.fasta", "seq")
+    a = "/home/jaimy/output/10_10_2024/library/library.fasta"
+    order_main(a, Path("/home/jaimy/output/10_10_2024/region/"))
