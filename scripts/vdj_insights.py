@@ -498,7 +498,7 @@ def open_browser():
 
 
 def run_html(args):
-    file_log.info(
+    console_log.info(
         "Running the HTML report, which should automatically open in your browser.\n"
         "If it doesn't, try entering this address manually: http://127.0.0.1:5000.\n"
         "If that doesn't work, try http://localhost:8080.\n"
@@ -521,7 +521,7 @@ def run_html(args):
         )
         process.communicate()
     except KeyboardInterrupt:
-        file_log.info(
+        console_log.info(
             "Process interrupted by user (Ctrl + C), HTML report closed!")
 
 

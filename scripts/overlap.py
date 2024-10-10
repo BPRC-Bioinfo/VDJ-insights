@@ -1,10 +1,10 @@
 import pandas as pd
 import tempfile
 from Bio import AlignIO
-from Bio.Align.Applications import MafftCommandline
 from io import StringIO
 import shutil
 from statistics import multimode
+import subprocess
 
 def trim_gaps(alignment):
     """
@@ -57,9 +57,11 @@ def run_mafft(input_file):
     if mafft_exe is None:
         raise FileNotFoundError("MAFFT executable not found.")
 
-    mafft_cline = MafftCommandline(mafft_exe, input=input_file)
-    stdout, stderr = mafft_cline()
-    return AlignIO.read(StringIO(stdout), "fasta")
+    result = subprocess.run([mafft_exe, input_file], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"MAFFT failed with the following error: {result.stderr}")
+    
+    return AlignIO.read(StringIO(result.stdout), "fasta")
 
 def filter_on_alignment(group):
     seqs = list(group["Old name-like seq"])
@@ -170,4 +172,3 @@ def remove_overlapping_segments(df: pd.DataFrame) -> pd.DataFrame:
     df_cleaned = df.drop(
         non_best_indices, errors='ignore').reset_index(drop=True)
     return df_cleaned
-
