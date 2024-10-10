@@ -230,7 +230,7 @@ def add_base_rss_parts(row, config):
     """
     region, segment = row["Region"], row["Segment"]
     full = region + segment
-    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"] = "", "", "", ""
+    row["12_heptamer"], row["12_nonamer"], row["23_heptamer"], row["23_nonamer"], row["24_heptamer"], row["24_nonamer"], row["13_heptamer"], row["13_nonamer"] = "", "", "", "", "", "", "", ""
     rss_variants = config['RSS_LAYOUT'].get(full, {}).keys()
 
     for rss_variant in rss_variants:
@@ -337,7 +337,7 @@ def run_meme_on_file(meme_directory: Path, rss_file: Path, config: dict) -> None
         run_meme(out, rss_file, RSS_convert.get(rss_variant))
 
 @log_error()
-def create_meme_directory(meme_directory, RSS_directory, config, pbar):
+def create_meme_directory(meme_directory, RSS_directory, config):
     """
     Creates a directory for storing MEME results and runs the MEME suite on RSS sequences.
     Iterates over all RSS files in the specified directory, running MEME to generate motifs.
@@ -367,7 +367,6 @@ def create_meme_directory(meme_directory, RSS_directory, config, pbar):
                 future.result()
             except Exception as e:
                 file_log.error(f"Error processing {rss_file}: {e}")
-            pbar.update(1)
 
 
 @log_error()
@@ -525,10 +524,9 @@ def apply_check_ref_rss(row, ref_rss_dict, config, options):
     region, segment = row["Region"], row["Segment"]
     full = region + segment
     rss_variants = config['RSS_LAYOUT'].get(full, {}).keys()
-
-    for rss_variant in rss_variants:
+    for rss_variant in list(rss_variants):
         if full in options:
-            return check_ref_rss(row, ref_rss_dict, rss_variant)
+            check_ref_rss(row, ref_rss_dict, rss_variant)
 
     return row
 
@@ -602,19 +600,11 @@ def create_all_RSS_meme_files(cwd, df, config):
     rss_filenames = ["reference_RSS", "new_RSS", "combined_RSS"]
     meme_directories = ["reference_meme", "new_meme", "complete_meme"]
 
-    rss_files = [
-        rss_file
-        for filename in rss_filenames
-        for rss_file in (base / filename).iterdir()
-        if rss_file.suffix in ['.fasta', '.fa'] and (base / filename).exists() and (base / filename).is_dir()
-    ]
-    total_tasks = len(rss_files)
-    with tqdm(total=total_tasks, desc="Running MEME on RSS sequences", unit="file") as pbar:
-        for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
-            create_RSS_files(dataset, base / rss_filename, config)
-            create_meme_directory(base / meme_directory, base / rss_filename, config, pbar)
-
+    for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
+        create_RSS_files(dataset, base / rss_filename, config)
+        create_meme_directory(base / meme_directory, base / rss_filename, config)
     return base / meme_directories[0]
+
 
 
 @log_error()
