@@ -231,10 +231,14 @@ def region_main(flanking_genes: list[str], assembly_dir=""):
 
                     # Handle both broken and non-broken regions
                     if "Contig" in log_data:
-                        output_json[assembly_name][flanking_key]["Contig"] = log_data["Contig"]
+                        output_json[assembly_name][flanking_key]["5_Contig"] = log_data["Contig"]
+                        output_json[assembly_name][flanking_key]["3_Contig"] = log_data["Contig"]
+                        output_json[assembly_name][flanking_key]["assembly_type"] = "Complete"
+                        
                     else:
                         output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
                         output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]
+                        output_json[assembly_name][flanking_key]["assembly_type"] = "Fragmented"
                 pbar.update(1)
 
     log_file = cwd / "broken_regions.json"
