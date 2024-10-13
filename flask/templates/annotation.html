@@ -73,7 +73,7 @@
             </div>
         {% else %}
             <!-- Novel Segments Section -->
-            <h2 class="report-heading">Novel Segments | {{ current_sample }}</h2>
+            <h2 class="report-heading" style="border:none;">Novel Matches | <a href="{{ url_for('sample_details', sample_id=current_sample)}}" class="link-style">{{ current_sample }}</a></h2>
             <button class="modal-btn column-toggle-btn">Toggle Columns</button>
 
             <!-- Button Row for actions -->

@@ -28,7 +28,7 @@
         </div>
 
         <!-- Collapsible Region Data Section -->
-        {% if sample_region_data %}
+        {% if regions %}
             <div class="collapsible-section">
                 <button class="collapsible" aria-expanded="false">Region Data</button>
                 <div class="collapsible-content">
@@ -40,21 +40,27 @@
                                     <th>3' Flanking Gene</th>
                                     <th>Haplotype</th>
                                     <th>Length</th>
+                                    <th>5' Contig</th>
+                                    <th>3' Contig</th>
+                                    <th>Assembly Type</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in sample_region_data %}
+                                {% for region_name, region_info in regions.items() %}
                                     <tr>
-                                        {% set flanking_genes = item.region_name.split('/') %}
+                                        {% set flanking_genes = region_name.split('-') %}
                                         <td>{{ flanking_genes[0] }}</td>
                                         <td>{{ flanking_genes[1] }}</td>
-                                        <td>{{ item.haplotype }}</td>
-                                        <td>{{ item.length }}</td>
+                                        <td>{{ region_info.haplotype }}</td>
+                                        <td>{{ region_info.length }}</td>
+                                        <td>{{ region_info.broken["5_Contig"] }}</td>
+                                        <td>{{ region_info.broken["3_Contig"] }}</td>
+                                        <td>{{ region_info.broken["assembly_type"] }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
-                    </div>
+                    </div>                    
                     <!-- Collapsible Footer -->
                     <div class="collapsible-footer">
                         <button id="downloadRegionData" class="action-btn">Download Region Data</button>

@@ -1,3 +1,4 @@
+import multiprocessing
 import re
 import sys
 import subprocess
@@ -26,13 +27,6 @@ def write_fasta_file(dictionary, folder: str):
     Writes multiple FASTA files for each region and segment in the provided dictionary.
     Each file is named "{key}{region}.fasta" and stored in the specified folder.
     Headers in the FASTA files are made unique by appending an incrementing number.
-
-    Args:
-        dictionary (dict): Dictionary containing regions as keys and segments with their corresponding RSS sequences as values.
-        folder (Path): Path to the directory where FASTA files will be saved.
-
-    Raises:
-        OSError: If there is an issue writing to the files, logs the error and raises an exception.
     """
     make_dir(folder)
     for key, value in dictionary.items():
@@ -44,22 +38,10 @@ def write_fasta_file(dictionary, folder: str):
                         f.write(f">{header}-{x+1}\n{rss}\n")
 
 
-
 def calculate_position(position, variant_length, operation):
     """
     Calculates the adjusted start or end position for cutting the RSS sequence based on the given operation.
     It either returns an end coordinate ("end_plus") or a start coordinate ("start_minus").
-
-    Args:
-        position (int): The coordinate that either contains the start or end of an RSS sequence.
-        variant_length (int): The length of the RSS sequence to be extracted.
-        operation (str): Operation to perform, which can be "start_minus" or "end_plus".
-
-    Returns:
-        str: The adjusted coordinate as a string.
-
-    Raises:
-        ValueError: If an invalid operation is provided, logs the error and raises an exception.
     """
     if operation.endswith("plus"):
         return str(position + variant_length)
@@ -74,19 +56,6 @@ def rss_type(start, end, combi, rss_variant, strand, config):
     """
     Determines the RSS coordinates based on the combination of segment and region, and whether the sequence is on the forward or reverse strand.
     It uses the start or end coordinate to calculate the appropriate RSS coordinates.
-
-    Args:
-        start (str): The start coordinate of the VDJ segment sequence.
-        end (str): The end coordinate of the VDJ segment sequence.
-        combi (str): Combination of the V, D, or J segment and the region.
-        rss_variant (int): Type of RSS variant (e.g., 12 or 23).
-        strand (str): Indicator of the sequence orientation ("+" for forward or "-" for reverse).
-
-    Returns:
-        list: A list containing two integers representing the start and end coordinates of the RSS variant.
-
-    Raises:
-        KeyError: If the combination or strand is not found in the configuration, logs the error and raises an exception.
     """
     lengths = config['RSS_LENGTH']
     variants = config['RSS_LAYOUT'].get(combi, {})
@@ -108,18 +77,6 @@ def fetch_sequence(row, segment, rss_variant, config):
     Extracts the RSS sequence from the specified row of the DataFrame based on the segment and RSS variant.
     The sequence is cut from the appropriate FASTA file based on the coordinates.
     If the sequence is on the reverse strand, it is reverse complemented.
-
-    Args:
-        row (pd.Series): Current row from the DataFrame containing relevant segment information.
-        segment (str): Type of segment (e.g., V, D, or J).
-        rss_variant (int): Type of RSS variant (e.g., 12 or 23).
-
-    Returns:
-        str: Extracted RSS sequence.
-
-    Raises:
-        FileNotFoundError: If the FASTA file is not found, logs the error and raises an exception.
-        KeyError: If the segment or region combination is invalid, logs the error and raises an exception.
     """
     fasta, start, end, strand, region = row[['Path', 'Start coord', 'End coord', 'Strand', 'Region']]
     with open(fasta, 'r') as fasta_file:
@@ -136,53 +93,24 @@ def add_to_dict(query, dictionary, rss):
     """
     Adds an RSS sequence to the specified dictionary under the given query.
     If the query does not exist, it creates a new entry.
-
-    Args:
-        query (str): Name of the segment.
-        dictionary (dict): Dictionary to store the RSS sequences.
-        rss (str): RSS sequence to add.
-
-    Raises:
-        TypeError: If the provided dictionary is not valid, logs the error and raises an exception.
     """
     dictionary.setdefault(query, []).append(rss)
-
 
 
 @log_error()
 def get_mers(rss, rss_variant, config):
     """
     Extracts the heptamer and nonamer sequences from the RSS based on the RSS variant.
-
-    Args:
-        rss (str): RSS sequence from which to extract the heptamer and nonamer.
-        rss_variant (int): Type of RSS variant (e.g., 12 or 23).
-
-    Returns:
-        list: List containing the heptamer and nonamer sequences.
-
-    Raises:
-        KeyError: If the RSS variant is not found in the configuration, logs the error and raises an exception.
     """
     mers = config["RSS_MERS"].get(str(rss_variant), [])
     mer1, mer2 = mers
     return [rss[0:mer1], rss[-mer2:]]
 
 
-
 def add_to_row(row, mer1, mer2, rss_variant):
     """
     Adds the heptamer and nonamer sequences to the specified row of the DataFrame.
     Depending on the length of mer1, it determines which sequence represents the heptamer or nonamer.
-
-    Args:
-        row (pd.Series): Current row from the DataFrame.
-        mer1 (list): List representing the heptamer or nonamer sequence.
-        mer2 (list): List representing the heptamer or nonamer sequence.
-        rss_variant (int): Type of RSS variant (e.g., 12 or 23).
-
-    Returns:
-        pd.Series: Updated row with the added heptamer and nonamer sequences.
     """
     heptamer, nonamer = (''.join(mer1), ''.join(mer2)) if len(
         mer1) == 7 else (''.join(mer2), ''.join(mer1))
@@ -195,38 +123,15 @@ def add_segment(query, segment, region, separated_segments, rss_sequence, functi
     """
     Adds the RSS sequence to the separated_segments dictionary based on the segment, region, and function.
     Only adds the RSS sequence if the function is not "P" (pseudogene).
-
-    Args:
-        query (str): Name of the segment.
-        segment (str): Type of segment (e.g., V_12, D_23).
-        region (str): Region associated with the segment.
-        separated_segments (dict): Dictionary to store the RSS sequences.
-        rss_sequence (str): RSS sequence to add.
-        function (str): Functional status of the segment ("P" for pseudogene, "F/ORF" for functional).
-
-    Raises:
-        TypeError: If the provided dictionary is not valid, logs the error and raises an exception.
     """
     if function != "P":
         add_to_dict(query, separated_segments.setdefault(region, {}).setdefault(segment, {}), str(rss_sequence))
-
 
 
 @log_error()
 def add_base_rss_parts(row, config):
     """
     Adds base RSS components (heptamer and nonamer) to the row based on the segment type and RSS variant.
-    Initializes the 12_heptamer, 12_nonamer, 23_heptamer, and 23_nonamer columns with empty strings.
-    Populates these columns with the appropriate sequences based on the segment type and RSS variant.
-
-    Args:
-        row (pd.Series): Current row from the DataFrame.
-
-    Returns:
-        pd.Series: Updated row with the added RSS components.
-
-    Raises:
-        KeyError: If the segment or region combination is not found in the configuration, logs the error and raises an exception.
     """
     region, segment = row["Region"], row["Segment"]
     full = region + segment
@@ -240,19 +145,12 @@ def add_base_rss_parts(row, config):
 
     return row
 
+
 @log_error()
 def run_meme(out, rss_file, rss_variant, THREADS=8):
     """
     Executes the MEME suite to identify motifs in the RSS sequences.
     Chooses between a single-command or multi-command MEME run based on the number of sequences in the input file.
-
-    Args:
-        out (Path): Path to the output directory for MEME results.
-        rss_file (Path): Path to the RSS input file.
-        rss_variant (int): Length of the RSS variant (e.g., 12 or 23).
-
-    Raises:
-        CalledProcessError: If the MEME command fails, logs the error and raises an exception.
     """
     total_nucleotides = sum(len(record.seq) for record in SeqIO.parse(rss_file, "fasta"))
 
@@ -270,16 +168,6 @@ def run_meme(out, rss_file, rss_variant, THREADS=8):
 def get_reference_mers(regex_string, rss_variant, config):
     """
     Extracts the heptamer and nonamer sequences from a MEME-generated regular expression string.
-
-    Args:
-        regex_string (str): Regular expression string containing the RSS sequence.
-        rss_variant (int): Length of the RSS variant (e.g., 12 or 23).
-
-    Returns:
-        list: List containing the extracted heptamer and nonamer sequences.
-
-    Raises:
-        ValueError: If the regular expression string is invalid, logs the error and raises an exception.
     """
     rss = re.findall(r'\[[^\]]*\]|.', regex_string)
     mers = config["RSS_MERS"].get(str(rss_variant), [])
@@ -291,19 +179,6 @@ def get_reference_mers(regex_string, rss_variant, config):
 def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
     """
     Updates the reference RSS dictionary with the heptamer and nonamer sequences for a specific segment.
-    Depending on the length of mer1, it determines whether it is the heptamer or nonamer.
-
-    Args:
-        segment (str): Type of segment (e.g., V, D, or J).
-        ref_rss_dict (dict): Dictionary to store reference heptamers and nonamers.
-        mer1 (list): List representing the heptamer or nonamer sequence.
-        mer2 (list): List representing the heptamer or nonamer sequence.
-
-    Returns:
-        dict: Updated reference RSS dictionary.
-
-    Raises:
-        TypeError: If the provided segment or sequence is invalid, logs the error and raises an exception.
     """
     if len(mer1) == 7:
         ref_rss_dict.setdefault(segment, {}).setdefault(
@@ -321,11 +196,6 @@ def make_ref_dict(segment, ref_rss_dict, mer1, mer2):
 def run_meme_on_file(meme_directory: Path, rss_file: Path, config: dict) -> None:
     """
     Helper function to run the MEME suite on a single RSS file.
-
-    Args:
-        meme_directory (Path): Path to the directory where MEME results will be saved.
-        rss_file (Path): Path to the RSS FASTA file.
-        config (dict): Configuration dictionary containing RSS length mappings.
     """
     stem = rss_file.stem
     rss_variant = stem.split("_")[-1]
@@ -336,53 +206,34 @@ def run_meme_on_file(meme_directory: Path, rss_file: Path, config: dict) -> None
     if not meme.exists():
         run_meme(out, rss_file, RSS_convert.get(rss_variant))
 
+
 @log_error()
-def create_meme_directory(meme_directory, RSS_directory, config):
+def create_meme_directory(meme_tasks):
     """
-    Creates a directory for storing MEME results and runs the MEME suite on RSS sequences.
-    Iterates over all RSS files in the specified directory, running MEME to generate motifs.
-
-    Args:
-        meme_directory (Path): Path to the directory where MEME results will be saved.
-        RSS_directory (Path): Path to the directory containing RSS FASTA files.
-
-    Raises:
-        OSError: If the directory creation or file writing fails, logs the error and raises an exception.
+    Processes all rss_files, running MEME to generate motifs, with a single progress bar.
     """
-    make_dir(meme_directory)
-
-    RSS_directory = Path(RSS_directory)
-    rss_files = [rss_file for rss_file in RSS_directory.iterdir() if rss_file.suffix in ['.fasta', '.fa']]
-
+    total_tasks = len(meme_tasks)
     max_jobs = calculate_available_resources(max_cores=24, threads=8, memory_per_process=2)
 
-    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-        futures = {
-            executor.submit(run_meme_on_file, meme_directory, rss_file, config): rss_file
-            for rss_file in rss_files
-        }
-        for future in as_completed(futures):
-            rss_file = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                file_log.error(f"Error processing {rss_file}: {e}")
+    with tqdm(total=total_tasks, desc="Processing Files") as pbar:
+        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+            futures = {
+                executor.submit(run_meme_on_file, task['meme_directory'], task['rss_file'], task['config']): task
+                for task in meme_tasks
+            }
+            for future in as_completed(futures):
+                task = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    file_log.error(f"Error processing {task['rss_file']}: {e}")
+                pbar.update(1)
 
 
 @log_error()
 def make_reference_rss(ref_meme_directory, config):
     """
     Generates a reference dictionary of RSS heptamers and nonamers from MEME results.
-    Parses the MEME output files to extract heptamer and nonamer sequences and stores them in a dictionary.
-
-    Args:
-        ref_meme_directory (Path): Path to the directory containing reference MEME results.
-
-    Returns:
-        dict: Dictionary containing reference heptamers and nonamers for all regions and segments.
-
-    Raises:
-        subprocess.CalledProcessError: If the command to extract MEME results fails, logs the error and raises an exception.
     """
     ref_rss_dict = {}
 
@@ -403,12 +254,6 @@ def make_reference_rss(ref_meme_directory, config):
 def seperate_pattern(pattern):
     """
     Separates a regular expression pattern into individual components, preserving elements in brackets.
-
-    Args:
-        pattern (str): Regular expression pattern to separate.
-
-    Returns:
-        list: List of separated pattern components.
     """
     seperated = list()
     for part in pattern.split('['):
@@ -424,13 +269,6 @@ def seperate_pattern(pattern):
 def rss_mismatch(rss, pattern):
     """
     Compares an RSS sequence to a regular expression pattern and counts the number of mismatches.
-
-    Args:
-        rss (str): RSS sequence to compare.
-        pattern (str): Regular expression pattern to match against.
-
-    Returns:
-        int: Number of mismatches between the RSS sequence and the pattern.
     """
     pattern, rss = seperate_pattern(pattern), [*rss]
     return [bool(re.match(x, i)) for x, i in zip(pattern, rss)].count(False)
@@ -440,17 +278,6 @@ def check_ref_rss(row, ref_rss_dict, rss_variant):
     """
     Compares the heptamer and nonamer sequences of a segment with the reference sequences.
     Updates the DataFrame row with match status and reference sequences.
-
-    Args:
-        row (pd.Series): Current row from the DataFrame.
-        ref_rss_dict (dict): Dictionary containing reference RSS sequences.
-        rss_variant (int): Length of the RSS variant (e.g., 12 or 23).
-
-    Returns:
-        pd.Series: Updated row with match status and reference sequences.
-
-    Raises:
-        KeyError: If the segment or region combination is not found in the reference dictionary, logs the error and raises an exception.
     """
     region_segment_key = f"{row['Region']}{row['Segment']}_{rss_variant}"
     ref_rss = ref_rss_dict.get(region_segment_key, "")
@@ -474,16 +301,6 @@ def combine_df(original_df, new_df):
     """
     Merges the original DataFrame with the new DataFrame containing RSS heptamers and nonamers.
     Ensures that all relevant columns are included in the merged DataFrame.
-
-    Args:
-        original_df (pd.DataFrame): Original DataFrame with base data.
-        new_df (pd.DataFrame): New DataFrame with added heptamers and nonamers.
-
-    Returns:
-        pd.DataFrame: Combined DataFrame with merged data.
-
-    Raises:
-        ValueError: If the merge operation fails, logs the error and raises an exception.
     """
     columns_to_merge = [
         'Reference', 'Old name-like', 'Start coord', 'End coord',
@@ -510,16 +327,6 @@ def apply_check_ref_rss(row, ref_rss_dict, config, options):
     """
     Applies the reference RSS check to each row in the DataFrame.
     Validates the segment against reference RSS sequences and updates the row with match status.
-
-    Args:
-        row (pd.Series): Current row of the DataFrame.
-        ref_rss_dict (dict): Dictionary containing reference RSS sequences.
-
-    Returns:
-        pd.Series: Row with added columns indicating match status.
-
-    Raises:
-        KeyError: If the segment or region combination is not found in the configuration, logs the error and raises an exception.
     """
     region, segment = row["Region"], row["Segment"]
     full = region + segment
@@ -536,16 +343,6 @@ def create_dict(row, separated_segments, config):
     """
     Creates a dictionary entry for the RSS sequence based on the current row of the DataFrame.
     Adds the segment, region, and function to the separated_segments dictionary.
-
-    Args:
-        row (pd.Series): Current row of the DataFrame.
-        separated_segments (dict): Dictionary to store separated segments and their RSS sequences.
-
-    Returns:
-        pd.Series: The original row, unchanged.
-
-    Raises:
-        KeyError: If the segment or region combination is not found in the configuration, logs the error and raises an exception.
     """
     query, region, segment, function = row[["Old name-like", "Region", "Segment", "Function"]]
     combi = region + segment
@@ -562,18 +359,10 @@ def create_dict(row, separated_segments, config):
 def create_RSS_files(df, RSS_directory, config):
     """
     Generates RSS files from the DataFrame and saves them to the specified directory.
-    Iterates over the DataFrame to create a dictionary of separated segments, then writes them to FASTA files.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing the information needed to create RSS files.
-        RSS_directory (Path): Path to the directory where RSS files will be saved.
-
-    Raises:
-        OSError: If the directory creation or file writing fails, logs the error and raises an exception.
     """
     if not RSS_directory.exists():
         separated_segments = {}
-        df = df.apply(lambda row: create_dict(row, separated_segments, config), axis=1)
+        df.apply(lambda row: create_dict(row, separated_segments, config), axis=1)
         write_fasta_file(separated_segments, RSS_directory)
 
 
@@ -581,17 +370,6 @@ def create_RSS_files(df, RSS_directory, config):
 def create_all_RSS_meme_files(cwd, df, config):
     """
     Generates all necessary RSS and MEME files for the analysis.
-    Creates directories and files for reference, novel, and combined RSS sequences, and runs MEME to generate motifs.
-
-    Args:
-        cwd (Path): Path object representing the current working directory.
-        df (pd.DataFrame): DataFrame containing information about novel sequences.
-
-    Returns:
-        Path: Path to the directory containing the reference MEME motifs.
-
-    Raises:
-        OSError: If the directory creation or file writing fails, logs the error and raises an exception.
     """
     base = cwd / "RSS"
     df_100 = pd.read_excel(cwd / 'annotation' / 'annotation_report_known.xlsx')
@@ -599,12 +377,29 @@ def create_all_RSS_meme_files(cwd, df, config):
     datasets = [df_100, df, combined]
     rss_filenames = ["reference_RSS", "new_RSS", "combined_RSS"]
     meme_directories = ["reference_meme", "new_meme", "complete_meme"]
-
-    for dataset, rss_filename, meme_directory in zip(datasets, rss_filenames, meme_directories):
+    
+    # First, create all the RSS files
+    for dataset, rss_filename in zip(datasets, rss_filenames):
         create_RSS_files(dataset, base / rss_filename, config)
-        create_meme_directory(base / meme_directory, base / rss_filename, config)
+    
+    # Now, collect all the RSS files and their corresponding output meme directories
+    meme_tasks = []
+    for rss_filename, meme_dir_name in zip(rss_filenames, meme_directories):
+        RSS_directory = base / rss_filename
+        rss_files = [rss_file for rss_file in RSS_directory.iterdir() if rss_file.suffix in ['.fasta', '.fa']]
+        meme_directory = base / meme_dir_name
+        make_dir(meme_directory)
+        for rss_file in rss_files:
+            meme_tasks.append({
+                'rss_file': rss_file,
+                'meme_directory': meme_directory,
+                'config': config
+            })
+    
+    # Process all MEME tasks with a progress bar
+    create_meme_directory(meme_tasks)
+    
     return base / meme_directories[0]
-
 
 
 @log_error()
@@ -612,16 +407,6 @@ def update_df(df, ref_rss_dict, config, options):
     """
     Updates the DataFrame with base RSS components and checks against reference RSS sequences.
     Adds columns for heptamer and nonamer sequences and their match status.
-
-    Args:
-        df (pd.DataFrame): DataFrame to be updated.
-        ref_rss_dict (dict): Dictionary containing reference RSS sequences.
-
-    Returns:
-        pd.DataFrame: Updated DataFrame with additional columns.
-
-    Raises:
-        KeyError: If the segment or region combination is not found in the configuration, logs the error and raises an exception.
     """
     df = df.apply(lambda row: add_base_rss_parts(row, config), axis=1)
     df = df.apply(lambda row: apply_check_ref_rss(row, ref_rss_dict, config, options), axis=1)
@@ -649,36 +434,15 @@ def wrtie_rss_excel_file(cwd, df, filename):
     """
     Creates an extended Excel file with the updated DataFrame.
     Merges the original annotation report with the new RSS data and saves it as an Excel file.
-
-    Args:
-        cwd (Path): Path object representing the current working directory.
-        df (pd.DataFrame): Updated DataFrame with additional RSS data.
-        filename (str): Base name of the file to be created.
-
-    Raises:
-        OSError: If the file creation fails, logs the error and raises an exception.
     """
     file_log.info(f"Generating {filename}_rss.xlsx!")
     df.to_excel(cwd / 'annotation' / f'{filename}_rss.xlsx', index=False)
 
 
 @log_error()
-def RSS_main(no_split):
+def RSS_main(no_split=False):
     """
     Main function of the RSS creation script.
-    Loads the configuration and DataFrames, generates RSS and MEME files, and updates the annotation report.
-    The process involves extracting RSS sequences, generating motifs, comparing them against reference sequences,
-    and creating an extended annotation report with additional RSS data.
-
-    Steps:
-        1. Load configuration settings and annotation reports.
-        2. Generate RSS files and run MEME to identify motifs.
-        3. Compare the identified motifs against reference sequences.
-        4. Update the DataFrame with RSS data and match status.
-        5. Save the extended annotation report as an Excel file.
-
-    Raises:
-        Exception: If any step fails, logs the error and raises an exception.
     """
     complete_df = pd.DataFrame()
     cwd = Path.cwd()

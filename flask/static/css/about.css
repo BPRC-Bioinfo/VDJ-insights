@@ -1,0 +1,264 @@
+/* Import Poppins font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+/* Sample Summary Card Styling */
+.about-summary-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow-y: scroll;
+}
+
+/* Header */
+.about-summary-header {
+    background-color: #4a90e2;
+    color: #ffffff;
+    padding: 20px;
+    position: relative;
+    text-align: left;
+}
+
+.about-summary-header h1 {
+    margin: 0;
+    font-size: 2.5em;
+}
+
+.about-summary-header p {
+    margin: 5px 0 0;
+    font-size: 1.2em;
+}
+
+/* Back Button */
+.back-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #ffffff;
+    font-size: 1.5em;
+    text-decoration: none;
+    font-weight: 600;
+    background-color: transparent;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.back-button:hover {
+    color: #0056b3;
+}
+
+/* Body */
+.about-summary-body {
+    padding: 20px;
+}
+
+.about-summary-body p {
+    margin: 10px 0;
+    font-size: 1em;
+    color: #555555;
+}
+
+/* Sections */
+.section {
+    margin-bottom: 30px;
+}
+
+.section h2 {
+    font-size: 1.8em;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #4a90e2;
+    padding-bottom: 5px;
+}
+
+.section ul {
+    list-style-type: disc;
+    padding-left: 40px;
+}
+
+.section ul li {
+    margin-bottom: 10px;
+}
+
+/* Contributors Section */
+.contributors {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.contributor {
+    text-align: center;
+    margin: 20px;
+}
+
+.contributor img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.contributor img:hover {
+    transform: scale(1.05);
+}
+
+.contributor p {
+    margin-top: 10px;
+    font-size: 1em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Footer Buttons */
+.footer-buttons {
+    display: flex;
+    gap: 1rem;
+    background-color: #f7f7f7;
+    justify-content: center;
+    padding: 20px 0px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.action-btn {
+    background-color: #007BFF;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.2em;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.action-btn img {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+.action-btn.github-btn {
+    background-color: #333333;
+}
+
+.action-btn.github-btn:hover {
+    background-color: #24292e;
+}
+
+.action-btn.mail-btn {
+    background-color: #d44638;
+}
+
+.action-btn.mail-btn:hover {
+    background-color: #a23328;
+}
+
+.action-btn:hover {
+    background-color: #0056b3;
+}
+
+.action-btn:focus,
+.action-btn:active {
+    outline: none;
+}
+
+/* Code Snippet */
+.code-snippet {
+    position: relative;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.code-snippet pre {
+    margin: 0;
+    padding: 15px;
+    overflow: auto;
+    max-height: 400px;
+    color: #f8f8f2;
+    font-size: 0.9em;
+}
+
+.code-snippet code {
+    font-family: 'Source Code Pro', monospace;
+}
+
+.copy-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: transparent;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background-color 0.3s ease;
+}
+
+.copy-button:hover {
+    color: #357abd;
+}
+
+.copy-button:focus,
+.copy-button:active {
+    outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .about-summary-header h1 {
+        font-size: 2em;
+    }
+
+    .about-summary-header p {
+        font-size: 1em;
+    }
+
+    .contributors {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .back-button {
+        top: 15px;
+        right: 15px;
+        padding: 6px 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .about-summary-header h1 {
+        font-size: 1.5em;
+    }
+
+    .about-summary-header p {
+        font-size: 0.9em;
+    }
+
+    .action-btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+
+    .contributors {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .contributor img {
+        width: 120px;
+        height: 120px;
+    }
+}

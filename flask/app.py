@@ -174,12 +174,15 @@ def load_BUSCO_files(busco_dir: Path) -> dict:
                     data.setdefault(number, {}).setdefault(haplotype, metrics)
     return data
 
+
 @app.errorhandler(404)
 def page_not_found(e):
     # You can return a custom template or plain text response
     return render_template('404.html'), 404
 
 # Route for the home page
+
+
 @app.route('/')
 def home():
     context = {'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -218,11 +221,14 @@ def report():
         'annotation_data_100_plus': annotation_data_100_plus,
         'annotation_data_plus': annotation_data_plus,
         'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        # You can modify this based on context
         'mode': 'Pipeline' if qc_data else 'Annotation'
     }
 
     return render_template('report.html', **data)
+
+def filter_dict(broken: dict, partial_key: str) -> dict:
+    return {key: value for key, value in broken.items() if partial_key in key}
+
 
 @app.route('/<string:sample_id>')
 def sample_details(sample_id):
@@ -232,22 +238,31 @@ def sample_details(sample_id):
     if not individual_path.exists():
         return render_template('404.html'), 404
 
-    # Load sample-specific region data
     region_data = parse_region_files(cwd / 'region')
+    
     sample_region_data = [item for item in region_data if item['sample_name'] == sample_id]
+    with open(cwd / "broken_regions.json", "r") as f:
+        broken = list(filter_dict(json.load(f), sample_id).values())[0]
+    region_data_dict = {
+        element["region_name"].replace("/", "-"): {
+            "haplotype": element["haplotype"],
+            "length": element["length"],
+            "file": element["file"],
+            "broken": broken.get(element["region_name"].replace("/", "-")),
+        }
+        for element in sample_region_data
+    }
 
-    # Load annotation data for the sample using pandas
+
     known_report_file = individual_path / 'annotation_report_known_rss.xlsx'
     novel_report_file = individual_path / 'annotation_report_novel_rss.xlsx'
 
     known_annotation_summary = {}
     novel_annotation_summary = {}
 
-    # Load and process known annotations
     if known_report_file.exists():
         known_df = pd.read_excel(known_report_file)
 
-        # Compute statistics
         known_annotation_summary = {
             'total_annotations': len(known_df),
             'unique_segments': known_df['Segment'].nunique(),
@@ -261,7 +276,6 @@ def sample_details(sample_id):
     else:
         known_annotation_summary = None
 
-    # Load and process novel annotations
     if novel_report_file.exists():
         novel_df = pd.read_excel(novel_report_file)
 
@@ -288,7 +302,7 @@ def sample_details(sample_id):
 
     context = {
         'sample_id': sample_id,
-        'sample_region_data': sample_region_data,
+        'regions': region_data_dict,
         'known_annotation_summary': known_annotation_summary,
         'novel_annotation_summary': novel_annotation_summary,
         'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -296,6 +310,7 @@ def sample_details(sample_id):
     }
 
     return render_template('sample_details.html', **context)
+
 
 @app.route('/annotation/<string:annotation_type>', defaults={'sample_id': 'all'})
 @app.route('/annotation/<string:annotation_type>/<string:sample_id>')
@@ -456,6 +471,11 @@ def sequence_library():
     with open(sequence_json) as f:
         data = json.load(f)
     return render_template('sequence_library.html', data=data)
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 
 # Run the application

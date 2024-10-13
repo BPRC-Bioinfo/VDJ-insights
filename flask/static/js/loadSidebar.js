@@ -1,32 +1,29 @@
 document.addEventListener('DOMContentLoaded', function () {
     const toggleBtn = document.getElementById('toggle-btn');
-    const sidebar = document.getElementById('sidebar');
-    const container = document.querySelector('.container');
     const dropdownToggles = document.querySelectorAll('.sidebar-content .dropdown-toggle');
-    const logo = document.querySelector('.sidebar-header .logo');
-    const ellipsisIcons = document.querySelectorAll('.sidebar-content .fa-ellipsis-h');
+    
+    // Function to toggle the minimized state
+    function toggleSidebar() {
+        const isMinimized = document.documentElement.classList.toggle('sidebar-minimized');
+        localStorage.setItem('sidebarMinimized', isMinimized);
+    }
 
-    if (toggleBtn && sidebar && container) {
+    if (toggleBtn) {
         toggleBtn.addEventListener('click', function () {
-            sidebar.classList.toggle('minimized');
-            container.classList.toggle('shifted');
+            toggleSidebar();
 
-            if (sidebar.classList.contains('minimized')) {
-                if (logo) logo.style.display = 'none'; // Hide the logo
-                ellipsisIcons.forEach(icon => icon.style.display = 'none'); // Hide ellipsis icons
-            } else {
-                if (logo) logo.style.display = 'block'; // Show the logo
-                ellipsisIcons.forEach(icon => icon.style.display = 'inline-block'); // Show ellipsis icons
-            }
-
+            // Reset dropdown menus
             dropdownToggles.forEach(function (toggle) {
                 const parent = toggle.closest('.sidebar-dropdown');
-                parent.classList.remove('active');
-                toggle.setAttribute('aria-expanded', 'false');
+                if (parent) {
+                    parent.classList.remove('active');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
             });
         });
     }
 
+    // Dropdown toggle functionality
     dropdownToggles.forEach(function (toggle) {
         toggle.addEventListener('click', function (e) {
             e.preventDefault();
@@ -35,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             this.setAttribute('aria-expanded', isActive.toString());
 
+            // Close other dropdowns
             dropdownToggles.forEach(function (otherToggle) {
                 const otherParent = otherToggle.closest('.sidebar-dropdown');
                 if (otherParent !== parent) {
@@ -45,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Close dropdowns when clicking outside
     window.addEventListener('click', function (event) {
         if (!event.target.closest('.sidebar-dropdown')) {
             document.querySelectorAll('.sidebar-content .sidebar-dropdown').forEach(function (dropdown) {
