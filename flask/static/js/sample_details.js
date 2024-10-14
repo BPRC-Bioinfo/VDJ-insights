@@ -1,70 +1,152 @@
-// sample_details.js
-
 document.addEventListener('DOMContentLoaded', function () {
     // Get the sample ID from the summary header
     const sample_id = document.querySelector('.sample-summary-header h1')?.textContent;
 
-    // Get all collapsible elements
+    // Initialize collapsible sections
     const collapsibles = document.querySelectorAll('.collapsible');
-
-    // Add click event listener to each collapsible
     collapsibles.forEach(function (collapsible) {
-        collapsible.addEventListener('click', function () {
-            // Toggle the current section
-            this.classList.toggle('active');
-            const content = this.nextElementSibling;
+        collapsible.classList.add('active');
+        const content = collapsible.nextElementSibling;
+        content.style.display = 'block';
 
-            if (this.classList.contains('active')) {
-                content.style.display = 'block';
-            } else {
-                content.style.display = 'none';
-            }
+        collapsible.addEventListener('click', function () {
+            this.classList.toggle('active');
+            content.style.display = this.classList.contains('active') ? 'block' : 'none';
         });
     });
 
-    // Download Region Data as CSV
+    // Download Region Data
     const downloadRegionButton = document.getElementById('downloadRegionData');
     if (downloadRegionButton) {
         downloadRegionButton.addEventListener('click', function () {
-            downloadTableAsCSV('regionDataTable', `${sample_id}_region_data.csv`);
+            const regionTable = document.getElementById('regionDataTable');
+            if (!regionTable) {
+                alert('No region data available for download.');
+                return;
+            }
+            downloadTableAsCSV(regionTable, `${sample_id}_region_data.csv`);
         });
     }
 
-    // Download Additional Data as CSV
-    const downloadAdditionalButton = document.getElementById('downloadAdditionalData');
-    if (downloadAdditionalButton) {
-        downloadAdditionalButton.addEventListener('click', function () {
-            downloadTableAsCSV('additionalDataTable', `${sample_id}_additional_data.csv`);
-        });
-    }
-
-    // Function to download table data as CSV
-    function downloadTableAsCSV(tableId, filename) {
-        const table = document.getElementById(tableId);
-        if (!table) return;
-
-        const rows = table.querySelectorAll('tr');
+    // Function to download a table as CSV
+    function downloadTableAsCSV(table, filename) {
         let csvContent = '';
-
+        const rows = table.querySelectorAll('tr');
         rows.forEach(function (row) {
             const cols = row.querySelectorAll('th, td');
-            const rowData = [];
-            cols.forEach(function (col) {
-                rowData.push('"' + col.innerText.replace(/"/g, '""') + '"');
+            const rowData = Array.from(cols).map(col => {
+                let data = col.innerText.replace(/"/g, '""');
+                if (/[,"\n]/.test(data)) {
+                    data = `"${data}"`;
+                }
+                return data;
             });
             csvContent += rowData.join(',') + '\n';
         });
 
-        // Create a Blob and trigger download
+        // Trigger download
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-
         const link = document.createElement('a');
-        link.href = url;
+        link.href = URL.createObjectURL(blob);
         link.download = filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+    }
+
+    // Download Annotation Data as Excel
+    const downloadAnnotationButton = document.getElementById('downloadAnnotationData');
+    if (downloadAnnotationButton) {
+        downloadAnnotationButton.addEventListener('click', function () {
+            const annotationSection = document.querySelector('.statistics-container');
+            if (!annotationSection) {
+                alert('No annotation data available for download.');
+                return;
+            }
+            downloadAnnotationSectionAsExcel(annotationSection, `${sample_id}_annotation_data.xlsx`);
+        });
+    }
+
+    // Function to collect known and novel annotation data and download it as Excel
+    function downloadAnnotationSectionAsExcel(section, filename) {
+        const workbook = XLSX.utils.book_new();
+        
+        // Prepare data for Known Annotations sheet
+        const knownAnnotationsData = [['Known Annotations']];
+        const knownSummary = collectAnnotationSummary(section, 'Known Annotations');
+        if (knownSummary) {
+            knownAnnotationsData.push(...knownSummary);
+            const knownWorksheet = XLSX.utils.aoa_to_sheet(knownAnnotationsData);
+            XLSX.utils.book_append_sheet(workbook, knownWorksheet, 'Known Annotations');
+        }
+
+        // Prepare data for Novel Annotations sheet
+        const novelAnnotationsData = [['Novel Annotations']];
+        const novelSummary = collectAnnotationSummary(section, 'Novel Annotations');
+        if (novelSummary) {
+            novelAnnotationsData.push(...novelSummary);
+            const novelWorksheet = XLSX.utils.aoa_to_sheet(novelAnnotationsData);
+            XLSX.utils.book_append_sheet(workbook, novelWorksheet, 'Novel Annotations');
+        }
+
+        // Trigger Excel file download
+        XLSX.writeFile(workbook, filename);
+    }
+
+    // Function to collect annotation summary data
+    function collectAnnotationSummary(section, headerText) {
+        const headers = section.querySelectorAll('h3');
+        for (let header of headers) {
+            if (header.textContent.trim() === headerText) {
+                const summaryData = [];
+                const summaryTable = header.nextElementSibling; // Total Annotations, etc.
+
+                // Collect summary stats
+                const rows = summaryTable.querySelectorAll('tr');
+                rows.forEach(function (row) {
+                    const cols = row.querySelectorAll('th, td');
+                    const rowData = Array.from(cols).map(col => col.innerText);
+                    summaryData.push(rowData);
+                });
+
+                // Find and add "Segments Distribution"
+                const segmentsHeader = findHeader(section, 'Segments Distribution');
+                if (segmentsHeader) {
+                    summaryData.push(['Segments Distribution']);
+                    const segmentsTable = segmentsHeader.nextElementSibling;
+                    const segmentRows = segmentsTable.querySelectorAll('tr');
+                    segmentRows.forEach(function (row) {
+                        const cols = row.querySelectorAll('th, td');
+                        const rowData = Array.from(cols).map(col => col.innerText);
+                        summaryData.push(rowData);
+                    });
+                }
+
+                // Find and add "Functions Distribution"
+                const functionsHeader = findHeader(section, 'Functions Distribution');
+                if (functionsHeader) {
+                    summaryData.push(['Functions Distribution']);
+                    const functionsTable = functionsHeader.nextElementSibling;
+                    const functionRows = functionsTable.querySelectorAll('tr');
+                    functionRows.forEach(function (row) {
+                        const cols = row.querySelectorAll('th, td');
+                        const rowData = Array.from(cols).map(col => col.innerText);
+                        summaryData.push(rowData);
+                    });
+                }
+
+                return summaryData;
+            }
+        }
+        return null;
+    }
+
+    // Function to find headers like "Segments Distribution" or "Functions Distribution"
+    function findHeader(section, headerText) {
+        const headers = section.querySelectorAll('h4');
+        for (let header of headers) {
+            if (header.textContent.trim() === headerText) {
+                return header;
+            }
+        }
+        return null;
     }
 });

@@ -1,146 +1,147 @@
-{% extends 'base.html' %}
-
-{% block title %}
-    About VDJ Insights
-{% endblock %}
-
-{% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/prism.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
-{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% block title %} About VDJ Insights {% endblock %} {%
+block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/about.css') }}"
+/>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/prism.css') }}"
+/>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
+{% endblock %} {% block content %}
 <div class="main-content">
-    <div class="about-summary-card">
-        <div class="about-summary-header">
-            <h1>About VDJ Insights</h1>
-            <p>Deep Dive into Immune Repertoire Sequencing Data</p>
-            <a href="{{ url_for('home') }}" class="back-button"><i class="fa-solid fa-chevron-left"></i></a>
-        </div>
+  <div class="about-summary-card">
+    <div class="about-summary-header">
+      <h1>About VDJ Insights</h1>
+      <p>Deep Dive into Immune Repertoire Sequencing Data</p>
+      <a href="#" class="back-button">
+        <i class="fa-solid fa-chevron-left"></i>
+      </a>
+    </div>
 
-        <div class="about-summary-body">
-            <p>
-                VDJ Insights is a comprehensive tool designed to analyze and
-                visualize V(D)J recombination data, aiding researchers in better
-                understanding immune repertoire sequencing.
-            </p>
+    <div class="about-summary-body">
+      <p>
+        VDJ Insights is a comprehensive tool designed to analyze and visualize
+        V(D)J recombination data, aiding researchers in better understanding
+        immune repertoire sequencing.
+      </p>
 
-            <div class="section">
-                <h2>Features</h2>
-                <ul>
-                    <li>Interactive visualizations of recombination events.</li>
-                    <li>Advanced statistical analysis tools.</li>
-                    <li>User-friendly interface with responsive design.</li>
-                    <li>Optimized for large datasets.</li>
-                </ul>
-            </div>
+      <div class="section">
+        <h2>Features</h2>
+        <ul>
+          <li>Interactive visualizations of recombination events.</li>
+          <li>Advanced statistical analysis tools.</li>
+          <li>User-friendly interface with responsive design.</li>
+          <li>Optimized for large datasets.</li>
+        </ul>
+      </div>
 
-            <div class="section">
-                <h2>How to Use</h2>
-                <p>
-                    To start using VDJ Insights, clone the repository from GitHub and
-                    follow the setup instructions. Upload your data to begin analyzing
-                    and visualizing.
-                </p>
-            </div>
+      <div class="section">
+        <h2>How to Use</h2>
+        <p>
+          To start using VDJ Insights, clone the repository from GitHub and
+          follow the setup instructions. Upload your data to begin analyzing and
+          visualizing.
+        </p>
+      </div>
 
-            <div class="section">
-                <h2>Sample Code</h2>
-                <div class="code-snippet">
-                    <pre><code class="language-bash" id="code1">git clone https://github.com/your-username/vdj-insights.git
+      <div class="section">
+        <h2>Sample Code</h2>
+        <div class="code-snippet">
+          <pre><code class="language-bash" id="code1">git clone https://github.com/your-username/vdj-insights.git
 cd vdj-insights
 pip install -r requirements.txt
 python app.py</code></pre>
-                    <button class="copy-button" data-target="code1">
-                        <i class="fa-regular fa-clone"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>Contributors</h2>
-                <div class="contributors">
-                    <div class="contributor">
-                        <img src="{{ url_for('static', filename='images/jessem.png') }}" alt="Jesse Mittertreiner">
-                        <p>Jesse Mittertreiner</p>
-                    </div>
-                    <div class="contributor">
-                        <img src="{{ url_for('static', filename='images/giang.jpg') }}" alt="Giang Le">
-                        <p>Giang Le</p>
-                    </div>
-                    <div class="contributor">
-                        <img src="{{ url_for('static', filename='images/jaimy.png') }}" alt="Jaimy Mohammadi">
-                        <p>Jaimy Mohammadi</p>
-                    </div>
-                    <div class="contributor">
-                        <img src="{{ url_for('static', filename='images/jesseb.png') }}" alt="Jesse Bruijnesteijn">
-                        <p>Jesse Bruijnesteijn</p>
-                    </div>
-                    <div class="contributor">
-                        <img src="{{ url_for('static', filename='images/susan.png') }}" alt="Susan Ott">
-                        <p>Susan Ott</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>Contributing</h2>
-                <p>
-                    Contributions are welcome! Fork the repository and submit a pull
-                    request. For significant changes, please open an issue to discuss
-                    them first.
-                </p>
-            </div>
-
-            <div class="footer-buttons">
-                <a href="https://github.com/your-username/vdj-insights" target="_blank" class="action-btn github-btn">
-                    <i class="fa-brands fa-github"></i>
-                    GitHub
-                </a>
-                <a href="mailto:your-email@example.com" class="action-btn mail-btn">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    Contact Me
-                </a>
-            </div>
+          <button
+            class="copy-button"
+            data-target="code1"
+            aria-label="Copy code"
+          >
+            <i class="fa-regular fa-clone"></i>
+            <span class="tooltip">Code copied!</span>
+          </button>
         </div>
+      </div>
+
+      <div class="section">
+        <h2>Contributors</h2>
+        <div class="contributors">
+          <div class="contributor">
+            <img
+              src="{{ url_for('static', filename='images/jessem.png') }}"
+              alt="Jesse Mittertreiner"
+            />
+            <p>Jesse Mittertreiner</p>
+          </div>
+          <div class="contributor">
+            <img
+              src="{{ url_for('static', filename='images/giang.jpg') }}"
+              alt="Giang Le"
+            />
+            <p>Giang Le</p>
+          </div>
+          <div class="contributor">
+            <img
+              src="{{ url_for('static', filename='images/jaimy.png') }}"
+              alt="Jaimy Mohammadi"
+            />
+            <p>Jaimy Mohammadi</p>
+          </div>
+          <div class="contributor">
+            <img
+              src="{{ url_for('static', filename='images/jesseb.png') }}"
+              alt="Jesse Bruijnesteijn"
+            />
+            <p>Jesse Bruijnesteijn</p>
+          </div>
+          <div class="contributor">
+            <img
+              src="{{ url_for('static', filename='images/susan.png') }}"
+              alt="Susan Ott"
+            />
+            <p>Susan Ott</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Contributing</h2>
+        <p>
+          Contributions are welcome! Fork the repository and submit a pull
+          request. For significant changes, please open an issue to discuss them
+          first.
+        </p>
+      </div>
+
+      <div class="footer-buttons">
+        <a
+          href="https://github.com/your-username/vdj-insights"
+          target="_blank"
+          class="action-btn github-btn"
+        >
+          <i class="fa-brands fa-github"></i>
+          GitHub
+        </a>
+        <a href="mailto:your-email@example.com" class="action-btn mail-btn">
+          <i class="fa-solid fa-paper-plane"></i>
+          Contact Me
+        </a>
+      </div>
     </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/prism.js') }}"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const copyButtons = document.querySelectorAll(".copy-button");
-        copyButtons.forEach(function (button) {
-            button.addEventListener("click", function () {
-                const targetId = this.getAttribute("data-target");
-                const codeElement = document.getElementById(targetId);
-                const code = codeElement.textContent;
-
-                const textarea = document.createElement("textarea");
-                textarea.value = code;
-                document.body.appendChild(textarea);
-
-                textarea.select();
-                document.execCommand("copy");
-
-                document.body.removeChild(textarea);
-
-                const iconElement = this.querySelector("i");
-                if (iconElement) {
-                    iconElement.className = "fa-solid fa-clone";
-                }
-                setTimeout(() => {
-                    if (iconElement) {
-                        iconElement.className = "fa-regular fa-clone";
-                    }
-                }, 2000);
-            });
-        });
-    });
-</script>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/about.js') }}"></script>
 {% endblock %}

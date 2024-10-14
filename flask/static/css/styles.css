@@ -82,16 +82,44 @@ button {
 
 .header-info {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    flex-direction: row;
+    align-items: center;
     color: #7f8c8d;
     font-size: 1em;
     white-space: nowrap;
+    gap: 1em;
 }
 
 .header-info p {
     margin: 0;
     line-height: 1.2;
+}
+
+/* Back Button */
+.back-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #ffffff;
+    font-size: 1.5em;
+    text-decoration: none;
+    font-weight: 600;
+    background-color: transparent;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.back-button:hover {
+    color: #0056b3;
+}
+
+.back-button.alt {
+    color: #0056b3;
+}
+
+.back-button.alt:hover {
+    color:#007BFF
 }
 
 .report-main-content {
@@ -275,7 +303,7 @@ button {
 }
 
 .report-table th {
-    background-color: #0063a5;
+    background-color: #007BFF;
     color: #ffffff;
     font-weight: bold;
     font-size: 14px;

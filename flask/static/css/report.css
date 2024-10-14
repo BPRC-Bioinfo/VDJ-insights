@@ -246,7 +246,7 @@
 }
 
 .report-table th {
-    background-color: #0063a5;
+    background-color: #007BFF;
     color: #fff;
 }
 
@@ -264,7 +264,7 @@
 .region-file .table-container thead th {
     position: sticky;
     top: 0;
-    background-color: #0063a5;
+    background-color: #007BFF;
     z-index: 1;
 }
 

@@ -16,7 +16,9 @@
         <div class="sample-summary-card">
             <div class="sample-summary-header">
                 <h1>{{ sample_id }}</h1>
-                <p><strong>Date and Time:</strong> {{ date_time }}</p>
+                <a href="#" class="back-button">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
             </div>
             <div class="sample-summary-body">
                 <!-- Add any key sample information here -->
@@ -77,7 +79,7 @@
                     <!-- Known Annotations Statistics -->
                     <h3>Known Annotations</h3>
                     {% if known_annotation_summary %}
-                        <table class="statistics-table">
+                        <table class="report-table">
                             <tr>
                                 <th>Total Annotations</th>
                                 <td>{{ known_annotation_summary.total_annotations }}</td>
@@ -97,7 +99,7 @@
                         </table>
                         <!-- Segments Distribution -->
                         <h4>Segments Distribution</h4>
-                        <table class="statistics-table">
+                        <table class="report-table">
                             <tr>
                                 <th>Segment</th>
                                 <th>Count</th>
@@ -111,7 +113,7 @@
                         </table>
                         <!-- Functions Distribution -->
                         <h4>Functions Distribution</h4>
-                        <table class="statistics-table">
+                        <table class="report-table">
                             <tr>
                                 <th>Function</th>
                                 <th>Count</th>
@@ -131,7 +133,7 @@
                     <!-- Novel Annotations Statistics -->
                     <h3>Novel Annotations</h3>
                     {% if novel_annotation_summary %}
-                        <table class="statistics-table">
+                        <table class="report-table">
                             <tr>
                                 <th>Total Annotations</th>
                                 <td>{{ novel_annotation_summary.total_annotations }}</td>
@@ -151,7 +153,7 @@
                         </table>
                         <!-- Segments Distribution -->
                         <h4>Segments Distribution</h4>
-                        <table class="statistics-table">
+                        <table class="report-table">
                             <tr>
                                 <th>Segment</th>
                                 <th>Count</th>
@@ -165,7 +167,7 @@
                         </table>
                         <!-- Functions Distribution -->
                         <h4>Functions Distribution</h4>
-                        <table class="statistics-table">
+                        <table class="report-table">
                             <tr>
                                 <th>Function</th>
                                 <th>Count</th>
@@ -185,34 +187,21 @@
                 <!-- Collapsible Footer with Buttons -->
                 <div class="collapsible-footer">
                     <a href="{{ url_for('annotation', annotation_type='known', sample_id=sample_id) }}" class="action-btn">
-                        View Known Annotations
+                        View known annotations
                     </a>
                     <a href="{{ url_for('annotation', annotation_type='novel', sample_id=sample_id) }}" class="action-btn">
-                        View Novel Annotations
+                        View novel annotations
                     </a>
+                </div>
+                <!-- Download Button for Annotation Data -->
+                <div class="collapsible-footer">
+                    <button id="downloadAnnotationData" class="action-btn">Download annotation statistics   </button>
                 </div>
             </div>
         </div>
-
-        <!-- Additional Collapsible Sections (if any) -->
-        {% if sample_additional_data %}
-            <div class="collapsible-section">
-                <button class="collapsible" aria-expanded="false">Additional Data</button>
-                <div class="collapsible-content">
-                    <!-- Content goes here -->
-                    <div class="table-container">
-                        <!-- Your table or content -->
-                    </div>
-                    <!-- Collapsible Footer -->
-                    <div class="collapsible-footer">
-                        <button id="downloadAdditionalData" class="action-btn">Download Additional Data</button>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-    </div>
 {% endblock %}
 
 {% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="{{ url_for('static', filename='js/sample_details.js') }}"></script>
 {% endblock %}
