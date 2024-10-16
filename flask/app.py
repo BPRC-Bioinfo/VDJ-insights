@@ -1,3 +1,4 @@
+import re
 from flask import Flask, render_template, request, jsonify
 from pathlib import Path
 import datetime
@@ -79,6 +80,16 @@ def parse_quast_data(quast_dir: Path) -> dict:
     return data
 
 
+def extract_sample(path):
+    filename = path.split("/")[-1]
+    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
+    match = sample_pattern.search(filename)
+    if match:
+        return match.group(0)
+    else:
+        return filename.split("_")[0]
+
+
 def parse_transposed_report(report_path: Path) -> list:
     df = pd.read_csv(report_path, sep='\t')
     return df.to_dict(orient='records')
@@ -88,12 +99,14 @@ def parse_region_files(region_dir: Path) -> list:
     data = []
     if region_dir.is_dir():
         for fasta_file in region_dir.glob("*.fasta"):
+
             file_info = {}
-            parts = fasta_file.stem.split('_')
-            if len(parts) == 4:
-                file_info['sample_name'] = parts[0]
-                file_info['region_name'] = "/".join(parts[1:3])
-                file_info['haplotype'] = parts[-1]
+            sample = extract_sample(str(fasta_file))
+            file_info['sample_name'] = sample
+            parts = fasta_file.stem
+            parts = parts.removeprefix(f"{sample}_").split('_')
+            file_info['region_name'] = "/".join(parts[0:2])
+            file_info['haplotype'] = parts[-1]
             length = sum(len(record.seq)
                          for record in SeqIO.parse(fasta_file, "fasta"))
             file_info['length'] = length
@@ -162,7 +175,14 @@ def load_BUSCO_files(busco_dir: Path) -> dict:
     return data
 
 
+@app.errorhandler(404)
+def page_not_found(e):
+    # You can return a custom template or plain text response
+    return render_template('404.html'), 404
+
 # Route for the home page
+
+
 @app.route('/')
 def home():
     context = {'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -185,9 +205,9 @@ def report():
 
     # Parsing annotation data
     annotation_summary_100_plus, annotation_data_100_plus = summarize_annotation_data(
-        cwd / 'annotation' / 'annotation_report_100%_plus.xlsx')
+        cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
     annotation_summary_plus, annotation_data_plus = summarize_annotation_data(
-        cwd / 'annotation' / 'annotation_report_plus.xlsx')
+        cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
 
     data = {
         'config': CONFIG,
@@ -201,31 +221,125 @@ def report():
         'annotation_data_100_plus': annotation_data_100_plus,
         'annotation_data_plus': annotation_data_plus,
         'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        # You can modify this based on context
         'mode': 'Pipeline' if qc_data else 'Annotation'
     }
 
     return render_template('report.html', **data)
 
+def filter_dict(broken: dict, partial_key: str) -> dict:
+    return {key: value for key, value in broken.items() if partial_key in key}
 
-@app.route('/annotation/<string:annotation_type>')
-def annotation(annotation_type):
+
+@app.route('/<string:sample_id>')
+def sample_details(sample_id):
     cwd = Path.cwd()
+    individual_path = cwd / 'annotation' / 'individual' / sample_id
+
+    if not individual_path.exists():
+        return render_template('404.html'), 404
+
+    region_data = parse_region_files(cwd / 'region')
+    
+    sample_region_data = [item for item in region_data if item['sample_name'] == sample_id]
+    with open(cwd / "broken_regions.json", "r") as f:
+        broken = list(filter_dict(json.load(f), sample_id).values())[0]
+    region_data_dict = {
+        element["region_name"].replace("/", "-"): {
+            "haplotype": element["haplotype"],
+            "length": element["length"],
+            "file": element["file"],
+            "broken": broken.get(element["region_name"].replace("/", "-")),
+        }
+        for element in sample_region_data
+    }
+
+
+    known_report_file = individual_path / 'annotation_report_known_rss.xlsx'
+    novel_report_file = individual_path / 'annotation_report_novel_rss.xlsx'
+
+    known_annotation_summary = {}
+    novel_annotation_summary = {}
+
+    if known_report_file.exists():
+        known_df = pd.read_excel(known_report_file)
+
+        known_annotation_summary = {
+            'total_annotations': len(known_df),
+            'unique_segments': known_df['Segment'].nunique(),
+            'segments': known_df['Segment'].value_counts().to_dict(),
+            'functions': known_df['Function'].value_counts().to_dict(),
+            'regions': known_df['Region'].value_counts().to_dict(),
+            'haplotypes': known_df['Haplotype'].value_counts().to_dict(),
+            'average_mismatches': known_df['Mismatches'].mean(),
+            'max_mismatches': known_df['Mismatches'].max(),
+        }
+    else:
+        known_annotation_summary = None
+
+    if novel_report_file.exists():
+        novel_df = pd.read_excel(novel_report_file)
+
+        # Compute statistics
+        novel_annotation_summary = {
+            'total_annotations': len(novel_df),
+            'unique_segments': novel_df['Segment'].nunique(),
+            'segments': novel_df['Segment'].value_counts().to_dict(),
+            'functions': novel_df['Function'].value_counts().to_dict(),
+            'regions': novel_df['Region'].value_counts().to_dict(),
+            'haplotypes': novel_df['Haplotype'].value_counts().to_dict(),
+            'average_mismatches': novel_df['Mismatches'].mean(),
+            'max_mismatches': novel_df['Mismatches'].max(),
+        }
+    else:
+        novel_annotation_summary = None
+
+    # Sample metadata (replace with actual data retrieval)
+    sample_metadata = {
+        'source': 'Blood',
+        'collection_date': '2023-10-01',
+        'description': 'Sample collected from patient XYZ.'
+    }
+
+    context = {
+        'sample_id': sample_id,
+        'regions': region_data_dict,
+        'known_annotation_summary': known_annotation_summary,
+        'novel_annotation_summary': novel_annotation_summary,
+        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'sample_metadata': sample_metadata
+    }
+
+    return render_template('sample_details.html', **context)
+
+
+@app.route('/annotation/<string:annotation_type>', defaults={'sample_id': 'all'})
+@app.route('/annotation/<string:annotation_type>/<string:sample_id>')
+def annotation(annotation_type, sample_id):
+    cwd = Path.cwd()
+    individual_path = cwd / 'annotation' / 'individual'
+    if sample_id == "all" or sample_id == None:
+        report_path = cwd / 'annotation'
+    elif sample_id:
+        report_path = individual_path / sample_id
+
     if annotation_type == 'known':
-        annotation_summary, annotation_data = summarize_annotation_data(
-            cwd / 'annotation' / 'annotation_report_100%_plus.xlsx')
+        report_file = report_path / 'annotation_report_known_rss.xlsx'
         show_known = True
     else:
-        annotation_summary, annotation_data = summarize_annotation_data(
-            cwd / 'annotation' / 'annotation_report_plus.xlsx')
+        report_file = report_path / 'annotation_report_novel_rss.xlsx'
         show_known = False
 
+    annotation_summary, annotation_data = summarize_annotation_data(report_file)
+    all_samples = [i.name for i in individual_path.glob(
+        "*") if not i.name.startswith(".")]
     data = {
         'annotation_summary': annotation_summary,
         'annotation_data_100_plus': annotation_data if show_known else None,
         'annotation_data_plus': None if show_known else annotation_data,
         'show_known': show_known,
-        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'sample_ids': all_samples,
+        'current_sample': sample_id
     }
 
     return render_template('annotation.html', **data)
@@ -329,28 +443,10 @@ def download_fasta():
 
 @app.route('/imgt_report')
 def imgt_report():
-    # Example data to pass to the template
-    release = "2024.08"
-    fasta_files_info = [
-        {"name": "file1.fasta", "entries": 42},
-        {"name": "file2.fasta", "entries": 30}
-    ]
-
-    # Simulate parsed arguments and prepare data
-    context = {
-        "date_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "set_release": release,
-        "species": "Homo sapiens",
-        "type": "IG",  # 'type' is a reserved keyword in Python, so 'sequence_type' might be better
-        "output": "/path/to/output",
-        "frame_selection": "all",
-        "create_library": True,
-        "cleanup": False,
-        "simple_headers": True,
-        "fasta_files": fasta_files_info
-    }
-
-    # Render the template with the context
+    base_dir = Path.cwd()
+    context = json.load(open(base_dir / "library" / "library_info.json"))
+    context["date_time"] = datetime.datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S")
     return render_template('imgt_report.html', **context)
 
 
@@ -375,6 +471,11 @@ def sequence_library():
     with open(sequence_json) as f:
         data = json.load(f)
     return render_template('sequence_library.html', data=data)
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 
 # Run the application

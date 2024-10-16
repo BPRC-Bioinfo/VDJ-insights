@@ -1,8 +1,108 @@
+/* Sidebar minimized styles */
+html.sidebar-minimized .sidebar {
+    width: 70px;
+}
+
+/* Hide the logo when minimized */
+html.sidebar-minimized .logo {
+    display: none;
+}
+html.sidebar-minimized .container {
+    margin-left: 70px;
+}
+/* Hide text in sidebar links when minimized */
+html.sidebar-minimized .sidebar-content ul li a span,
+html.sidebar-minimized .sidebar-content ul li a .link-text {
+    display: none;
+}
+
+/* Adjust icons in sidebar links when minimized */
+html.sidebar-minimized .sidebar-content ul li a i {
+    font-size: 1.5rem;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Hide the ellipsis icon and text in the "Library" menu when minimized */
+html.sidebar-minimized .sidebar-dropdown .dropdown-toggle i.fa-ellipsis-h,
+html.sidebar-minimized .sidebar-dropdown .dropdown-toggle .link-text {
+    display: none;
+}
+
+/* Center the dropdown arrow icon in the "Library" menu */
+html.sidebar-minimized .sidebar-dropdown .dropdown-toggle .dropdown-icon {
+    margin: 0 auto;
+    display: block;
+}
+
+/* Adjust padding for the dropdown toggle */
+html.sidebar-minimized .sidebar-dropdown .dropdown-toggle {
+    padding: 10px 0;
+    text-align: center;
+}
+
+/* Hide text in the dropdown submenu items when minimized */
+html.sidebar-minimized .sidebar-dropdown .dropdown-menu li a span,
+html.sidebar-minimized .sidebar-dropdown .dropdown-menu li a .link-text {
+    display: none;
+}
+
+/* Center the icons in dropdown submenu items */
+html.sidebar-minimized .sidebar-dropdown .dropdown-menu li a i {
+    font-size: 1.2em;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Adjust padding in dropdown submenu items */
+html.sidebar-minimized .sidebar-dropdown .dropdown-menu li a {
+    padding: 10px 0;
+    text-align: center;
+}
+
+/* Adjust the width and position of the dropdown menu when minimized */
+html.sidebar-minimized .sidebar-dropdown .dropdown-menu {
+    min-width: 70px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+}
+
+/* General adjustments for minimized sidebar */
+html.sidebar-minimized .sidebar-container {
+    padding: 10px;
+    margin: 10px;
+}
+
+/* Adjust sidebar content when minimized */
+html.sidebar-minimized .sidebar-content ul li {
+    padding: 10px 20px;
+    justify-content: center;
+}
+
+/* Center the links in the minimized sidebar */
+html.sidebar-minimized .sidebar-content ul li a {
+    justify-content: center;
+}
+
+html.sidebar-minimized .sidebar-container a {
+    justify-content: center;
+}
+
+html.sidebar-minimized .sidebar-container a i {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+html.sidebar-minimized .sidebar-container a span {
+    display: none;
+}
+
 /* Sidebar Styling */
 .sidebar {
     width: 200px;
     height: 100vh;
-    background: #0063a5;
+    background: #007BFF;
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -14,19 +114,30 @@
     font-family: 'Poppins', sans-serif;
 }
 
-.sidebar.minimized {
-    width: 70px;
-}
-
-.sidebar-header {
+.sidebar-container {
     display: flex;
     align-items: center;
     padding: 10px;
     background-color: #fff;
+    font-size: 1.1em;
     border-radius: 8px;
     margin: 10px;
-    color: #0063a5;
+    color: #007BFF;
     transition: padding 0.3s ease;
+}
+
+.sidebar-container i {
+    margin-right: 8px;
+    transition: font-size 0.3s ease;
+}
+
+.sidebar-container a {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: #007BFF;
+    text-decoration: none;
+    transition: font-size 0.3s ease;
 }
 
 .logo {
@@ -39,7 +150,7 @@
 .toggle-btn {
     background: none;
     border: none;
-    color: #0063a5;
+    color: #007BFF;
     font-size: 1.5em;
     cursor: pointer;
     transition: background 0.3s ease, padding 0.3s ease;
@@ -48,9 +159,10 @@
 .sidebar-content {
     flex: 1;
     padding: 10px 0;
-    overflow-y: auto;
 }
-
+.link-text {
+    font-size: 1.1rem;
+}
 .sidebar-content ul {
     list-style: none;
     padding: 0;
@@ -100,20 +212,6 @@
     z-index: -1;
 }
 
-.sidebar.minimized .sidebar-content ul li {
-    padding: 5px;
-}
-
-.sidebar.minimized .sidebar-content ul li a {
-    justify-content: center;
-}
-
-.sidebar.minimized .sidebar-content ul li a span {
-    display: none;
-    opacity: 0;
-    width: 0;
-}
-
 /* Custom Dropdown Styles */
 .sidebar-content .sidebar-dropdown {
     position: relative;
@@ -142,8 +240,8 @@
     transition: transform 0.3s ease;
 }
 
-.sidebar.minimized .sidebar-content .sidebar-dropdown .dropdown-toggle .dropdown-icon {
-    margin-left: 0; /* Remove margin in minimized state */
+.sidebar-content .sidebar-dropdown.active {
+    background-color: #044167;
 }
 
 .sidebar-content .sidebar-dropdown.active .dropdown-toggle .dropdown-icon {
@@ -178,18 +276,16 @@
 
 .sidebar-content .sidebar-dropdown .dropdown-menu li a {
     color: #fff;
-    padding: 10px 20px;
     text-decoration: none;
     font-size: 1em;
     display: flex;
-    align-items: center; /* Ensure icon is inline with text */
+    align-items: center;
     transition: background-color 0.3s ease;
 }
 
 .sidebar-content .sidebar-dropdown .dropdown-menu li a i {
-    margin-right: 10px; /* Ensure the icon is inline with the text */
+    margin-right: 10px;
 }
-
 
 /* Highlight Active Menu Item */
 .sidebar-content ul li a.active {
@@ -201,20 +297,8 @@
     color: #fff;
 }
 
-.sidebar.minimized .sidebar-content .sidebar-dropdown .dropdown-menu {
-    min-width: 70px; /* Match the minimized sidebar width */
-}
-.sidebar-content .sidebar-dropdown .dropdown-menu li a {
-    justify-content: center; /* Center the text and icons */
-    padding: 0px;
-}
 
 
-
-.sidebar-dropdown.active {
-    background-color: #044167;
-    border-bottom: 1px solid #fff;
-}
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
     .sidebar {
@@ -284,4 +368,3 @@
         left: 0;
     }
 }
-

@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block extra_css %}
+    <!-- External CSS and your own stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -16,13 +17,35 @@
     <div class="main-content" id="main-content">
         <div class="header">
             <h1 class="report-title">Annotation Details</h1>
-            <p class="report-date"><strong>Date and Time:</strong> {{ date_time }}</p>
+            <a href="#" class="back-button alt">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+            <div class="floating-row-count" id="rowCountDisplay">
+                <span id="totalRowCount">0</span>
+            </div>
         </div>
-        
-        <!-- If showing known matches, display table with known matches -->
+
         {% if show_known %}
-            <h2 class="report-heading">Known Matches</h2>
+            <!-- Known Matches Section -->
+            <div class="report-header">
+                <h2 class="report-heading" style="border:none;">Known Matches | <a href="{{ url_for('sample_details', sample_id=current_sample)}}" class="link-style">{{ current_sample }}</a></h2>
+                <div class="information" id="infoButton">
+                    <span class="info-text">i</span>
+                    <div class="tooltip">Click here for more information</div>
+                </div>
+            </div>
             <button class="modal-btn column-toggle-btn">Toggle Columns</button>
+            <p class="sample_choice_p">Select your sample:</p>
+            <div class="sample_choice">
+                <select id="sample_select">
+                    <option value="all" {% if current_sample == "all" %}selected{% endif %}>all</option>
+                    {% for sample_id in sample_ids %}
+                        <option value="{{ sample_id }}" {% if sample_id == current_sample %}selected{% endif %}>{{ sample_id }}</option>
+                    {% endfor %}
+                </select>
+                <button id="go_button">Go</button>
+                <input type="hidden" id="annotation_type" value="{{ 'known' if show_known else 'novel' }}">
+            </div>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
             </div>
@@ -50,10 +73,9 @@
                     </tbody>
                 </table>
             </div>
-
-        <!-- Else show table with novel segments -->
         {% else %}
-            <h2 class="report-heading">Novel Segments</h2>
+            <!-- Novel Segments Section -->
+            <h2 class="report-heading" style="border:none;">Novel Matches | <a href="{{ url_for('sample_details', sample_id=current_sample)}}" class="link-style">{{ current_sample }}</a></h2>
             <button class="modal-btn column-toggle-btn">Toggle Columns</button>
 
             <!-- Button Row for actions -->
@@ -61,7 +83,17 @@
                 <button class="action-btn" id="selectAllBtn">Select All</button>
                 <button class="action-btn" id="saveToLibraryBtn">Save to Library</button>
             </div>
-
+            <p class="sample_choice_p">Select your sample:</p>
+            <div class="sample_choice">
+                <select id="sample_select">
+                    <option value="all" {% if current_sample == "all" %}selected{% endif %}>all</option>
+                    {% for sample_id in sample_ids %}
+                        <option value="{{ sample_id }}" {% if sample_id == current_sample %}selected{% endif %}>{{ sample_id }}</option>
+                    {% endfor %}
+                </select>
+                <button id="go_button">Go</button>
+                <input type="hidden" id="annotation_type" value="{{ 'known' if show_known else 'novel' }}">
+            </div>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
             </div>
@@ -100,7 +132,7 @@
         {% endif %}
     </div>
 
-    <!-- Modal for column toggle -->
+    <!-- Modal for Column Toggle -->
     <div id="columnToggleModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -112,7 +144,7 @@
                             {% for column in annotation_data_100_plus[0].keys() %}
                                 <div class="label-item">
                                     <label title="{{ column }}">
-                                        <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
+                                        <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %}checked{% endif %}>
                                         {{ column }}
                                     </label>
                                 </div>
@@ -124,7 +156,7 @@
                                 {% if column != "Select" %}
                                     <div class="label-item">
                                         <label title="{{ column }}">
-                                            <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %} checked {% endif %}>
+                                            <input type="checkbox" name="columns" value="{{ column }}" {% if loop.index <= 12 %}checked{% endif %}>
                                             {{ column }}
                                         </label>
                                     </div>
@@ -141,12 +173,22 @@
             </form>
         </div>
     </div>
+    <!-- Modal for Information Button -->
+    <div id="infoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+        <div class="modal-content">
+            <!-- Close button with class "close" -->
+            <span class="close">&times;</span>
+            <div class="modal-header" id="infoModalTitle">{{current_sample}}: </div>
+            <div class="modal-body">
+                <p>Here you can provide more detailed information about the report, explain features, or guide the user.</p>
+                <!-- Add any additional content here -->
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tablesorter@2.31.3/dist/js/jquery.tablesorter.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tablesorter@2.31.3/dist/js/jquery.tablesorter.widgets.min.js"></script>
     <script src="{{ url_for('static', filename='js/annotation.js') }}"></script>
     <script src="{{ url_for('static', filename='js/report.js') }}"></script>
     <script src="{{ url_for('static', filename='js/library.js') }}"></script>

@@ -1,55 +1,18 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 import re
-import sys
-import yaml
 import subprocess
 import pandas as pd
-from Bio import SeqIO
 from pathlib import Path
-from logger import custom_logger
 
-"""
-Used python packages:
-    1. yaml
-    2. pandas
-    3. openpyxl
-    4. biopython
+from Bio import SeqIO
 
-Used CLI packages:
-    1. minimap2
-    2. bowtie2
-    3. bowtie
-    4. samtools
-    5. bedtools
-"""
-
-CONFIG = None
-
-# Method for logging the current states of the program.
-logger = custom_logger(__name__)
+from util import make_dir, calculate_available_resources
+from logger import console_logger, file_logger
 
 
-def load_config(cwd):
-    """
-    Loads the configuration file from the specified directory.
-
-    This function reads a YAML configuration file located at 
-    'config/config.yaml' in the current working directory and 
-    stores its contents in the global `CONFIG` variable.
-
-    Args:
-        cwd (Path): The current working directory.
-
-    Raises:
-        SystemExit: If the configuration file does not exist.
-    """
-    global CONFIG
-    config_file = Path(cwd / 'config' / 'config.yaml')
-    if config_file.exists():
-        with open(config_file, 'r') as file:
-            CONFIG = yaml.safe_load(file)
-    else:
-        logger.error("No configuration file provided, closing application!")
-        sys.exit()
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 class MappingFiles:
@@ -81,12 +44,12 @@ def get_sequence(line, fasta):
     returns the sequence.
 
     Args:
-        line (list): A list representing a line from a BED file, 
+        line (list): A list representing a line from a BED file,
         containing reference, start, and stop coordinates.
         fasta (str): Path to the FASTA file.
 
     Returns:
-        str: The sequence extracted from the FASTA file based on 
+        str: The sequence extracted from the FASTA file based on
         the coordinates in the BED file line.
     """
     reference, start, stop = line[0:3]
@@ -161,7 +124,7 @@ def run_command(command):
         subprocess.run(command, shell=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        logger.error(
+        file_log.error(
             f"Command '{command}' failed with exit code {e.returncode}")
 
 
@@ -190,7 +153,8 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {
+        score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -218,7 +182,8 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie command string.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {
+        bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
@@ -299,7 +264,7 @@ def make_df(all_entries):
     from a BED file line) and constructs a pandas DataFrame.
 
     Args:
-        all_entries (list[list]): A nested list where each sublist contains 
+        all_entries (list[list]): A nested list where each sublist contains
         information for an entry.
 
     Returns:
@@ -324,7 +289,7 @@ def make_df(all_entries):
     return df.reset_index(drop=True)
 
 
-def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
+def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, threads_per_process):
     """
     Runs the mapping process for each FASTA file in the input directory.
 
@@ -343,38 +308,31 @@ def run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
         cell_type (str): The type of cell (e.g., TR, IG).
         threads (int): Number of threads to use for the mapping process.
 
-    Yields:
+    Returns:
         list[list]: A nested list containing parsed entries for each FASTA file.
     """
-    for fasta in indir.glob("*.fasta"):
+    try:
+        beddir = outdir.parent / mapping_type / f"{acc}%acc"
+        make_dir(beddir)
         prefix = fasta.stem
         index = outdir / prefix
         if mapping_type != "minimap2":
-            create_directory(index)
+            make_dir(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
-            for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads):
+            for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads_per_process):
                 run_command(command)
         if files.bed.exists():
             entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
-            logger.info(f"Parsed {len(entries)} entries from {files.bed}")
-            yield entries
+            file_log.info(f"Parsed {len(entries)} entries from {files.bed}")
+            return entries
         else:
-            logger.warning(f"Required file missing: {files.bed}")
-            yield list()
-
-
-def create_directory(location):
-    """
-    Creates a directory if it does not already exist.
-
-    This function checks if a specified directory exists, and if not,
-    it creates the directory (including any necessary parent directories).
-
-    Args:
-        location (str): Path to the directory to create.
-    """
-    Path(location).mkdir(parents=True, exist_ok=True)
+            file_log.warning(f"Required file missing: {files.bed}")
+            return []
+    except Exception as e:
+        file_log.error(f"Error in run_single_task for {
+                          fasta} at {acc}%: {e}")
+        return []
 
 
 def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
@@ -398,20 +356,28 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
         pd.DataFrame: A DataFrame containing all entries from the mapping process.
     """
     cwd = Path.cwd()
-    load_config(cwd)
     outdir = cwd / "mapping" / f"{mapping_type}_db"
     indir = cwd / input_dir
     rfasta = cwd / library
     all_entries = []
-    for acc in range(start, stop - 1, -1):
-        beddir = cwd / "mapping" / mapping_type / f"{acc}%acc"
-        create_directory(beddir)
-        for current_entry in run(indir, outdir, rfasta, beddir, acc, mapping_type, cell_type, threads):
-            all_entries.extend(current_entry)
+    fasta_files = list(indir.glob("*.fasta"))
+    accuracy_levels = range(start, stop - 1, -1)
+    tasks = [(fasta, acc) for acc in accuracy_levels for fasta in fasta_files]
+    total_tasks = len(tasks)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
+    with ThreadPoolExecutor(max_workers=max_jobs) as executor:
+        futures = [executor.submit(run_single_task, fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 2) for fasta, acc in tasks]
+        with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:
+            for future in as_completed(futures):
+                try:
+                    entries = future.result()
+                    all_entries.extend(entries)
+                except Exception as e:
+                    file_log.error(f"Task resulted in an exception: {e}")
+                pbar.update(1)
     df = make_df(all_entries)
     return df
 
 
 if __name__ == "__main__":
-    mapping_type = "minimap2"
-    mapping_main(mapping_type)
+    pass

@@ -1,58 +1,16 @@
 import re
-import yaml
 import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
-import sys
-from logger import custom_logger
 
-"""
-Used python packages:
-    1. yaml
-    2. pandas
-    3. openpyxl
-    4. biopython
+from util import seperate_annotation
+from logger import console_logger, file_logger
 
-Used CLI packages:
-    1. minimap2
-    2. bowtie2
-    3. bowtie
-    4. samtools
-    5. bedtools
-"""
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
-# Method for logging the current states of the program.
-logger = custom_logger(__name__)
-
-# Global configuration dictionary, loaded from config.yaml.
-CONFIG = None
-
-# Enable copy-on-write mode to improve performance and reduce memory usage.
 pd.options.mode.copy_on_write = True
-
-
-def load_config(cwd):
-    """
-    Loads the configuration file 'config.yaml' located in the specified directory.
-    This function sets the global CONFIG variable to a dictionary containing
-    the configuration settings. If the file does not exist, the program logs
-    an error and exits.
-
-    Args:
-        cwd (Path): Path object representing the current working directory.
-
-    Raises:
-        SystemExit: If the configuration file is not found.
-    """
-    global CONFIG
-    config_file = Path(cwd / 'config' / 'config.yaml')
-    if config_file.exists():
-        with open(config_file, 'r') as file:
-            CONFIG = yaml.safe_load(file)
-    else:
-        logger.error("No configuration file provided, closing application!")
-        sys.exit()
 
 
 def make_record_dict(fasta):
@@ -147,8 +105,7 @@ def main_df(df):
             - df (pd.DataFrame): The filtered DataFrame without gaps and 100% identity entries.
             - reference_df (pd.DataFrame): A DataFrame containing only 100% identity entries.
     """
-    mask = ~df['query seq'].str.contains(
-        '-') & ~df['subject seq'].str.contains('-')
+    mask = ~df['query seq'].str.contains('-') & ~df['subject seq'].str.contains('-')
     df = df[mask]
     df['% identity'] = df['% identity'].astype(float)
     reference_df = df.query("`% identity` == 100.000")
@@ -167,13 +124,11 @@ def add_values(df):
     Returns:
         pd.DataFrame: The DataFrame with additional columns for sequence lengths, mismatch percentage, and split query information.
     """
-    df['% Mismatches of total alignment'] = (
-        df['mismatches'] / df['alignment length']) * 100
+    df['% Mismatches of total alignment'] = (df['mismatches'] / df['alignment length']) * 100
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     path_df = df['query'].str.split(':', expand=True)
-    df[['query', 'start', 'stop', 'strand', 'path',
-        'haplotype']] = path_df[[0, 1, 2, 3, 4, 5]]
+    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype']] = path_df[[0, 1, 2, 3, 4, 5]]
     return df
 
 
@@ -344,6 +299,16 @@ def add_reference_length(row, record):
     return row
 
 
+def extract_sample(path):
+    filename = path.split("/")[-1]
+    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
+    match = sample_pattern.search(filename)
+    if match:
+        return match.group(0)
+    else:
+        return filename.split("_")[0]
+
+
 def run_like_and_length(df, record, cell_type):
     """
     Adds 'Old name-like', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
@@ -361,10 +326,9 @@ def run_like_and_length(df, record, cell_type):
     df = add_like_to_df(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
-    length_mask = df[["Reference Length", "Old name-like Length",
-                      "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
+    length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
     df = df[length_mask]
-    df["Sample"] = df["Path"].str.split("/").str[-1].str.split("_").str[0]
+    df["Sample"] = df["Path"].apply(extract_sample)
     return df
 
 
@@ -380,8 +344,7 @@ def group_similar(df, cell_type):
     Returns:
         pd.DataFrame: The grouped and filtered DataFrame.
     """
-    df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(
-        lambda group: filter_df(group, cell_type))
+    df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
     return df
 
@@ -398,7 +361,7 @@ def annotation_long(df, annotation_folder):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    logger.info("Generating annotation_report_long.xlsx!")
+    file_log.info("Generating annotation_report_long.xlsx!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
@@ -406,7 +369,7 @@ def annotation_long(df, annotation_folder):
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
-def annotation(df, annotation_folder, file_name):
+def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
     """
     Generates a full annotation report and saves it as the specified file name.
     The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
@@ -419,17 +382,23 @@ def annotation(df, annotation_folder, file_name):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    logger.info(f"Generating {file_name}!")
+    file_log.info(f"Generating {file_name}!")
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
              'Short name', 'Message', 'Old name-like seq', 'Reference seq',]]
-    df["Status"] = "Known" if "100%" in file_name else "Novel"
-    df.to_excel(annotation_folder / file_name, index=False)
+    df["Status"] = "Known" if "known" in file_name else "Novel"
+
+    full_annotation_path = annotation_folder / file_name
+    df.to_excel(full_annotation_path, index=False)
+
+    if not no_split:
+        file_log.info("Creating individual sample excel files...")
+        df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
 
 
-def report_main(annotation_folder, blast_file, cell_type, library):
+def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type: str, library: str | Path, no_split: bool):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     It performs the following steps:
@@ -446,22 +415,19 @@ def report_main(annotation_folder, blast_file, cell_type, library):
     Raises:
         Exception: If any step fails, logs the error and raises an exception.
     """
-    cwd = Path.cwd()
-    load_config(cwd)
-    record = make_record_dict(cwd / library)
-    df = pd.read_excel(blast_file)
-    df = add_values(df)
-    df, ref_df = main_df(df)
-    df = run_like_and_length(df, record, cell_type)
-    ref_df = run_like_and_length(ref_df, record, cell_type)
-    df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
-    annotation_long(df, annotation_folder)
-    df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
-    annotation(df, annotation_folder, 'annotation_report.xlsx')
-    annotation(ref_df, annotation_folder, 'annotation_report_100%.xlsx')
+    try:
+        cwd = Path.cwd()
+        record = make_record_dict(cwd / library)
+        df = pd.read_csv(blast_file)
+        df = add_values(df)
+        df, ref_df = main_df(df)
+        df = run_like_and_length(df, record, cell_type)
+        ref_df = run_like_and_length(ref_df, record, cell_type)
+        df, ref_df = df.apply(add_orf, axis=1), ref_df.apply(add_orf, axis=1)
+        annotation_long(df, annotation_folder)
+        df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
+    except Exception as e:
+        print("ddd",e)
 
-
-if __name__ == '__main__':
-    cwd = Path.cwd()
-    annotation_folder = cwd / "annotation"
-    report_main(annotation_folder)
+    annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split)
+    annotation(ref_df, annotation_folder,'annotation_report_known.xlsx', no_split)

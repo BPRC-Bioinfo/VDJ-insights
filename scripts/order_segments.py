@@ -1,12 +1,12 @@
-import subprocess
-from typing import List, Tuple
 from mapping import mapping_main
 from pathlib import Path
 import pandas as pd
-from logger import custom_logger
 
-# Method for logger current states of the program.
-logger = custom_logger(__name__)
+from util import make_dir
+from logger import console_logger, file_logger
+
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 def combine_df(mapping_tools, input_dir, library):
@@ -25,23 +25,10 @@ def combine_df(mapping_tools, input_dir, library):
     """
     df = pd.DataFrame()
     for tool in mapping_tools:
-        mapping_df = mapping_main(tool, input_dir, library, 100, 100)
+        mapping_df = mapping_main(tool, "IG", input_dir, library, 100,)
         df = pd.concat([df, mapping_df])
-    unique_combinations = df.drop_duplicates(
-        subset=["start", "stop", "haplotype"])
+    unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
     return unique_combinations.reset_index(drop=True)
-
-
-def write_report(df, report):
-    """
-    Creates a excel (xlsx) file of the df and saved as "report.xlsx".
-
-    Args:
-        df (DataFrame): df to be saved.
-        report (Path): Path of a excel to be saved to.
-    """
-
-    df.to_excel(report, index=False)
 
 
 def get_or_create(annotation_folder, mapping_tool, input_dir, library):
@@ -59,50 +46,35 @@ def get_or_create(annotation_folder, mapping_tool, input_dir, library):
     """
     report = annotation_folder / "report.xlsx"
     if not report.exists():
-        logger.info("The report.xlsx file does not exist! Creating it!")
+        file_log.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, input_dir, library)
-        write_report(df, report)
+        df.to_excel(report, index=False)
         return df
     else:
         return pd.read_excel(report)
 
 
-def create_annotation_folder(cwd, mapper):
-    """Ensure the annotation folder exists."""
-    annotation_folder = cwd / f"annotation_{mapper}"
-    annotation_folder.mkdir(parents=True, exist_ok=True)
-    return annotation_folder
-
-
-def process_dataframe(mapper, df):
-    """Process the DataFrame based on the mapper used."""
-    if mapper == "minimap2":
-        return df
-    elif mapper == "bowtie2":
-        return df.query('(stop - start) <= 80')
-
-
 def prepare_data_frames(library, input_dir, cwd):
-    mapping_options = ['minimap2', 'bowtie2']
     dfs = []
-    for mapper in mapping_options:
-        annotation_folder = create_annotation_folder(cwd, mapper)
+    for mapper in ['minimap2', 'bowtie2']:
+        annotation_folder = cwd / f"annotation_{mapper}"
+        make_dir(annotation_folder)
         df = get_or_create(annotation_folder, [mapper], input_dir, library)
         df['start'] = pd.to_numeric(df['start'], errors='coerce')
         df['stop'] = pd.to_numeric(df['stop'], errors='coerce')
-        processed_df = process_dataframe(mapper, df)
-        dfs.append(processed_df)
+        if mapper == "bowtie2":
+            df = df.query('(stop - start) <= 80')
+        dfs.append(df)
     return dfs
 
 
 def concatenate_and_clean(dfs):
     final_df = pd.concat(dfs)
-    final_df.drop_duplicates(
-        subset=['start', 'stop', 'haplotype'], inplace=True)
+    final_df.drop_duplicates(subset=['start', 'stop', 'haplotype'], inplace=True)
     parts = final_df['name'].str.split('_')
     final_df['Status'] = parts.str[-1]
     final_df['Short name'] = parts.str[:-1].apply('_'.join)
-    final_df["Sample"] = str(final_df.iloc[0]["reference"]).split("_")[0]
+    #final_df["Sample"] = str(final_df.iloc[0]["reference"]).split("_")[0]
     return final_df
 
 
@@ -127,22 +99,18 @@ def filter_data_frame(df, min_distance=5):
     return filtered_df
 
 
-def save_data_to_excel(df, file_path):
-    df.to_excel(file_path, index=False)
-    print(f"DataFrame saved to {file_path}")
-    return file_path
-
-
-def order_main(library, input_dir):
+def order_main(library, input_dir: str) -> str:
     cwd = Path.cwd()
     dfs = prepare_data_frames(library, input_dir, cwd)
     final_df = concatenate_and_clean(dfs)
     renamed = rename_and_sort_df(final_df)
     filtered_df = filter_data_frame(renamed)
-    excel_file = cwd / 'reevaluated.xlsx'
-    save_data_to_excel(filtered_df, excel_file)
+    file_path = cwd / 'reevaluated.xlsx'
+    filtered_df.to_excel(file_path, index=False)
+    file_log.info(f"DataFrame saved to: {file_path}")
     return 'reevaluated.xlsx'
 
 
 if __name__ == "__main__":
-    order_main()
+    a = "/home/jaimy/output/10_10_2024/library/library.fasta"
+    order_main(a, Path("/home/jaimy/output/10_10_2024/region/"))

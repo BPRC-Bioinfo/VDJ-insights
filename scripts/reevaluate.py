@@ -5,18 +5,13 @@ import pandas as pd
 from Bio import SeqIO
 from order_segments import order_main
 
-# Define the current working directory
+from util import make_dir
+from logger import console_logger, file_logger
+
 cwd = Path.cwd()
 
-
-def create_directory(location):
-    """
-    Create an directory when not existing.
-
-    Args:
-        location (str): Path of the directory to create.
-    """
-    Path(location).mkdir(parents=True, exist_ok=True)
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 
 def read_excel_files(filenames):
@@ -35,7 +30,7 @@ def read_excel_files(filenames):
             df = pd.read_excel(filename)
             df_list.append(df)
         except Exception as e:
-            print(f"Failed to read {filename}: {e}")
+            file_log.error(f"Failed to read {filename}: {e}")
     return pd.concat(df_list, ignore_index=True)
 
 
@@ -49,12 +44,7 @@ def write_library_file(df, output_path):
     """
     with open(output_path, "w") as f:
         for _, row in df.iterrows():
-            f.write(
-                f">{row['Short name']}_{row['Status']}\n{row['Old name-like seq']}\n")
-
-
-def seqio_dict(path):
-    return SeqIO.to_dict(SeqIO.parse(path, "fasta"))
+            f.write(f">{row['Short name']}_{row['Status']}\n{row['Old name-like seq']}\n")
 
 
 def rename(files: Path, sample_directory: Path) -> None:
@@ -62,11 +52,11 @@ def rename(files: Path, sample_directory: Path) -> None:
     sorted_files = sorted(list(files.glob("*.fasta")))
     if combined.exists():
         shutil.rmtree(combined)
-    create_directory(combined)
+    make_dir(combined)
     for file_path in sorted_files:
         path = Path(file_path)
         name = path.stem
-        sequences = seqio_dict(path)
+        sequences = SeqIO.to_dict(SeqIO.parse(path, "fasta"))
         header = list(sequences.keys())[0]
         sequence = sequences[header].seq
         fasta_out = "_".join(name.split("_")[:-1])
@@ -80,11 +70,11 @@ def write_read_to_file(read_data, header, seperated):
     filename = seperated / f"{header}.fasta"
     with open(filename, 'w') as output_file:
         output_file.write(read_data)
-    print(f"Written {filename}")
+    file_log.info(f"Written {filename}")
 
 
 def seperate_fasta(aligned_path, seperated):
-    create_directory(seperated)
+    make_dir(seperated)
     """Splits a FASTA file into multiple files based on each read, naming files after the read headers."""
     try:
         with open(aligned_path, 'r') as file:
@@ -112,7 +102,7 @@ def MAFFT(sample_directory: Path):
     combined = sample_directory / "combined"
     aligned = sample_directory / "aligned"
     seperated = sample_directory / "seperated"
-    create_directory(aligned)
+    make_dir(aligned)
     for file in combined.glob("*.fasta"):
         aligened_path = aligned / f"{file.stem}_aligned.fasta"
         if not aligened_path.is_file():
