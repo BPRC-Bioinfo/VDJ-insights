@@ -364,7 +364,7 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
     accuracy_levels = range(start, stop - 1, -1)
     tasks = [(fasta, acc) for acc in accuracy_levels for fasta in fasta_files]
     total_tasks = len(tasks)
-    max_jobs = calculate_available_resources(max_cores=24, threads=2, memory_per_process=2)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
     with ThreadPoolExecutor(max_workers=max_jobs) as executor:
         futures = [executor.submit(run_single_task, fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 2) for fasta, acc in tasks]
         with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:

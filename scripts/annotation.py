@@ -165,6 +165,8 @@ def main(args=None):
         OSError: If any file or directory operation fails.
         subprocess.CalledProcessError: If a BLAST command or database creation fails.
     """
+    console_log.info(f"Initialise pipeline")
+
     update_args = argparser_setup()
     region_dir = "region"
     cwd = Path.cwd()
@@ -194,18 +196,20 @@ def main(args=None):
 
 
     if args.assembly:
-        map_main(args.flanking_genes, args.assembly, args.species)
-        region_main(args.flanking_genes, args.assembly)
+        map_main(args.flanking_genes, args.assembly, args.species, args.threads)
+        region_main(args.flanking_genes, args.assembly, args.threads)
 
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool, region_dir, args.library, args.threads)
 
     blast_file = annotation_folder / "blast_results.csv"
     if not blast_file.exists():
-        blast_main(df, blast_file, args.library)
+        blast_main(df, blast_file, args.library, args.threads)
 
     report_main(annotation_folder, blast_file,args.receptor_type, args.library, args.no_split)
 
-    RSS_main(args.no_split)
+    RSS_main(args.no_split, args.threads)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
+    console_log.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
+
 

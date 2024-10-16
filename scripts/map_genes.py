@@ -110,7 +110,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) -> None:
+def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, threads: int) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 
@@ -146,7 +146,7 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str) 
         for assembly_file in assembly_files
     ]
     total_tasks = len(tasks)
-    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(map_flanking_genes, *arg): arg for arg in tasks}
         with tqdm(total=total_tasks, desc="Mapping flanking genes", unit='task') as pbar:

@@ -97,7 +97,6 @@ def construct_blast_command(fasta_file_path: str | Path,
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"
     extra = "-word_size 7 -evalue 1000 -max_target_seqs 100 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
-    # command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path}"
     command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path} -num_threads {THREADS}"
 
     if length <= LENGTH_THRESHOLD:
@@ -138,15 +137,14 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         fasta_temp.flush()
 
         blast_result_path = Ntf(mode='w+', delete=False, suffix='_blast.txt').name
-        command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path,
-                                          len(sequence))
+        command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
         subprocess.run(command, shell=True, check=True)
         file_log.info(f"Executed BLAST search for {header}")
     return blast_result_path
 
 
 # @log_error()
-def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFFS=[100, 75, 50]) -> pd.DataFrame:
+def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, threads : int,  CUTOFFS=[100, 75, 50]) -> pd.DataFrame:
     """
     Iterates over a set of identity cutoffs (100%, 75%, 50%) and performs parallel BLAST
     searches for each row in the input DataFrame. Uses `execute_blast_search()` to obtain
@@ -171,7 +169,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
     aggregated_results = pd.DataFrame()
     total_searches = len(dataframe) * len(CUTOFFS)
 
-    max_jobs = calculate_available_resources(max_cores=24, threads=2, memory_per_process=2)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
 
     with tqdm(total=total_searches, desc="Running BLAST searches", unit="search") as pbar:
         with ThreadPoolExecutor(max_workers=max_jobs) as executor:
@@ -185,12 +183,10 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
                         'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
                         'query seq', 'subject seq', 'query cov'
                     ]
-                    temp_df = pd.read_csv(
-                        result_file_path_str, sep='\t', names=blast_columns)
+                    temp_df = pd.read_csv(result_file_path_str, sep='\t', names=blast_columns)
                     if not temp_df.empty:
                         temp_df['cutoff'] = cutoff
-                        aggregated_results = pd.concat(
-                            [aggregated_results, temp_df], ignore_index=True)
+                        aggregated_results = pd.concat([aggregated_results, temp_df], ignore_index=True)
                     Path(result_file_path_str).unlink()
                     pbar.update(1)
 
@@ -198,7 +194,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, CUTOFF
     return aggregated_results
 
 
-def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path) -> None:
+def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path, threads: int) -> None:
     """
     Runs BLAST operations on the input DataFrame and saves the results to an Excel file.
 
@@ -217,7 +213,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     Raises:
         OSError: If any file operation fails during the process.
     """
-    blast_results = aggregate_blast_results(df, db_path)
+    blast_results = aggregate_blast_results(df, db_path, threads)
     blast_results['query cov'] = pd.to_numeric(blast_results['query cov'], errors='coerce')
     blast_results = blast_results.query("`query cov` == 100")
     path_df = blast_results['query'].str.split(':', expand=True)
@@ -227,7 +223,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path)
     file_log.info("BLAST operations completed and results saved to csv.")
 
 
-def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
+def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str, threads: int) -> None:
     """
     Manages the entire BLAST process, from database creation to saving results.
 
@@ -251,7 +247,7 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str) -> None:
     """
     cwd = Path.cwd()
     db_path = make_blast_db(cwd, library)
-    run_blast_operations(df, db_path, Path(blast_file))
+    run_blast_operations(df, db_path, Path(blast_file), threads)
     file_log.info("BLAST main process completed.")
 
 

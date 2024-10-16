@@ -191,7 +191,7 @@ def parse_name(filename: str | Path) -> Tuple[str, str, str]:
     return chrom, sample, haplotype
 
 
-def region_main(flanking_genes: list[str], assembly_dir=""):
+def region_main(flanking_genes: list[str], assembly_dir: str | Path, threads: int):
     """
     Main function that processes SAM files to create region-specific assembly files
     based on flanking genes specified in the configuration.
@@ -211,7 +211,7 @@ def region_main(flanking_genes: list[str], assembly_dir=""):
             chrom, sample, haplotype = parse_name(assembly)
             tasks.append((cwd, assembly, directory, first, second, sample, haplotype))
 
-    max_jobs = calculate_available_resources(max_cores=24, threads=4, memory_per_process=12)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
 
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:

@@ -440,7 +440,7 @@ def wrtie_rss_excel_file(cwd, df, filename):
 
 
 @log_error()
-def RSS_main(no_split=False):
+def RSS_main(no_split=False, threads=8):
     """
     Main function of the RSS creation script.
     """
