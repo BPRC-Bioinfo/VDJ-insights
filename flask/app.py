@@ -1,3 +1,4 @@
+import argparse
 import re
 from flask import Flask, render_template, request, jsonify
 from pathlib import Path
@@ -480,4 +481,8 @@ def about():
 
 # Run the application
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    parser = argparse.ArgumentParser(description='Run the Flask app.')
+    parser.add_argument('--port', type=int, default=8000, help='Port to run the server on')
+    args = parser.parse_args()
+
+    app.run(debug=True, host='0.0.0.0', port=args.port)

@@ -343,6 +343,8 @@ def setup_html(subparsers):
                              action='store_true', help="Reset the flask directory.")
     parser_html.add_argument('--dev-mode', required=False, default=False,
                              action='store_true', help='Enable developer mode to see the flask output.')
+    parser_html.add_argument('-p', '--port', required=False, default='5000',
+                             help='Choose the port you want to use to render the flask app.')
 
     parser_html.set_defaults(func=run_html)
 
@@ -493,14 +495,14 @@ def generate_json_library(status_filter="Novel"):
         json.dump(library, json_file, indent=4)
 
 
-def open_browser():
-    webbrowser.open_new('http://127.0.0.1:5000/')
+def open_browser(port):
+    webbrowser.open_new(f'http://127.0.0.1:{port}/')
 
 
 def run_html(args):
     console_log.info(
         "Running the HTML report, which should automatically open in your browser.\n"
-        "If it doesn't, try entering this address manually: http://127.0.0.1:5000.\n"
+        f"If it doesn't, try entering this address manually: http://127.0.0.1:{args.port}.\n"
         "If that doesn't work, try http://localhost:8080.\n"
         "If neither address works, you may need to forward the port using SSH with the following command:\n"
         "'ssh -L 8080:localhost:5000 username@your_server_ip'.\n"
@@ -513,16 +515,17 @@ def run_html(args):
     generate_json_library(status_filter="Both")
     try:
         if not args.dev_mode:
-            threading.Timer(1, open_browser).start()
+            threading.Timer(1, open_browser, args=[args.port]).start()
         process = subprocess.Popen(
-            ['python', str(output_dir / 'app.py')],
-            stdout=False if args.dev_mode else subprocess.DEVNULL,
-            stderr=False if args.dev_mode else subprocess.DEVNULL,
+            ['python', str(output_dir / 'app.py'), '--port', str(args.port)],
+            stdout=None if args.dev_mode else subprocess.DEVNULL,
+            stderr=None if args.dev_mode else subprocess.DEVNULL,
         )
         process.communicate()
     except KeyboardInterrupt:
         console_log.info(
             "Process interrupted by user (Ctrl + C), HTML report closed!")
+
 
 
 def key_sort(s):
