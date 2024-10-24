@@ -43,6 +43,7 @@
 
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Giang Le](https://github.com/GiangLeN)
+- [@Jamiel](https://github.com/sayedjm)
 
 ## Abstract
 
@@ -440,5 +441,6 @@ The interactive plot includes several controls to customize the display:
 
 I would like to thank [Jesse Bruijnesteijn](https://github.com/JesseBNL) and [Susan Ott](https://github.com/SusanOtt) for their contributions and insights, which have significantly enhanced the pipeline. Your expertise and suggestions have been really helpful in improving the pipelines functionality and effectiveness. Thank you both for your dedication and support.
 
-
+## To do list
+- Display current running stage
 

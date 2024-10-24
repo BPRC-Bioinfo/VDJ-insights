@@ -1,4 +1,4 @@
-name: pipeline 
+name: vdj_insights 
 channels:
   - bioconda
   - conda-forge
