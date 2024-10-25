@@ -427,7 +427,7 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
         annotation_long(df, annotation_folder)
         df, ref_df = group_similar(df, cell_type), group_similar(ref_df, cell_type)
     except Exception as e:
-        print("ddd",e)
+        print("Error:",e)
 
     annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split)
     annotation(ref_df, annotation_folder,'annotation_report_known.xlsx', no_split)
