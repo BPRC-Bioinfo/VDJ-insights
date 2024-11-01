@@ -7,7 +7,7 @@ import argparse
 from blast import blast_main
 from map_genes import map_main
 from extract_region import region_main
-from util import make_dir, validate_file, validate_input
+from util import make_dir, validate_file, validate_input, validate_metadata_coverage
 from property import log_error
 
 from logger import console_logger, file_logger
@@ -121,6 +121,7 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
     data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
     data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
     assembly_options = parser.add_argument_group('Assembly-Specific Options','These options are required if -a/--assembly is chosen:')
+    assembly_options.add_argument('-M', '--metadata',required=False, type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
     assembly_options.add_argument('-s', '--species', type=str.capitalize, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     exclusive_group = parser.add_argument_group('Exclusive Options')
     exclusive_mutually_exclusive = exclusive_group.add_mutually_exclusive_group()
@@ -166,8 +167,12 @@ def main(args=None):
         subprocess.CalledProcessError: If a BLAST command or database creation fails.
     """
     console_log.info(f"Initialise pipeline")
-
     update_args = argparser_setup()
+    if args.assembly and args.metadata:
+        if not validate_metadata_coverage(args.assembly, args.metadata):
+            console_log.error("Shutting down script. Metadata does not cover all assembly files.")
+            exit()
+
     region_dir = "region"
     cwd = Path.cwd()
     if args is None:
@@ -194,7 +199,6 @@ def main(args=None):
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
 
-
     if args.assembly:
         map_main(args.flanking_genes, args.assembly, args.species, args.threads)
         region_main(args.flanking_genes, args.assembly, args.threads)
@@ -205,7 +209,7 @@ def main(args=None):
     if not blast_file.exists():
         blast_main(df, blast_file, args.library, args.threads)
 
-    report_main(annotation_folder, blast_file,args.receptor_type, args.library, args.no_split)
+    report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 
     RSS_main(args.no_split, args.threads)
 

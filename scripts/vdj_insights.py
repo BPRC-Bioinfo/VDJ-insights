@@ -36,8 +36,7 @@ def cwd_setup(output_dir):
 def copy_flask(output_dir, reset=False):
     settings_dir = Path(__file__).resolve().parent.parent
     if not output_dir.is_dir() or reset:
-        shutil.copytree(str(settings_dir / "flask"),
-                        str(output_dir), dirs_exist_ok=True)
+        shutil.copytree(str(settings_dir / "flask"), str(output_dir), dirs_exist_ok=True)
 
 
 def validate_read_files(file_path):
@@ -148,10 +147,8 @@ def validate_flanking_genes(value):
     flanking_genes = [gene.strip().upper() if gene.strip() !=
                       '-' else '' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
-        file_log.error(f"The specified flanking genes: {
-                     flanking_genes} should be even numbers.")
-        raise argparse.ArgumentTypeError(f"The specified flanking genes: {
-                                         flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
+        file_log.error(f"The specified flanking genes: {flanking_genes} should be even numbers.")
+        raise argparse.ArgumentTypeError(f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
     file_log.info(f"Validated flanking genes: {flanking_genes}")
     return flanking_genes
 
@@ -179,10 +176,8 @@ def validate_chromosome(value):
         file_log.info(f"Validated chromosomes: {chromosomes}")
         return chromosomes
     else:
-        file_log.error(f"Invalid chromosome list: '{
-                     value}'. All values must be integers between 1-22, or 'X', 'Y'.")
-        raise argparse.ArgumentTypeError(f"Invalid chromosome list: '{
-                                         value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        file_log.error(f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
+        raise argparse.ArgumentTypeError(f"Invalid chromosome list: '{value}'. All values must be integers between 1-22, or 'X', 'Y'.")
 
 
 def setup_pipeline_args(subparsers):
@@ -200,47 +195,27 @@ def setup_pipeline_args(subparsers):
     Raises:
         argparse.ArgumentError: If invalid argument combinations are provided.
     """
-    parser_pipeline = subparsers.add_parser(
-        'pipeline', help='Run the pipeline for sequencing data processing.')
+    parser_pipeline = subparsers.add_parser('pipeline', help='Run the pipeline for sequencing data processing.')
 
-    # Reads Group
-    reads_group = parser_pipeline.add_argument_group(
-        'reads', 'Arguments related to read files')
-    reads_group.add_argument('-ont', '--nanopore', required=True, type=validate_read_files,
-                             help='Path to the Oxford Nanopore Technologies reads file.')
-    reads_group.add_argument('-pb', '--pacbio', required=True, type=validate_read_files,
-                             help='Path to the Pacific Biosciences reads file.')
+    reads_group = parser_pipeline.add_argument_group('reads', 'Arguments related to read files')
+    reads_group.add_argument('-ont', '--nanopore', required=True, type=validate_read_files, help='Path to the Oxford Nanopore Technologies reads file.')
+    reads_group.add_argument('-pb', '--pacbio', required=True, type=validate_read_files, help='Path to the Pacific Biosciences reads file.')
 
-    # Reference Group
-    reference_group = parser_pipeline.add_argument_group(
-        'reference', 'Arguments related to the reference genome')
-    reference_group.add_argument('-ref', '--reference', type=validate_reference, required=False,
-                                 help='Path to the reference genome file if one is already present (optional).')
+    reference_group = parser_pipeline.add_argument_group('reference', 'Arguments related to the reference genome')
+    reference_group.add_argument('-ref', '--reference', type=validate_reference, required=False, help='Path to the reference genome file if one is already present (optional).')
 
-    # Analysis Group
-    analysis_group = parser_pipeline.add_argument_group(
-        'analysis', 'Arguments related to analysis settings')
+    analysis_group = parser_pipeline.add_argument_group('analysis', 'Arguments related to analysis settings')
 
-    exclusive_group = analysis_group.add_mutually_exclusive_group(
-        required=False)
-    exclusive_group.add_argument('--default', action='store_true',
-                                 help='Use default settings. Cannot be used with --flanking-genes or --chromosomes.')
+    exclusive_group = analysis_group.add_mutually_exclusive_group(required=False)
+    exclusive_group.add_argument('--default', action='store_true', help='Use default settings. Cannot be used with --flanking-genes or --chromosomes.')
 
-    analysis_group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
-                                help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
-    analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome,
-                                help='List of chromosomes where TR or IG is located.')
-
-    analysis_group.add_argument('-s', '--species', type=str.capitalize,
-                                required=True, help='Species name, e.g., Homo sapiens.')
-    analysis_group.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=[
-                                'TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
-    analysis_group.add_argument('-t', '--threads', type=int,
-                                required=False, default=8, help='Amount of threads to run the analysis.')
-    analysis_group.add_argument('-o', '--output', type=str,
-                                default=str(
-                                    Path.cwd() / 'annotation_results'),
-                                help='Output directory for the results.')
+    analysis_group.add_argument('-M', '--metadata', type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
+    analysis_group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
+    analysis_group.add_argument('-c', '--chromosomes', type=validate_chromosome, help='List of chromosomes where TR or IG is located.')
+    analysis_group.add_argument('-s', '--species', type=str.capitalize, required=True, help='Species name, e.g., Homo sapiens.')
+    analysis_group.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    analysis_group.add_argument('-t', '--threads', type=int, required=False, default=8, help='Amount of threads to run the analysis.')
+    analysis_group.add_argument('-o', '--output', type=str, default=str(Path.cwd() / 'annotation_results'), help='Output directory for the results.')
 
     parser_pipeline.set_defaults(func=run_pipeline)
 
@@ -259,12 +234,10 @@ def setup_pipeline_args(subparsers):
         """
         if args.default:
             if args.flanking_genes or args.chromosomes:
-                parser_pipeline.error(
-                    "--default cannot be used with --flanking-genes or --chromosomes.")
+                parser_pipeline.error("--default cannot be used with --flanking-genes or --chromosomes.")
         else:
             if args.flanking_genes is None or args.chromosomes is None:
-                parser_pipeline.error(
-                    "Both --flanking-genes and --chromosomes must be provided together unless --default is used.")
+                parser_pipeline.error("Both --flanking-genes and --chromosomes must be provided together unless --default is used.")
 
     parser_pipeline.set_defaults(validate_pipeline_args=validate_pipeline_args)
 
@@ -281,41 +254,26 @@ def setup_annotation_args(subparsers):
         subparsers (argparse._SubParsersAction): The subparsers object to add
         the 'annotation' command to.
     """
-    parser_annotation = subparsers.add_parser(
-        'annotation', help='Run the annotation tool for VDJ segment analysis.')
+    parser_annotation = subparsers.add_parser('annotation', help='Run the annotation tool for VDJ segment analysis.')
 
     group = parser_annotation.add_mutually_exclusive_group()
-    group.add_argument('--default', action='store_true',
-                       help='Use default settings. Cannot be used with --flanking-genes.')
-    group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes,
-                       help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
+    group.add_argument('--default', action='store_true', help='Use default settings. Cannot be used with --flanking-genes.')
+    group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
 
-    parser_annotation.add_argument('-l', '--library', type=validate_file,
-                                   help='Path to the library file. Expected to be in FASTA format.')
-    parser_annotation.add_argument(
-        '-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'],
-        help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    parser_annotation.add_argument('-l', '--library', type=validate_file, help='Path to the library file. Expected to be in FASTA format.')
+    parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
-    data_choice.add_argument('-i', '--input', type=validate_input,
-                             help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
-    data_choice.add_argument('-a', '--assembly', type=validate_input,
-                             help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
+    data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
+    data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
 
-    parser_annotation.add_argument('-s', '--species', type=str,
-                                   help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
-    parser_annotation.add_argument('-o', '--output', type=str,
-                                   default=str(
-                                       Path.cwd() / 'annotation_results'),
-                                   help='Output directory for the results.')
+    parser_annotation.add_argument('-M', '--metadata',required=False, type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
+    parser_annotation.add_argument('-s', '--species', type=str, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
+    parser_annotation.add_argument('-o', '--output', type=str, default=str(Path.cwd() / 'annotation_results'), help='Output directory for the results.')
     mapping_options = ['minimap2', 'bowtie', 'bowtie2']
-    parser_annotation.add_argument('-m', '--mapping-tool', nargs='*',
-                                   choices=mapping_options, default=mapping_options,
-                                   help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
-    parser_annotation.add_argument('-t', '--threads', type=int,
-                                   required=False, default=8, help='Amount of threads to run the analysis.')
-    parser_annotation.add_argument(
-        '--no-split', required=False, action='store_true', help='Prevents output of separate Excel files for each individual sample')
+    parser_annotation.add_argument('-m', '--mapping-tool', nargs='*', choices=mapping_options, default=mapping_options, help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
+    parser_annotation.add_argument('-t', '--threads', type=int, required=False, default=8, help='Amount of threads to run the analysis.')
+    parser_annotation.add_argument('--no-split', required=False, action='store_true', help='Prevents output of separate Excel files for each individual sample')
 
     parser_annotation.set_defaults(func=run_annotation)
 
@@ -331,19 +289,12 @@ def validate_html(value):
 
 
 def setup_html(subparsers):
-    parser_html = subparsers.add_parser(
-        'html', help='Display the generated HTML report.')
+    parser_html = subparsers.add_parser('html', help='Display the generated HTML report.')
 
-    parser_html.add_argument('--show', action='store_true', required=True,
-                             help='Open the HTML report in your default web browser.')
-
-    parser_html.add_argument('-i', '--input', required=True, type=validate_html,
-                             help='Path to the directory containing the HTML report.')
-    parser_html.add_argument('--reset-flask', required=False, default=False,
-                             action='store_true', help="Reset the flask directory.")
-    parser_html.add_argument('--dev-mode', required=False, default=False,
-                             action='store_true', help='Enable developer mode to see the flask output.')
-
+    parser_html.add_argument('--show', action='store_true', required=True, help='Open the HTML report in your default web browser.')
+    parser_html.add_argument('-i', '--input', required=True, type=validate_html, help='Path to the directory containing the HTML report.')
+    parser_html.add_argument('--reset-flask', required=False, default=False, action='store_true', help="Reset the flask directory.")
+    parser_html.add_argument('--dev-mode', required=False, default=False, action='store_true', help='Enable developer mode to see the flask output.')
     parser_html.set_defaults(func=run_html)
 
 
@@ -448,10 +399,8 @@ def load_library_from_json(json_file_path):
 
 
 def load_annotation_data(cwd):
-    novel = pd.read_excel(cwd / 'annotation' /
-                          'annotation_report_novel_rss.xlsx')
-    known = pd.read_excel(cwd / 'annotation' /
-                          'annotation_report_known_rss.xlsx')
+    novel = pd.read_excel(cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
+    known = pd.read_excel(cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
     return pd.concat([novel, known])[["Start coord", "End coord", "Reference", "Old name-like", "Status",
                                       "Sample", "Haplotype", "Old name-like seq"]].apply(lambda col: col.str.strip() if col.dtype == "object" else col)
 
@@ -464,8 +413,7 @@ def update_library_with_row(library, row, status_filter):
     if ref not in library:
         library[ref] = {"Number": 0}  # Initialize the reference with a count
 
-    unique_key = f"{row['Old name-like']}_{row['Start coord']
-                                           }_{row['End coord']}_{row['Sample']}"
+    unique_key = f"{row['Old name-like']}_{row['Start coord']}_{row['End coord']}_{row['Sample']}"
     if unique_key not in library[ref]:  # Check to avoid double-counting
         library[ref][unique_key] = {
             "Start coord": row["Start coord"],
@@ -486,8 +434,7 @@ def generate_json_library(status_filter="Novel"):
     json_file_path = cwd / '.tool' / 'library' / 'library.json'
     library = load_library_from_json(json_file_path)
     df = load_annotation_data(cwd)
-    df.apply(lambda row: update_library_with_row(
-        library, row, status_filter), axis=1)
+    df.apply(lambda row: update_library_with_row(library, row, status_filter), axis=1)
 
     with open(json_file_path, 'w') as json_file:
         json.dump(library, json_file, indent=4)
@@ -766,10 +713,8 @@ def run_download_command(gene, species, output_zip, output_fna, dir):
         Exception: If any unexpected error occurs during file processing.
     """
     try:
-        command = f'datasets download gene symbol {
-            gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
-        result = subprocess.run(
-            command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        command = f'datasets download gene symbol {gene} --taxon "{species.capitalize()}" --include gene --filename {output_zip}'
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process_downloaded_files(output_zip, dir, output_fna)
         file_log.info(f"Downloaded and processed flanking genes for {gene}")
     except subprocess.CalledProcessError as e:
@@ -843,8 +788,7 @@ def download_reference_genome(genome_code, reference_dir: Path):
     output_zip = reference_dir / f"{genome_code}.zip"
     output_fna = reference_dir / f"reference.fna"
     if not output_fna.is_file():
-        run_reference_download_command(
-            genome_code, output_zip, reference_dir, output_fna)
+        run_reference_download_command(genome_code, output_zip, reference_dir, output_fna)
     return output_fna
 
 
@@ -865,13 +809,10 @@ def run_reference_download_command(genome_code, output_zip, reference_dir, outpu
         Exception: If any unexpected error occurs during file processing.
     """
     try:
-        command = f'datasets download genome accession {
-            genome_code} --include genome --filename {output_zip}'
+        command = f'datasets download genome accession {genome_code} --include genome --filename {output_zip}'
         file_log.info(f"Running command: {command}")
-        result = subprocess.run(
-            command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        process_reference_files(output_zip, reference_dir,
-                                output_fna, genome_code)
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process_reference_files(output_zip, reference_dir,output_fna, genome_code)
     except subprocess.CalledProcessError as e:
         log_subprocess_error(e)
     except Exception as e:
@@ -1086,14 +1027,12 @@ def run_snakemake(args, output_dir, config, snakefile="Snakefile"):
     config_file = Path(output_dir / 'config' / 'config.yaml')
     try:
         result = subprocess.run(
-            f"snakemake -s {snakefile} --cores {
-                args.threads} --use-conda --configfile {config_file} -prn",
+            f"snakemake -s {snakefile} --cores {args.threads} --use-conda --configfile {config_file} -prn",
             shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         file_log.info("Snakemake check ran successfully.")
         file_log.info("Running the complete pipeline.")
         subprocess.run(
-            f"snakemake -s {snakefile} --cores {
-                args.threads} --use-conda --configfile {config_file} -pr",
+            f"snakemake -s {snakefile} --cores {args.threads} --use-conda --configfile {config_file} -pr",
             shell=True, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         file_log.error(f"Snakemake failed with return code {e.returncode}.")
@@ -1129,10 +1068,10 @@ def main():
     Raises:
         SystemExit: If no command is provided or if invalid arguments are provided.
     """
-    parser = argparse.ArgumentParser(
-        description="Tool for sequencing data processing and VDJ annotation")
-    subparsers = parser.add_subparsers(
-        dest='command', help='Available commands', required=True)
+    console_log.info("Starting the VDJ Insights pipeline.")
+
+    parser = argparse.ArgumentParser(description="Tool for sequencing data processing and VDJ annotation")
+    subparsers = parser.add_subparsers(dest='command', help='Available commands', required=True)
 
     setup_pipeline_args(subparsers)
     setup_annotation_args(subparsers)

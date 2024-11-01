@@ -6,6 +6,7 @@ import argparse
 import psutil
 
 from logger import console_logger, file_logger
+from property import log_error
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -100,6 +101,27 @@ def validate_input(path: str) -> str:
                 input_path} is empty or does not contain any FASTA files!"""
         )
     return str(input_path)
+
+@log_error()
+def validate_metadata_coverage(input_dir: str, metadata_dir: str) -> bool:
+    input_files = []
+    for pattern in ["*.fasta", "*.fa", "*.fna"]:
+        input_files.extend([f.name for f in Path(input_dir).glob(pattern)])
+
+    metadata_df = pd.read_excel(metadata_dir)
+    expected_files = set(metadata_df['Accession'])
+
+    missing_files = []
+    for input_file in input_files:
+        if not any(basename in input_file for basename in expected_files):
+            missing_files.append(input_file)
+
+    if missing_files:
+        console_log.warning("Warning: The following input files are not covered in the metadata:")
+        for f in missing_files:
+            console_log.warning(f"{input_dir}/{f}")
+        return False
+    return True
 
 
 def load_config(path: str | Path) -> dict:

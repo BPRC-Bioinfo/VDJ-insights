@@ -369,7 +369,7 @@ def annotation_long(df, annotation_folder):
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
-def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
+def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadata_folder):
     """
     Generates a full annotation report and saves it as the specified file name.
     The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
@@ -387,18 +387,21 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split):
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Short name', 'Message', 'Old name-like seq', 'Reference seq',]]
+             'Short name', 'Message', 'Old name-like seq', 'Reference seq']]
     df["Status"] = "Known" if "known" in file_name else "Novel"
 
+    metadata_df = pd.read_excel(metadata_folder)
+    merged_df = df.merge(metadata_df[['Accession', 'Population']], left_on='Sample', right_on='Accession', how='left')
+
     full_annotation_path = annotation_folder / file_name
-    df.to_excel(full_annotation_path, index=False)
+    merged_df.to_excel(full_annotation_path, index=False)
 
     if not no_split:
         file_log.info("Creating individual sample excel files...")
         df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
 
 
-def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type: str, library: str | Path, no_split: bool):
+def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type: str, library: str | Path, no_split: bool, metadata_folder: str | Path):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     It performs the following steps:
@@ -429,5 +432,5 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
     except Exception as e:
         print("Error:",e)
 
-    annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split)
-    annotation(ref_df, annotation_folder,'annotation_report_known.xlsx', no_split)
+    annotation(df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
+    annotation(ref_df, annotation_folder,'annotation_report_known.xlsx', no_split, metadata_folder)
