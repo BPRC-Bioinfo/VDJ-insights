@@ -174,8 +174,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, thread
     with tqdm(total=total_searches, desc="Running BLAST searches", unit="search") as pbar:
         with ThreadPoolExecutor(max_workers=max_jobs) as executor:
             for cutoff in CUTOFFS:
-                futures = {executor.submit(execute_blast_search, row, database_path, cutoff): row for _, row in
-                           dataframe.iterrows()}
+                futures = {executor.submit(execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
                 for future in as_completed(futures):
                     result_file_path_str = future.result()
                     blast_columns = [

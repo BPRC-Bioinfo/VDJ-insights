@@ -352,7 +352,6 @@ def run_annotation(args):
     """
     settings_dir, output_dir = cwd_setup(args.output)
     cwd = Path.cwd()
-    config = {}
     file_log.info('Running the annotation program')
     library = cwd / 'library' / 'library.fasta'
     if not args.library:
@@ -938,7 +937,7 @@ def extract_chromosome_number_and_trailing(chromosome_info):
     return number, trailing
 
 
-def create_config(output_dir, settings_dir, args, config):
+def create_config(output_dir, settings_dir, args):
     """
     Creates a configuration file based on the provided arguments
     and species-specific settings. The configuration is saved as a
@@ -948,6 +947,7 @@ def create_config(output_dir, settings_dir, args, config):
         cwd (Path): The current working directory.
         args (argparse.Namespace): The parsed arguments for the pipeline or annotation command.
     """
+    config = {}
     species_config = load_config(settings_dir / '_config' / 'species.yaml')
     initialize_config(args, species_config, settings_dir, config)
     rss_config = load_config(settings_dir / '_config' / 'rss.yaml')
