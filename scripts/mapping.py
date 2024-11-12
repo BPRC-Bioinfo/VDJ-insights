@@ -104,8 +104,7 @@ def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
         for line in file:
             line = line.strip().split("\t")
             region, segment = get_region_and_segment(line[3], cell_type)
-            line.extend([get_sequence(line, fasta),
-                         accuracy, str(file_path), mapping_type, region, segment, fasta])
+            line.extend([get_sequence(line, fasta), accuracy, str(file_path), mapping_type, region, segment, fasta])
             entries.append(line)
     return entries
 
@@ -124,8 +123,7 @@ def run_command(command):
         subprocess.run(command, shell=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError as e:
-        file_log.error(
-            f"Command '{command}' failed with exit code {e.returncode}")
+        file_log.error(f"Command '{command}' failed with exit code {e.returncode}")
 
 
 def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
@@ -153,8 +151,7 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     L = int(15 + (acc / 100) * 5)
     score_min_base = -0.1 + (acc / 100) * 0.08
     score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {
-        score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -182,8 +179,7 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie command string.
     """
     mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {
-        bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
@@ -330,8 +326,7 @@ def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 
             file_log.warning(f"Required file missing: {files.bed}")
             return []
     except Exception as e:
-        file_log.error(f"Error in run_single_task for {
-                          fasta} at {acc}%: {e}")
+        file_log.error(f"Error in run_single_task for {fasta} at {acc}%: {e}")
         return []
 
 

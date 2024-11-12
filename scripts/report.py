@@ -109,7 +109,7 @@ def main_df(df):
     df = df[no_gaps_mask]
     df['% identity'] = df['% identity'].astype(float)
     reference_df = df.query("`% identity` == 100.000")
-    df = df.groupby(['start', 'stop', 'haplotype']).filter(filter_group)
+    df = df.groupby(['start', 'stop', 'path']).filter(filter_group)
     return df, reference_df
 
 
@@ -128,7 +128,7 @@ def add_values(df):
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     split_query_df = df['query'].str.split(':', expand=True)
-    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype']] = split_query_df[[0, 1, 2, 3, 4, 5]]
+    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool']] = split_query_df[[0, 1, 2, 3, 4, 5, 6]]
     return df
 
 
@@ -148,7 +148,7 @@ def add_like_to_df(df):
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
-        'strand', 'path', 'haplotype',
+        'tool', 'strand', 'path', 'haplotype',
         'query_seq_length', 'subject_seq_length'
 
     ]]
@@ -157,7 +157,7 @@ def add_like_to_df(df):
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
-        'Strand', 'Path', 'Haplotype',
+        'tool','Strand', 'Path', 'Haplotype',
         'Reference Length', 'Old name-like Length'
     ]
     output_df = output_df.sort_values(by="Reference")
@@ -344,7 +344,7 @@ def group_similar(df, cell_type):
     Returns:
         pd.DataFrame: The grouped and filtered DataFrame.
     """
-    df = df.groupby(['Start coord', 'End coord', 'Haplotype']).apply(lambda group: filter_df(group, cell_type))
+    df = df.groupby(['Start coord', 'End coord', 'Sample']).apply(lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
     return df
 
@@ -365,7 +365,7 @@ def annotation_long(df, annotation_folder):
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
-             'Haplotype', 'Sample', 'Short name', 'Message']]
+             'Haplotype', 'Sample', 'Short name', 'Message', 'tool']]
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
@@ -389,7 +389,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Short name', 'Message', 'Old name-like seq', 'Reference seq']]
+             'Short name', 'Message', 'Old name-like seq', 'tool', 'Reference seq']]
     df["Status"] = "Known" if "known" in file_name else "Novel"
 
     metadata_df = pd.read_excel(metadata_folder)

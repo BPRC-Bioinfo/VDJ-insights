@@ -327,7 +327,7 @@ def run_pipeline(args):
             split_chromosomes(cwd, genome, config)
         if args.default:
             loop_flanking_genes(settings_dir, output_dir, args)
-        create_config(output_dir, settings_dir, args, config)
+        create_config(output_dir, settings_dir, args)
         if not final_output.is_dir():
             snakefile = Path(settings_dir / 'Snakefile')
             run_snakemake(args, output_dir, str(snakefile))
@@ -372,7 +372,7 @@ def run_annotation(args):
                 args.library = library
         else:
             args.library = library
-    create_config(output_dir, settings_dir, args, config)
+    create_config(output_dir, settings_dir, args)
     try:
         create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
         annotation_main(args)

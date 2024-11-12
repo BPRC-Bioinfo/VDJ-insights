@@ -128,11 +128,11 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
     Raises:
         subprocess.CalledProcessError: If the BLAST command fails.
     """
-    header, sequence, start, stop, fasta_file_name, strand, haplotype = row["name"], row[
-        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"]
+    header, sequence, start, stop, fasta_file_name, strand, haplotype, tool, accuracy = row["name"], row[
+        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"], row["tool"], row["accuracy"]
 
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
-        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}\n"
+        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}:{tool}:{accuracy}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 

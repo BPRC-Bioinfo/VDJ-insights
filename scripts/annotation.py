@@ -40,7 +40,7 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
         df["haplotype"] = df['file'].apply(lambda x: Path(x).stem.split('_')[-1])
-    unique_combinations = df.drop_duplicates(subset=["start", "stop", "haplotype"])
+    unique_combinations = df.drop_duplicates(subset=["start", "stop", "reference"])
     return unique_combinations.reset_index(drop=True)
 
 
@@ -65,14 +65,14 @@ def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, i
     Raises:
         OSError: If the file cannot be read from or written to the specified path.
     """
-    report = annotation_folder / "report.xlsx"
+    report = annotation_folder / "report.csv"
     if not report.exists():
         file_log.info("The report.xlsx file does not exist! Creating it!")
         df = combine_df(mapping_tool, cell_type, input_dir, library, threads)
-        df.to_excel(report, index=False)
+        df.to_csv(report, index=False)
         file_log.info(f"Report successfully saved to {report}")
     else:
-        df = pd.read_excel(report)
+        df = pd.read_csv(report)
         file_log.info(f"Loaded existing report from {report}")
     return df
 
@@ -173,7 +173,6 @@ def main(args=None):
             console_log.error("Shutting down script. Metadata does not cover all assembly files.")
             exit()
 
-    region_dir = "region"
     cwd = Path.cwd()
     if args is None:
         args = update_args.parse_args()
@@ -183,16 +182,13 @@ def main(args=None):
         raise ValueError("Invalid arguments passed to the main function")
     if args.assembly:
         if not args.flanking_genes or not args.species:
-            update_args.error(
-                '-a/--assembly requires -f/--flanking-genes and -s/--species.'
-            )
+            update_args.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
         args.species = args.species.capitalize() if args.species else None
 
     if args.input and (args.flanking_genes or args.species):
-        update_args.error(
-            '-i/--input cannot be used with -f/--flanking-genes or -s/--species.'
-        )
+        update_args.error('-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
 
+    region_dir = "region"
     if args.input:
         region_dir = args.input
 
