@@ -108,7 +108,8 @@ def main_df(df):
     no_gaps_mask = ~df['query seq'].str.contains('-') & ~df['subject seq'].str.contains('-')
     df = df[no_gaps_mask]
     df['% identity'] = df['% identity'].astype(float)
-    reference_df = df.query("`% identity` == 100.000")
+    reference_df = df[df['% identity'] == 100.0]
+
     df = df.groupby(['start', 'stop', 'path']).filter(filter_group)
     return df, reference_df
 
@@ -128,7 +129,7 @@ def add_values(df):
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
     split_query_df = df['query'].str.split(':', expand=True)
-    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool']] = split_query_df[[0, 1, 2, 3, 4, 5, 6]]
+    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool', 'mapping_accuracy']] = split_query_df[[0, 1, 2, 3, 4, 5, 6, 7]]
     return df
 
 
@@ -148,7 +149,7 @@ def add_like_to_df(df):
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
-        'tool', 'strand', 'path', 'haplotype',
+        'tool', 'mapping_accuracy', '% identity', 'strand', 'path', 'haplotype',
         'query_seq_length', 'subject_seq_length'
 
     ]]
@@ -157,7 +158,7 @@ def add_like_to_df(df):
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
-        'tool','Strand', 'Path', 'Haplotype',
+        'tool', 'mapping_accuracy', '% identity','Strand', 'Path', 'Haplotype',
         'Reference Length', 'Old name-like Length'
     ]
     output_df = output_df.sort_values(by="Reference")
@@ -324,6 +325,7 @@ def run_like_and_length(df, record, cell_type):
         pd.DataFrame: The processed DataFrame with additional columns and filtered rows.
     """
     df = add_like_to_df(df)
+
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
     length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
@@ -365,7 +367,7 @@ def annotation_long(df, annotation_folder):
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
-             'Haplotype', 'Sample', 'Short name', 'Message', 'tool']]
+             'Haplotype', 'Sample', 'Short name', 'Message', 'tool','mapping_accuracy', '% identity']]
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
@@ -389,14 +391,15 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Similar references', 'Path',
              'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Short name', 'Message', 'Old name-like seq', 'tool', 'Reference seq']]
+             'Short name', 'Message', 'Old name-like seq', 'tool', 'mapping_accuracy', '% identity', 'Reference seq']]
     df["Status"] = "Known" if "known" in file_name else "Novel"
 
-    metadata_df = pd.read_excel(metadata_folder)
-    merged_df = df.merge(metadata_df[['Accession', 'Population']], left_on='Sample', right_on='Accession', how='left')
+    if metadata_folder:
+        metadata_df = pd.read_excel(metadata_folder)
+        df = df.merge(metadata_df[['Accession', 'Population']], left_on='Sample', right_on='Accession', how='left')
 
     full_annotation_path = annotation_folder / file_name
-    merged_df.to_excel(full_annotation_path, index=False)
+    df.to_excel(full_annotation_path, index=False)
 
     if not no_split:
         file_log.info("Creating individual sample excel files...")
@@ -428,15 +431,17 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
 
     df = pd.read_csv(blast_file)
     df = add_values(df)
+
     novel_df, known_df = main_df(df)
+    if not novel_df.empty:
+        novel_df = run_like_and_length(novel_df, segments_library, cell_type)
+        novel_df = novel_df.apply(add_orf, axis=1)
+        annotation_long(novel_df, annotation_folder)
+        novel_df = group_similar(novel_df, cell_type)
+        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
+    if not known_df.empty:
+        known_df = run_like_and_length(known_df, segments_library, cell_type)
+        known_df = known_df.apply(add_orf, axis=1)
+        known_df = group_similar(known_df, cell_type)
+        annotation(known_df, annotation_folder,'annotation_report_known.xlsx', no_split, metadata_folder)
 
-    novel_df = run_like_and_length(novel_df, segments_library, cell_type)
-    known_df = run_like_and_length(known_df, segments_library, cell_type)
-
-    novel_df, known_df = novel_df.apply(add_orf, axis=1), known_df.apply(add_orf, axis=1)
-
-    annotation_long(novel_df, annotation_folder)
-    novel_df, known_df = group_similar(novel_df, cell_type), group_similar(known_df, cell_type)
-
-    annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
-    annotation(known_df, annotation_folder,'annotation_report_known.xlsx', no_split, metadata_folder)

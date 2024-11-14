@@ -215,7 +215,7 @@ def create_meme_directory(meme_tasks):
     total_tasks = len(meme_tasks)
     max_jobs = calculate_available_resources(max_cores=24, threads=8, memory_per_process=2)
 
-    with tqdm(total=total_tasks, desc="Processing Files") as pbar:
+    with tqdm(total=total_tasks, desc="Processing MEME suite") as pbar:
         with ProcessPoolExecutor(max_workers=max_jobs) as executor:
             futures = {
                 executor.submit(run_meme_on_file, task['meme_directory'], task['rss_file'], task['config']): task
@@ -422,6 +422,8 @@ def create_rss_excel_file(cwd, final_df, no_split):
     novel_df = final_df.query("Status == 'Novel'")
     known_df = final_df.query("Status == 'Known'")
     for df, filename in zip([novel_df, known_df], ["annotation_report_novel", "annotation_report_known"]):
+        if df.empty:
+            continue
         if not no_split:
             file_log.info("Creating individual sample excel files...")
             df.groupby("Sample").apply(lambda group: seperate_annotation(
@@ -440,7 +442,7 @@ def wrtie_rss_excel_file(cwd, df, filename):
 
 
 @log_error()
-def RSS_main(no_split=False, threads=8):
+def RSS_main_v2(no_split=False, threads: int = 6):
     """
     Main function of the RSS creation script.
     """
@@ -462,6 +464,49 @@ def RSS_main(no_split=False, threads=8):
     final_df = remove_overlapping_segments(complete_df)
     create_rss_excel_file(cwd, final_df, no_split)
 
+
+
+
+@log_error()
+def RSS_main(no_split=False, threads: int = 8):
+    """
+    Main function of the RSS creation script.
+    """
+    complete_df = pd.DataFrame()
+    cwd = Path.cwd()
+
+    config = load_config(cwd / "config" / "config.yaml")
+    options = set(config.get("RSS_LAYOUT", {}).keys())
+
+    file_paths = {
+        "annotation_report_novel": cwd / 'annotation' / 'annotation_report_novel.xlsx',
+        "annotation_report_known": cwd / 'annotation' / 'annotation_report_known.xlsx'
+    }
+    dataframes = {}
+
+    for name, path in file_paths.items():
+        if path.exists():
+            dataframes[name] = pd.read_excel(path)
+
+    if not dataframes:
+        file_log.info("Geen beschikbare annotatiebestanden om te verwerken.")
+        return
+
+    df1 = dataframes.get("annotation_report_novel")
+    if df1 is not None:
+        ref_meme_directory = create_all_RSS_meme_files(cwd, df1, config)
+        ref_rss_dict = make_reference_rss(ref_meme_directory, config)
+    else:
+        df2 = dataframes.get("annotation_report_known")
+        ref_meme_directory = create_all_RSS_meme_files(cwd, df2, config)
+        ref_rss_dict = make_reference_rss(ref_meme_directory, config)
+    for name, df in dataframes.items():
+        filename = name
+        df = update_df(df, ref_rss_dict, config, options)
+        reference_df = combine_df(df, pd.read_excel(cwd / 'annotation' / f'{filename}.xlsx')).drop_duplicates()
+        complete_df = pd.concat([complete_df, reference_df], ignore_index=True)
+    final_df = remove_overlapping_segments(complete_df)
+    create_rss_excel_file(cwd, final_df, no_split)
 
 if __name__ == '__main__':
     RSS_main()

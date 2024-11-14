@@ -131,14 +131,11 @@ def find_non_best_rows(df: pd.DataFrame) -> pd.Index:
     boolean_columns = ["12_heptamer_matched", "12_nonamer_matched",
                        "13_heptamer_matched", "13_nonamer_matched", 
                        "23_heptamer_matched", "23_nonamer_matched", 
-                       "24_heptamer_matched", "24_nonamer_matched",]
-    df[boolean_columns] = df[boolean_columns].apply(
-        pd.to_numeric, errors='coerce').fillna(0).astype(bool)
-    df = df.sort_values(
-        by=["Sample", "Haplotype", "Region", "Start coord"]).reset_index(drop=True)
+                       "24_heptamer_matched", "24_nonamer_matched"]
+    df[boolean_columns] = df[boolean_columns].apply(pd.to_numeric, errors='coerce').fillna(0).astype(bool)
+    df = df.sort_values(by=["Sample", "Haplotype", "Region", "Start coord"]).reset_index(drop=True)
     df = assign_group_ids(df)
-    non_best_indices = df.groupby(['Haplotype', 'Region', 'Group', 'Sample']).apply(
-        lambda group: select_non_best_rows(group, boolean_columns)).explode()
+    non_best_indices = df.groupby(['Haplotype', 'Region', 'Group', 'Sample']).apply(lambda group: select_non_best_rows(group, boolean_columns)).explode()
     return pd.Index(non_best_indices.dropna())
 
 def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index:
@@ -161,6 +158,9 @@ def select_non_best_rows(group: pd.DataFrame, boolean_columns: list) -> pd.Index
         else:
             non_best_rows = group[group['True_Count'] != max_true_count]
             return non_best_rows.index
+    else:
+        return pd.Index([])
+
 
 def remove_overlapping_segments(df: pd.DataFrame) -> pd.DataFrame:
     """

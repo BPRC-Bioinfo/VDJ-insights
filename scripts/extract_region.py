@@ -200,8 +200,7 @@ def region_main(flanking_genes: list[str], assembly_dir: str | Path, threads: in
     directory = cwd / "region"
     make_dir(directory)
 
-    extensions = ["*.fna", "*.fasta", "*.fa"]
-    assembly_files = [file for ext in extensions for file in Path(assembly_dir).glob(ext)]
+    assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in Path(assembly_dir).glob(ext)]
 
     output_json = {}
     tasks = []
@@ -217,24 +216,19 @@ def region_main(flanking_genes: list[str], assembly_dir: str | Path, threads: in
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(extract, *task): task for task in tasks}
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
-
             for future in as_completed(futures):
                 log_data = future.result()
                 if log_data:
                     assembly_name = futures[future][1].name
                     flanking_key = log_data["flanking_regions"]
-
                     if assembly_name not in output_json:
                         output_json[assembly_name] = {}
                     if flanking_key not in output_json[assembly_name]:
                         output_json[assembly_name][flanking_key] = {}
-
-                    # Handle both broken and non-broken regions
                     if "Contig" in log_data:
                         output_json[assembly_name][flanking_key]["5_Contig"] = log_data["Contig"]
                         output_json[assembly_name][flanking_key]["3_Contig"] = log_data["Contig"]
                         output_json[assembly_name][flanking_key]["assembly_type"] = "Complete"
-                        
                     else:
                         output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
                         output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]

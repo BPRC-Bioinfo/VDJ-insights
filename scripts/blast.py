@@ -248,7 +248,3 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str, threads: 
     db_path = make_blast_db(cwd, library)
     run_blast_operations(df, db_path, Path(blast_file), threads)
     file_log.info("BLAST main process completed.")
-
-
-if __name__ == '__main__':
-    pass

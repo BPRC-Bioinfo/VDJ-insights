@@ -168,6 +168,7 @@ def main(args=None):
     """
     console_log.info(f"Initialise pipeline")
     update_args = argparser_setup()
+
     if args.assembly and args.metadata:
         if not validate_metadata_coverage(args.assembly, args.metadata):
             console_log.error("Shutting down script. Metadata does not cover all assembly files.")
@@ -204,12 +205,10 @@ def main(args=None):
     blast_file = annotation_folder / "blast_results.csv"
     if not blast_file.exists():
         blast_main(df, blast_file, args.library, args.threads)
-
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 
     RSS_main(args.no_split, args.threads)
 
-    file_log.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
-    console_log.info(f"Annotation process completed. Results are available in {annotation_folder}.xlsx")
-
+    file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
+    console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
 

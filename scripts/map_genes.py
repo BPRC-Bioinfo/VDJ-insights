@@ -72,9 +72,7 @@ def combine_genes(path: str | Path, flanking_output: str | Path) -> Path:
 
     if not flanking_output.is_file():
         with open(flanking_output, 'w') as outfile:
-            extensions = ["*.fna", "*.fasta", "*.fa"]
-            gene_files = [file for ext in extensions for file in path.glob(ext)]
-
+            gene_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in path.glob(ext)]
             for gene_file in gene_files:
                 if gene_file.is_file() and gene_file != flanking_output:
                     with open(gene_file, 'r') as fasta:
@@ -85,7 +83,7 @@ def combine_genes(path: str | Path, flanking_output: str | Path) -> Path:
     return flanking_output
 
 
-def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Path, threads=8) -> None:
+def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Path, threads : int = 8) -> None:
     """
     Maps flanking genes to an assembly file using Minimap2, producing a SAM file.
 
@@ -123,22 +121,19 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, 
         Exception: If the main mapping process fails, logs the error and raises an exception.
     """
     cwd = Path.cwd()
-
     flanking_genes_dir = cwd / "flanking_genes"
+    map_flanking_genes_dir = cwd / "mapped_genes"
     make_dir(flanking_genes_dir)
+    make_dir(map_flanking_genes_dir)
+
+    console_log.info(f"Downloading flanking genes for {species}")
+
     for gene in flanking_genes:
         if gene != "-":
             download_flanking_genes(gene, flanking_genes_dir, species)
 
     gene_output = combine_genes(flanking_genes_dir, flanking_genes_dir / "all_genes.fna")
-
-    assembly_dir = cwd / assembly_dir
-    map_flanking_genes_dir = cwd / "mapped_genes"
-    make_dir(map_flanking_genes_dir)
-
-    extensions = ["*.fna", "*.fasta", "*.fa"]
-    assembly_files = [file for ext in extensions for file in assembly_dir.glob(ext)]
-
+    assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / assembly_dir).glob(ext)]
     console_log.info(f"Number of assembly files: {len(assembly_files)}")
 
     tasks = [
@@ -155,7 +150,3 @@ def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, 
                 pbar.update(1)
 
     file_log.info("Extract main process completed successfully")
-
-
-if __name__ == "__main__":
-    map_main(["SALL2", "DAD1", "MGAM2", "EPHB6", "EPDR1", "VPS41"], path, "Homo sapiens")
