@@ -109,23 +109,6 @@ def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
     return entries
 
 
-def run_command(command):
-    """
-    Executes a shell command using subprocess.
-
-    This function tries to run a specified shell command using subprocess.
-    If the command fails, it logs an error with the exit code.
-
-    Args:
-        command (str): The shell command to execute.
-    """
-    try:
-        subprocess.run(command, shell=True,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError as e:
-        file_log.error(f"Command '{command}' failed with exit code {e.returncode}")
-
-
 def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     """
     Configures the Bowtie2 command for mapping sequences.
@@ -229,14 +212,11 @@ def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, thr
         list: A list of shell command strings to execute the mapping process.
     """
     if mapping_type == "bowtie2":
-        bowtie_command = make_bowtie2_command(
-            acc, files.bowtie_db, rfasta, files.sam, threads)
+        bowtie_command = make_bowtie2_command(acc, files.bowtie_db, rfasta, files.sam, threads)
     elif mapping_type == "minimap2":
-        bowtie_command = make_minimap2_command(
-            acc, fasta_file, rfasta, files.sam, threads)
+        bowtie_command = make_minimap2_command(acc, fasta_file, rfasta, files.sam, threads)
     else:
-        bowtie_command = make_bowtie_command(
-            acc, files.bowtie_db, rfasta, files.sam, threads)
+        bowtie_command = make_bowtie_command(acc, files.bowtie_db, rfasta, files.sam, threads)
 
     commands = [
         f"{mapping_type}-build {fasta_file} {files.bowtie_db}",
@@ -317,7 +297,7 @@ def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
             for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads_per_process):
-                run_command(command)
+                subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if files.bed.exists():
             entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
             file_log.info(f"Parsed {len(entries)} entries from {files.bed}")

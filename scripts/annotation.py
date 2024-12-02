@@ -1,5 +1,6 @@
 from mapping import mapping_main
 from RSS import RSS_main
+from RSS_V7 import main_rss
 from report import report_main
 from pathlib import Path
 import pandas as pd
@@ -11,6 +12,7 @@ from util import make_dir, validate_file, validate_input, validate_metadata_cove
 from property import log_error
 
 from logger import console_logger, file_logger
+
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -207,7 +209,8 @@ def main(args=None):
         blast_main(df, blast_file, args.library, args.threads)
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 
-    RSS_main(args.no_split, args.threads)
+    #RSS_main(args.no_split, args.threads)
+    main_rss()
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
