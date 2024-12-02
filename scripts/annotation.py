@@ -1,6 +1,5 @@
 from mapping import mapping_main
-from RSS import RSS_main
-from RSS_V7 import main_rss
+from RSS import main_rss
 from report import report_main
 from pathlib import Path
 import pandas as pd
@@ -209,7 +208,6 @@ def main(args=None):
         blast_main(df, blast_file, args.library, args.threads)
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 
-    #RSS_main(args.no_split, args.threads)
     main_rss()
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
