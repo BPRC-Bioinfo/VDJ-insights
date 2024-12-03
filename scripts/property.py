@@ -5,6 +5,7 @@ from logger import console_logger, file_logger
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
+
 def log_error():
     """
     Decorator to log errors that occur in the decorated function.
@@ -24,17 +25,6 @@ def log_error():
         """
         def wrapper(*args, **kwargs):
             """
-               Inner decorator function.
-
-               Args:
-                   func (function): The function to be decorated.
-
-               Returns:
-                   function: The wrapped function with error logging.
-               """
-
-            def wrapper(*args, **kwargs):
-            """
             Wrapper function that executes the original function and logs any exceptions.
 
             Args:
@@ -50,12 +40,18 @@ def log_error():
             try:
                 return func(*args, **kwargs)
             except Exception as e:
+                error_message = f"Error in '{func.__name__}': {e}"
+                console_log.error(error_message)
+                file_log.error(error_message)
+
                 if hasattr(e, 'value'):
-                    console_log.error(f"Error '{func.__name__}': {e} | Input: {e.value}")
-                else:
-                    console_log.error(f"Error '{func.__name__}': {e}")
+                    context_message = f"Additional info: {e.value}"
+                    console_log.error(context_message)
+                    file_log.error(context_message)
+
                 sys.exit(1)
         return wrapper
     return decorator
+
 
 
