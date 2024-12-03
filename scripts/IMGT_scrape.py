@@ -33,7 +33,7 @@ def cleanup(directory: str | Path):
     file_log.info(f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
-def create_library(directory: str | Path, simple_headers):
+def create_library(directory: str | Path, receptor: str, simple_headers):
     """
     Gets a path of a directory that contain the fasta files needed to 
     create the library.fasta file. It first creates the library directory.
@@ -47,7 +47,7 @@ def create_library(directory: str | Path, simple_headers):
     """
     library = directory.parent / "library"
     make_dir(library)
-    with open(library / "library.fasta", 'w') as w:
+    with open(library / f"{receptor}_library.fasta", 'w') as w:
         for file in directory.glob("*.fasta"):
             for record in SeqIO.parse(file, "fasta"):
                 if simple_headers:
@@ -129,6 +129,7 @@ def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str
     """
     for attempt in range(retry_limit):
         url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}"
+        print(url)
         response = requests.get(url)
         sleep_time = 2
         if response.status_code == 200:
@@ -311,7 +312,7 @@ def main():
     
     scrape_IMGT(args.species, args.type, imgt_dir, frame_selection)
     if args.create_library:
-        library_dir = create_library(imgt_dir, args.simple_headers)
+        library_dir = create_library(imgt_dir, args.type, args.simple_headers)
 
     if args.cleanup:
         cleanup(imgt_dir)

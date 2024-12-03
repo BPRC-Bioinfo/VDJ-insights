@@ -5,14 +5,6 @@ from logger import console_logger, file_logger
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
-import sys
-from logger import console_logger, file_logger
-
-
-consol_log = console_logger(__name__)
-file_log = file_logger(__name__)
-
-
 
 def log_error():
     """

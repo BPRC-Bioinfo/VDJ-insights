@@ -353,14 +353,14 @@ def run_annotation(args):
     settings_dir, output_dir = cwd_setup(args.output)
     cwd = Path.cwd()
     file_log.info('Running the annotation program')
-    library = cwd / 'library' / 'library.fasta'
+    library = cwd / 'library' / f'{args.receptor_type}_library.fasta'
     if not args.library:
         if not library.is_file():
             file_log.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                command = (f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "'
-                           f'{args.species}" -T {args.receptor_type} --create-library --cleanup --simple-headers')
+                frame = ['all', 'in-frame', 'in-frame-gaps'][0]
+                command = (f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{args.species}" -T "{args.receptor_type}" -f {frame} --create-library --cleanup --simple-headers')
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
                 result = subprocess.run(command, shell=True, check=True)
                 file_log.info(
