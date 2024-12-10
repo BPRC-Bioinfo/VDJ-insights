@@ -208,8 +208,7 @@ def main(args=None):
         blast_main(df, blast_file, args.library, args.threads)
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 
-    main_rss()
+    main_rss(args.threads)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
-

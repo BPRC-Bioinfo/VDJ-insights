@@ -329,7 +329,7 @@ def run_like_and_length(df, record, cell_type):
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
     length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
-    df = df[length_mask]
+    #df = df[length_mask]
     df["Sample"] = df["Path"].apply(extract_sample)
     return df
 
@@ -387,16 +387,14 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
         OSError: If the file cannot be created or written to.
     """
     file_log.info(f"Generating {file_name}!")
-    df = df[['Reference', 'Old name-like', 'Mismatches',
-             '% Mismatches of total alignment', 'Start coord',
-             'End coord', 'Function', 'Similar references', 'Path',
-             'Strand', 'Region', 'Segment', 'Haplotype', 'Sample',
-             'Short name', 'Message', 'Old name-like seq', 'tool', 'mapping_accuracy', '% identity', 'Reference seq']]
+
     df["Status"] = "Known" if "known" in file_name else "Novel"
+    df = df[["Sample", "Haplotype", "Region", "Segment", "Start coord", "End coord", "Strand", "Reference", "Old name-like", "Short name", "Similar references", "Old name-like seq", "Reference seq", "Mismatches", "% Mismatches of total alignment", "% identity", "mapping_accuracy", "tool", "Function", "Status", "Message", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
         df = df.merge(metadata_df[['Accession', 'Population']], left_on='Sample', right_on='Accession', how='left')
+        df = df.drop(columns=["Accession"])
 
     full_annotation_path = annotation_folder / file_name
     df.to_excel(full_annotation_path, index=False)

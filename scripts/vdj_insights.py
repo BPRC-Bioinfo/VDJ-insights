@@ -56,8 +56,7 @@ def validate_read_files(file_path):
     data_path = Path(file_path).resolve()
     validate_files(file_path)
     if data_path.suffixes != ['.fastq', '.gz']:
-        file_log.error(f"Invalid file type for {
-                     file_path}. Must be a '.fastq.gz' file.")
+        file_log.error(f"Invalid file type for {file_path}. Must be a '.fastq.gz' file.")
         raise argparse.ArgumentTypeError(
             f"The file {file_path} must be a '.fastq.gz' file.")
     file_log.info(f"Validated read file: {file_path}")

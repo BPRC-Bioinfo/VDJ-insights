@@ -24,8 +24,12 @@ def open_files(cwd: Path) -> pd.DataFrame:
     data_known = pd.read_excel(cwd / "annotation" / "annotation_report_known.xlsx")
     data_novel = pd.read_excel(cwd / "annotation" / "annotation_report_novel.xlsx")
     data = pd.concat([data_known, data_novel])
-    df_grouped = data.groupby(["Region", "Segment"])
-    return df_grouped
+
+    data_c = data[~data["Segment"].isin(["V", "D", "J"])]
+    data_vdj = data[data["Segment"].isin(["V", "D", "J"])]
+
+    vdj_grouped = data_vdj.groupby(["Region", "Segment"])
+    return data_c, vdj_grouped
 
 
 def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, sum_lenght_seq: int) -> None:
@@ -150,7 +154,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                 elif rss_layout == "start_minus":
                     start_rss, end_rss = [(start_coord_segment - rss_length), start_coord_segment]
 
-                rss = record.seq[start_rss:end_rss]
+                rss = record.seq[start_rss:end_rss].replace("-", "N")
                 if strand == '-':
                     rss = str(Seq(str(rss)).reverse_complement())
 
@@ -219,7 +223,15 @@ def merge_overlapping_intervals(df):
     return result_df
 
 
-def main_rss():
+def add_suffix_to_short_name(group):
+    unique_sequences = group['Old name-like seq'].unique()
+    if len(unique_sequences) > 1:
+        seq_to_suffix = {seq: f"_{i + 1}" for i, seq in enumerate(unique_sequences)}
+        group['Short name'] = group['Short name'] + group['Old name-like seq'].map(seq_to_suffix)
+    return group
+
+
+def main_rss(threads: int) -> None:
     """
     Main function to process RSS annotations.
     """
@@ -227,18 +239,17 @@ def main_rss():
     config = load_config(cwd / "config" / "config.yaml")
 
     output_base = cwd / "RSS"
-    df_grouped = open_files(cwd)
+    data_c, vdj_grouped = open_files(cwd)
 
-    combined_df = pd.DataFrame()
+    combined_df = data_c
 
     max_jobs = calculate_available_resources(max_cores=24, threads=8, memory_per_process=2)
-
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = [
             executor.submit(process_variant, locus_gene_type, group_locus, config, output_base, cwd)
-            for locus_gene_type, group_locus in df_grouped
+            for locus_gene_type, group_locus in vdj_grouped
         ]
-        with tqdm(total=df_grouped.ngroups, desc="Processing RSS", unit='task') as pbar:
+        with tqdm(total=vdj_grouped.ngroups, desc="Processing RSS", unit='task') as pbar:
             for future in as_completed(futures):
                 future.result()
                 combined_df = pd.concat([combined_df, future.result()])
@@ -246,9 +257,17 @@ def main_rss():
 
     combined_df = merge_overlapping_intervals(combined_df)
 
-    combined_df[combined_df["Status"] == "Known"].to_excel(cwd / "annotation" / "RSS_annotation_known.xlsx", index=False)
-    combined_df[combined_df["Status"] == "Novel"].to_excel(cwd / "annotation" / "RSS_annotation_novel.xlsx", index=False)
+    known = combined_df[combined_df["Status"] == "Known"]
+    novel = combined_df[combined_df["Status"] == "Novel"]
+
+    novel = novel.groupby('Short name', group_keys=False).apply(add_suffix_to_short_name)
+
+    known = known.sort_values(by=['Sample', 'Start coord'], ascending=[True, True])
+    novel = novel.sort_values(by=['Sample', 'Start coord'], ascending=[True, True])
+
+    known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
+    novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)
 
 
 if __name__ == '__main__':
-    main_rss()
+    main_rss(threads=12)

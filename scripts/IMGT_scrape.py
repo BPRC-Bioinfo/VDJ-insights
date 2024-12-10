@@ -129,7 +129,6 @@ def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str
     """
     for attempt in range(retry_limit):
         url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}"
-        print(url)
         response = requests.get(url)
         sleep_time = 2
         if response.status_code == 200:
@@ -182,6 +181,20 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
         "IG": [
             'IGHV', 'IGHD', 'IGHJ', 'IGKV',
             'IGKJ', 'IGLV', 'IGLJ'
+        ]
+    }
+
+    segments = {
+        "TR": [
+            "TRBV", "TRBJ", "TRBD", "TRBC",
+            "TRAV", "TRAJ", "TRAC",
+            "TRDD", "TRDJ", "TRDC", "TRDV",
+            "TRGV", "TRGJ"
+        ],
+        "IG": [
+            "IGHV", "IGHD", "IGHJ", "IGHC",
+            "IGKV", "IGKJ", "IGKC",
+            "IGLV", "IGLJ", "IGLC"
         ]
     }
     make_dir(directory)
