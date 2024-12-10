@@ -114,6 +114,29 @@ def main_df(df):
     return df, reference_df
 
 
+def parse_btop(btop):
+    snps = 0
+    insertions = 0
+    deletions = 0
+    i = 0
+    while i < len(btop):
+        if btop[i].isdigit():
+            while i < len(btop) and btop[i].isdigit():
+                i += 1
+        elif i + 1 < len(btop) and btop[i].isalpha() and btop[i + 1].isalpha():
+            snps += 1
+            i += 2
+        elif btop[i] == "-":
+            if i > 0 and btop[i - 1].isalpha():
+                deletions += 1
+            elif i + 1 < len(btop) and btop[i + 1].isalpha():
+                insertions += 1
+            i += 1
+        else:
+            i += 1
+    return snps, insertions, deletions
+
+
 def add_values(df):
     """
     Adds additional columns to the DataFrame, such as the percentage of mismatches relative to the alignment length,
@@ -128,6 +151,8 @@ def add_values(df):
     df['% Mismatches of total alignment'] = (df['mismatches'] / df['alignment length']) * 100
     df['query_seq_length'] = df['query seq'].str.len()
     df['subject_seq_length'] = df['subject seq'].str.len()
+    df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda x: pd.Series(parse_btop(x)))
+
     split_query_df = df['query'].str.split(':', expand=True)
     df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool', 'mapping_accuracy']] = split_query_df[[0, 1, 2, 3, 4, 5, 6, 7]]
     return df
@@ -150,7 +175,7 @@ def add_like_to_df(df):
         'start', 'stop',
         'subject seq', 'query seq',
         'tool', 'mapping_accuracy', '% identity', 'strand', 'path', 'haplotype',
-        'query_seq_length', 'subject_seq_length'
+        'query_seq_length', 'subject_seq_length', 'btop', 'SNPs', 'Insertions', 'Deletions'
 
     ]]
     output_df.columns = [
@@ -159,7 +184,7 @@ def add_like_to_df(df):
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
         'tool', 'mapping_accuracy', '% identity','Strand', 'Path', 'Haplotype',
-        'Reference Length', 'Old name-like Length'
+        'Reference Length', 'Old name-like Length', 'BTOP', 'SNPs', 'Insertions', 'Deletions'
     ]
     output_df = output_df.sort_values(by="Reference")
     output_df['Old name-like'] = output_df['Old name-like'] + '-like'
@@ -389,7 +414,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
     file_log.info(f"Generating {file_name}!")
 
     df["Status"] = "Known" if "known" in file_name else "Novel"
-    df = df[["Sample", "Haplotype", "Region", "Segment", "Start coord", "End coord", "Strand", "Reference", "Old name-like", "Short name", "Similar references", "Old name-like seq", "Reference seq", "Mismatches", "% Mismatches of total alignment", "% identity", "mapping_accuracy", "tool", "Function", "Status", "Message", "Path"]]
+    df = df[["Sample", "Haplotype", "Region", "Segment", "Start coord", "End coord", "Strand", "Reference", "Old name-like", "Short name", "Similar references", "Old name-like seq", "Reference seq", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "mapping_accuracy", "tool", "Function", "Status", "Message", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)

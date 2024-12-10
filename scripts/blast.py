@@ -95,8 +95,8 @@ def construct_blast_command(fasta_file_path: str | Path,
     Returns:
         str: The constructed BLAST command string.
     """
-    blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"
-    extra = "-word_size 7 -evalue 1000 -max_target_seqs 100 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
+    blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs btop"
+    extra = "-word_size 7 -evalue 1000 -max_target_seqs 20 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
     command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path} -num_threads {THREADS}"
 
     if length <= LENGTH_THRESHOLD:
@@ -180,7 +180,7 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, thread
                     blast_columns = [
                         'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
                         'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
-                        'query seq', 'subject seq', 'query cov'
+                        'query seq', 'subject seq', 'query cov', 'btop'
                     ]
                     temp_df = pd.read_csv(result_file_path_str, sep='\t', names=blast_columns)
                     if not temp_df.empty:

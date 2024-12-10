@@ -243,7 +243,7 @@ def main_rss(threads: int) -> None:
 
     combined_df = data_c
 
-    max_jobs = calculate_available_resources(max_cores=24, threads=8, memory_per_process=2)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = [
             executor.submit(process_variant, locus_gene_type, group_locus, config, output_base, cwd)
@@ -262,8 +262,8 @@ def main_rss(threads: int) -> None:
 
     novel = novel.groupby('Short name', group_keys=False).apply(add_suffix_to_short_name)
 
-    known = known.sort_values(by=['Sample', 'Start coord'], ascending=[True, True])
-    novel = novel.sort_values(by=['Sample', 'Start coord'], ascending=[True, True])
+    known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+    novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
 
     known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
     novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)
