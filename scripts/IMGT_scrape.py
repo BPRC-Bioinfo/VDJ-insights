@@ -47,7 +47,7 @@ def create_library(directory: str | Path, receptor: str, simple_headers):
     """
     library = directory.parent / "library"
     make_dir(library)
-    with open(library / f"{receptor}_library.fasta", 'w') as w:
+    with open(library / f"library.fasta", 'w') as w:
         for file in directory.glob("*.fasta"):
             for record in SeqIO.parse(file, "fasta"):
                 if simple_headers:
