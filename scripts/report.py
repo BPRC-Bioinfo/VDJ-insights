@@ -105,8 +105,6 @@ def main_df(df):
             - df (pd.DataFrame): The filtered DataFrame without gaps and 100% identity entries.
             - reference_df (pd.DataFrame): A DataFrame containing only 100% identity entries.
     """
-    no_gaps_mask = ~df['query seq'].str.contains('-') & ~df['subject seq'].str.contains('-')
-    df = df[no_gaps_mask]
     df['% identity'] = df['% identity'].astype(float)
     reference_df = df[df['% identity'] == 100.0]
 
@@ -263,6 +261,7 @@ def add_orf(row):
         pd.Series: The updated row with 'Function' and 'Message' columns added.
     """
     sequence, strand, segment = row[['Old name-like seq', 'Strand', "Segment"]]
+    sequence = sequence.replace("-", "")
     amino_acid_sequence, sequence = trim_sequence(sequence, strand)
     message, function_type = orf_function(amino_acid_sequence, segment)
     row["Function"] = function_type
@@ -450,7 +449,7 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
         Exception: If any step fails, logs the error and raises an exception.
     """
     cwd = Path.cwd()
-    segments_library = make_record_dict(cwd / library)
+    segments_library = make_record_dict(library)
 
     df = pd.read_csv(blast_file)
     df = add_values(df)
