@@ -8,7 +8,7 @@ from Bio.Seq import Seq
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from util import load_config, calculate_available_resources
+from util import load_config, calculate_available_resources, log_error
 
 
 def open_files(cwd: Path) -> pd.DataFrame:
@@ -32,6 +32,7 @@ def open_files(cwd: Path) -> pd.DataFrame:
     return data_c, vdj_grouped
 
 
+@log_error()
 def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, sum_lenght_seq: int) -> None:
     """
     Runs the MEME command to find motifs in the given FASTA file.
@@ -45,7 +46,7 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
     meme_command = f"meme {locus_fasta_file_name} -oc {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxsize {sum_lenght_seq}"
     subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-
+@log_error()
 def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) -> None:
     """
     Runs the FIMO command to find motif occurrences in the given FASTA file.
