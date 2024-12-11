@@ -352,7 +352,7 @@ def run_annotation(args):
     settings_dir, output_dir = cwd_setup(args.output)
     cwd = Path.cwd()
     file_log.info('Running the annotation program')
-    library = cwd / 'library' / f'{args.receptor_type}_library.fasta'
+    library = cwd / 'library' / f'library.fasta'
     if not args.library:
         if not library.is_file():
             file_log.info(
@@ -368,9 +368,9 @@ def run_annotation(args):
                 log_subprocess_error(e)
             finally:
                 deactivate_env()
-                args.library = library
+                args.library = cwd / 'library' / library
         else:
-            args.library = library
+            args.library = cwd / 'library' / library
     create_config(output_dir, settings_dir, args)
     try:
         create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
