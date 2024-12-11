@@ -41,7 +41,7 @@ def make_blast_db(cwd: Path, library: str) -> Path:
     """
     blast_db_path = cwd / "mapping" / "blast_db"
     if not blast_db_path.exists():
-        reference = cwd / library
+        reference = library
         make_dir(blast_db_path)
         command = f"makeblastdb -in {reference} -dbtype nucl -out {blast_db_path}/blast_db"
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -56,7 +56,7 @@ def construct_blast_command(fasta_file_path: str | Path,
                             identity_cutoff: int,
                             output_file_path: str | Path,
                             length: int,
-                            LENGTH_THRESHOLD: int = 15,
+                            LENGTH_THRESHOLD: int = 50,
                             THREADS: int = 2) -> str:
     """
     Constructs a BLAST command string for sequence alignment. This function builds
@@ -96,8 +96,8 @@ def construct_blast_command(fasta_file_path: str | Path,
         str: The constructed BLAST command string.
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs btop"
-    extra = "-word_size 7 -evalue 1000 -max_target_seqs 20 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
-    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -out {output_file_path} -num_threads {THREADS}"
+    extra = "-word_size 7 -evalue 1000 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
+    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -max_target_seqs 5 -out {output_file_path} -num_threads {THREADS}"
 
     if length <= LENGTH_THRESHOLD:
         command += f" {extra}"
@@ -130,6 +130,8 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
     """
     header, sequence, start, stop, fasta_file_name, strand, haplotype, tool, accuracy = row["name"], row[
         "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"], row["tool"], row["accuracy"]
+
+    sequence = sequence.replace("-", "")
 
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
         fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}:{tool}:{accuracy}\n"
