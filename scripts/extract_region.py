@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
+All rights reserved.
+"""
+
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import re
@@ -79,8 +84,7 @@ def get_positions_and_name(sam: str | Path, first: str, second: str):
                 name.append(contig_name)
             else:
                 if commands[i]:
-                    line = subprocess.run(
-                        commands[i], shell=True, capture_output=True, text=True)
+                    line = subprocess.run(commands[i], shell=True, capture_output=True, text=True)
                     if line.returncode != 0:
                         file_log.error(f"Failed to run command: {commands[i]}")
                         continue
@@ -247,4 +251,4 @@ def region_main(flanking_genes: list[str], assembly_dir: str | Path, threads: in
 
 
 if __name__ == '__main__':
-    region_main(["TMEM121", "-", "RPIA", "LSP1P4", "GNAZ", "TOP3B"], "/mnt/nanopore/Jaimy_intern/ensembl_human_unzip")
+    region_main(["TMEM121", "-", "RPIA", "LSP1P4", "GNAZ", "TOP3B"], "/mnt/nanopore/Jaimy_intern/ensembl_human_unzip", 8)

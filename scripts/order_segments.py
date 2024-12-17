@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
+All rights reserved.
+"""
+
 from mapping import mapping_main
 from pathlib import Path
 import pandas as pd

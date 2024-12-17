@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
+All rights reserved.
+"""
+
 from pathlib import Path
 import pandas as pd
 import yaml

@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
+All rights reserved.
+"""
+
 import os
 import subprocess
 
@@ -45,6 +50,7 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
     """
     meme_command = f"meme {locus_fasta_file_name} -oc {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxsize {sum_lenght_seq}"
     subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 @log_error()
 def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) -> None:

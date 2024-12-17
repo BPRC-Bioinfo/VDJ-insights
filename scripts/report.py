@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
+All rights reserved.
+"""
+
 import re
 import pandas as pd
 from Bio.Seq import Seq
@@ -216,8 +221,8 @@ def orf_function(aa, segment):
     if end_codon:
         if segment not in function_dict:
             message = "Segment not recognized."
-        else:
-            message = "STOP-CODON at position 116 (last 3' codon of germline CDR3-IMGT) may disappear during rearrangements"
+        else: #ALLEEN VOOR V SEGMENTEN
+            message = "the STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement"
     return message, function_type
 
 
@@ -451,7 +456,7 @@ def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type
     cwd = Path.cwd()
     segments_library = make_record_dict(library)
 
-    df = pd.read_csv(blast_file)
+    df = pd.read_csv(blast_file, low_memory=False)
     df = add_values(df)
 
     novel_df, known_df = main_df(df)
