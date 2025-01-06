@@ -3,6 +3,8 @@ Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
 All rights reserved.
 """
 
+from tqdm import tqdm
+
 from mapping import mapping_main
 from RSS import main_rss
 from report import report_main
@@ -12,6 +14,15 @@ import argparse
 from blast import blast_main
 from map_genes import map_main
 from extract_region import region_main
+from report_v2 import report_main as report_main2
+
+from figures.barplot import main as barplot_main
+from figures.boxplot import main as boxplot_main
+from figures.broken_regions import main as broken_regions_main
+from figures.heatmap import main as heatmap_main
+from figures.sub_families import main as sub_families_main
+from figures.venn_diagram import main as venn_diagram_main
+
 from util import make_dir, validate_file, validate_input, validate_metadata_coverage
 from property import log_error
 
@@ -141,7 +152,7 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
 
     return parser
 
-
+@log_error()
 def main(args=None):
     """
     Main function for the annotation tool. Performs the following steps:
@@ -191,7 +202,6 @@ def main(args=None):
         if not args.flanking_genes or not args.species:
             update_args.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
         args.species = args.species.capitalize() if args.species else None
-
     if args.input and (args.flanking_genes or args.species):
         update_args.error('-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
 
@@ -211,9 +221,21 @@ def main(args=None):
     blast_file = annotation_folder / "blast_results.csv"
     if not blast_file.exists():
         blast_main(df, blast_file, args.library, args.threads)
-    report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 
-    main_rss(args.threads)
+    if args.receptor_type == "TR" or args.receptor_type == "IG":
+        report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
+    else:
+        report_main2(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
+    if args.receptor_type == "TR" or args.receptor_type == "IG":
+        main_rss(args.threads)
+
+    if args.metadata:
+        functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main, heatmap_main]
+        args_list = [(annotation_folder,), (annotation_folder,), (cwd,), (annotation_folder,), (annotation_folder, args.receptor_type), (annotation_folder,)]
+        with tqdm(total=len(functions), desc="Creating plots", unit="Plot") as pbar:
+            for func, args in zip(functions, args_list):
+                func(*args)
+                pbar.update(1)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
