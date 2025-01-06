@@ -156,7 +156,9 @@ def add_values(df):
     df['subject_seq_length'] = df['subject seq'].str.len()
     df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda x: pd.Series(parse_btop(x)))
 
-    split_query_df = df['query'].str.split(':', expand=True)
+    split_query_df = df['query'].str.split('#', expand=True)
+    #split_query_df = df['query'].str.split(r'[#:]', expand=True)
+
     df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool', 'mapping_accuracy']] = split_query_df[[0, 1, 2, 3, 4, 5, 6, 7]]
     return df
 
@@ -354,10 +356,10 @@ def run_like_and_length(df, record, cell_type):
         pd.DataFrame: The processed DataFrame with additional columns and filtered rows.
     """
     df = add_like_to_df(df)
-
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
-    length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
+
+    #length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
     #df = df[length_mask]
     df["Sample"] = df["Path"].apply(extract_sample)
     return df
@@ -377,7 +379,51 @@ def group_similar(df, cell_type):
     """
     df = df.groupby(['Start coord', 'End coord', 'Sample']).apply(lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
-    return df
+
+    cols_to_convert = ["Start coord", "End coord", "% identity", "mapping_accuracy", "Mismatches"]
+    df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors='coerce')
+
+    filterd_df = (
+        df
+        .sort_values(
+            by=['% identity', 'mapping_accuracy', 'Mismatches'],
+            ascending=[False, False, True]
+        )
+        .groupby(['Start coord', 'End coord'], as_index=False)
+        .first()
+    )
+    filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
+    longest_sequences = (
+        filterd_df
+        .sort_values(["% identity", "Alignment_length"], ascending=[False, False])
+        .groupby("Start coord")
+        .head(1)
+    )
+
+    processed_groups = []
+    grouped = longest_sequences.groupby(["Sample", "Region", "Segment"], as_index=False)
+    for name, group in grouped:
+        group = group.sort_values(by="Start coord").reset_index(drop=True)
+
+        merged_intervals = []
+        current_interval = group.iloc[0]
+
+        for idx in range(1, len(group)):
+            next_interval = group.iloc[idx]
+            if next_interval["Start coord"] <= current_interval["End coord"]:
+                group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"],
+                                                                    next_interval["End coord"])
+            else:
+                merged_intervals.append(current_interval)
+                current_interval = next_interval
+
+        merged_intervals.append(current_interval)
+
+        merged_group = pd.DataFrame(merged_intervals)
+        processed_groups.append(merged_group)
+
+    result_df = pd.concat(processed_groups, ignore_index=True)
+    return result_df
 
 
 def annotation_long(df, annotation_folder):
