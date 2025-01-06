@@ -4,7 +4,7 @@ All rights reserved.
 """
 
 import sys
-
+import traceback
 from logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
@@ -45,7 +45,18 @@ def log_error():
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                error_message = f"Error in '{func.__name__}': {e}"
+                # Haal de laatste foutinformatie op
+                tb = traceback.extract_tb(e.__traceback__)
+                last_call = tb[-1]  # Pak het laatste traceback-object
+                file_name = last_call.filename
+                line_number = last_call.lineno
+
+                # Bouw het foutbericht op
+                error_message = (
+                    f"Error in '{func.__name__}' in file '{file_name}', line {line_number}: {e}"
+                )
+
+                # Log foutberichten naar de console en het bestand
                 console_log.error(error_message)
                 file_log.error(error_message)
 
