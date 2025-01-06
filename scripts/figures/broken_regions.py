@@ -2,9 +2,7 @@ import json
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
-import matplotlib.patches as mpatches
+from matplotlib.colors import ListedColormap
 
 
 def open_json(data_path: str) -> dict:
@@ -13,45 +11,48 @@ def open_json(data_path: str) -> dict:
     return data
 
 
-def make_pivot_table(data: pd.DataFrame) -> pd.DataFrame:
-    data = data.groupby(['Flanking_genes', 'Sample'], as_index=False).agg({'N_contigs': 'sum'})
-    pivot_table = data.pivot(index='Flanking_genes', columns='Sample', values='N_contigs')
-    return pivot_table
+def make_dataframe(data: pd.DataFrame) -> pd.DataFrame:
+    all_regions = set()
+    for regions_data in data.values():
+        all_regions.update(regions_data.keys())
+    rows = []
+    for assembly, regions_data in data.items():
+        found_regions = set()
+        for region, info in regions_data.items():
+            rows.append({
+                "Region": region,
+                "Assembly": assembly.split("-")[0],
+                "Assembly_Type": info["assembly_type"]
+            })
+            found_regions.add(region)
 
+        for missing_region in all_regions - found_regions:
+            rows.append({
+                "Region": missing_region,
+                "Assembly": assembly.split("-")[0],
+                "Assembly_Type": "Not found"
+            })
 
-def make_plot(pivot_table: pd.DataFrame, df: pd.DataFrame, output: str) -> None:
-    data_array = pivot_table.values
+    df = pd.DataFrame(rows)
+    return df
 
-    samples = df['Sample'].unique()
-    flanking_genes = df['Flanking_genes'].unique()
-    num_samples = len(samples)
-    num_references = len(flanking_genes)
-    fig, ax = plt.subplots(figsize=(num_references * 0.5 + 25, num_samples * 0.3 + 10))
+def make_plot(df: pd.DataFrame, output: str) -> None:
+    pivot_df = df.groupby(["Region", "Assembly_Type"]).size().unstack(fill_value=0)
+    saturated_colors = ["#FC8D59", "#FEE08B", "#4575B4", "#FC8D59", "#FEE08B", "#4575B4"]
+    cmap = ListedColormap(saturated_colors[:len(pivot_df.columns)])
 
-    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', [(1, 1, 1), (1, 1, 1)])
-    cax = ax.imshow(data_array, cmap=custom_cmap)
-    ax.set_xticks(np.arange(len(pivot_table.columns)))
-    ax.set_yticks(np.arange(len(pivot_table.index)))
-    ax.set_xticklabels(pivot_table.columns, ha='center', fontsize=10, rotation=90)
-    ax.set_yticklabels(pivot_table.index, va='center', fontsize=10)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    pivot_df.plot(kind="bar", stacked=True, ax=ax, colormap=cmap)
 
-    for i in range(len(pivot_table.index)):
-        for j in range(len(pivot_table.columns)):
-            point = data_array[i, j]
-            if np.isnan(point):
-                ax.text(j, i, "×", ha="center", va="center", color="red", label="Not found", fontweight='bold')
-            elif point == 2:
-                ax.text(j, i, "-", ha="center", va="center", color="orange", label="Not extract", fontweight='bold')
-            else:
-                ax.text(j, i, "✓", ha="center", va="center", color="green", label="Extract", fontweight='bold')
+    for container in ax.containers:
+        ax.bar_label(container, label_type="center", fmt="%d",
+                     labels=[int(v) if v > 0 else '' for v in container.datavalues])
 
-    not_found_patch = mpatches.Patch(color='red', label='Not found (×)')
-    not_extracted_patch = mpatches.Patch(color='orange', label='Not extracted (-)')
-    extracted_patch = mpatches.Patch(color='green', label='Extracted (✓)')
-    ax.legend(handles=[extracted_patch, not_extracted_patch, not_found_patch], loc='center left',
-              bbox_to_anchor=(1.01, 0.5))
-
-    ax.set_title('Schematic representation of extracted regions with flanking genes per sample')
+    plt.title("Found flanking genes in samples for extracting the region of intrest")
+    plt.ylabel("Count")
+    plt.xlabel("Region")
+    plt.xticks(rotation=0)
+    legend = plt.legend(title="Flanking genes", bbox_to_anchor=(0.5, -0.10), loc="upper center", ncol=3, frameon=False)
     plt.tight_layout()
 
     plt.savefig(f"{output}/broken_regions.svg", dpi=300, bbox_inches='tight')
@@ -59,35 +60,12 @@ def make_plot(pivot_table: pd.DataFrame, df: pd.DataFrame, output: str) -> None:
 
 
 def main(path: str) -> None:
-    output = f"{path}/figure/broken_regions"
+    output = f"{path}/annotation/figure/broken_regions"
     os.makedirs(output, exist_ok=True)
 
     data = open_json(data_path=f"{path}/broken_regions.json")
-    rows = []
-    for sample, genes in data.items():
-        for flanking_gene, contigs in genes.items():
-            if contigs['5_Contig'] ==  contigs['3_Contig']:
-                num_contigs = 1
-            else:
-                num_contigs = 2
-            receptor_data ={
-                "TMEM121--": "IGH",
-                "RPIA-LSP1P4": "IGK",
-                "GNAZ-TOP3B": "IGL",
-                "SALL2-DAD1": "TRA",
-                "MGAM2-EPHB6": "TRB",
-                "EPDR1-VPS41": "TRG",
-                "SALL2-DAD1": "TRD"
-            }
-            rows.append({
-                'Sample': sample.split("-")[1].strip(".fa"),
-                'Flanking_genes': receptor_data[flanking_gene],
-                'N_contigs': num_contigs
-            })
-    data = pd.DataFrame(rows)
-    pivot_table = make_pivot_table(data)
-    #print(pivot_table)
-    make_plot(pivot_table, data, output)
+    df = make_dataframe(data)
+    make_plot(df, output)
 
 if __name__ == '__main__':
     path = "/home/jaimy/output/human/bcr_v2"

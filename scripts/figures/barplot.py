@@ -4,18 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import re
 
-import json
 import numpy as np
 
 
 def open_files(data_path: str) -> pd.DataFrame:
     data = pd.read_excel(data_path)
-    return data
-
-
-def open_json(data_path: str) -> dict:
-    with open(data_path, "r") as file:
-        data = json.load(file)
     return data
 
 
@@ -40,7 +33,6 @@ def create_barplot(data: pd.DataFrame, region: str, output: str, status : str) -
     non_zero_columns = population_sums.loc[:, (population_sums != 0).any(axis=0)]
 
     if non_zero_columns.empty:
-        print(f"No data to plot for region: {region}")
         return
 
     num_references = len(non_zero_columns.columns)
@@ -48,7 +40,13 @@ def create_barplot(data: pd.DataFrame, region: str, output: str, status : str) -
     fig, ax = plt.subplots(figsize=(num_references * 0.35, 8))
 
     bottom = np.zeros(num_references)
-    population_colors = dict(zip(populations, plt.cm.tab20.colors[:len(populations)][::-1]))
+
+    num_colors = len(populations)
+    colors = [plt.cm.tab20(i / 20) for i in range(20)]
+    if num_colors > 20:
+        extra_colors = [plt.cm.viridis(i / (num_colors - 20)) for i in range(num_colors - 20)]
+        colors.extend(extra_colors)
+    population_colors = dict(zip(populations, colors[::-1]))
 
     for population in populations:
         values = non_zero_columns.loc[population].values
@@ -67,8 +65,17 @@ def create_barplot(data: pd.DataFrame, region: str, output: str, status : str) -
     ax.set_xlabel('Allele', fontsize=14)
 
 
-    ax.legend(title="Population", ncol=len(populations), fontsize=10, frameon=False)
-    plt.tight_layout()
+    #ax.legend(title="Population", ncol=len(populations), fontsize=10, frameon=False)
+
+    ax.legend(
+        title="Population",
+        bbox_to_anchor=(0.5, -0.50),
+        loc='upper center',
+        ncol=min(len(populations), 10),
+        fontsize=10,
+        frameon=False
+    )
+    plt.tight_layout(rect=[0, 0.2, 1, 1])
     os.makedirs(f"{output}", exist_ok=True)
 
     plt.savefig(f"{output}/{region}_{status}_bar.pdf", dpi=300)
@@ -80,12 +87,8 @@ def main(path) -> None:
     output = f"{path}/figure/barplot"
     os.makedirs(output, exist_ok=True)
 
-    cwd = os.getcwd()
-
     for status in ['known', 'novel']:
-        data = open_files(data_path=f"{path}/annotation/annotation_report_{status}_rss.xlsx")
-        meta_data_json = open_json(data_path=f"{path}/metadata.json")
-        data['Population'] = data['Population'].map(meta_data_json)
+        data = open_files(data_path=f"{path}/annotation_report_{status}_rss.xlsx")
 
         pivot_df = make_pivot_table(data)
 
@@ -96,6 +99,6 @@ def main(path) -> None:
 
 
 if __name__ == '__main__':
-    path = "/home/jaimy/output/human/bcr"
+    path = "/home/jaimy/output/human/bcr/annotation"
     main(path)
 

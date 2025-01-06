@@ -139,7 +139,8 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
     sequence = sequence.replace("-", "")
 
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
-        fasta_header = f">{header}:{start}:{stop}:{strand}:{fasta_file_name}:{haplotype}:{tool}:{accuracy}\n"
+        sep = "#"
+        fasta_header = f">{header}{sep}{start}{sep}{stop}{sep}{strand}{sep}{fasta_file_name}{sep}{haplotype}{sep}{tool}{sep}{accuracy}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 
@@ -222,7 +223,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path,
     blast_results = aggregate_blast_results(df, db_path, threads)
     blast_results['query cov'] = pd.to_numeric(blast_results['query cov'], errors='coerce')
     blast_results = blast_results.query("`query cov` == 100")
-    path_df = blast_results['query'].str.split(':', expand=True)
+    path_df = blast_results['query'].str.split('#', expand=True)
     blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
 

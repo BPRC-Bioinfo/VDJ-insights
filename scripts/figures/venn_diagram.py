@@ -41,7 +41,6 @@ def make_venn_diagram(data: pd.DataFrame, region: str, status: str, output: str,
 def make_overall_venn(data: pd.DataFrame, status: str, output: str, immuno_region: str) -> None:
     populations = data['Population'].unique()
 
-    # Aggregate all segments across all regions for each population
     sets = {}
     for pop in populations:
         segments = set()
@@ -51,7 +50,6 @@ def make_overall_venn(data: pd.DataFrame, status: str, output: str, immuno_regio
             segments.update(region_segments)
         sets[pop] = segments
 
-    # Create a large Venn diagram for all populations combined
     plt.figure(figsize=(30, 30))
 
     venny4py(sets=sets, dpi=600, ext='svg', legend_cols=4, out=f"{output}/all_{status}")
@@ -65,17 +63,15 @@ def main(path, immuno_region) -> None:
     output = f'{path}/figure/venn_diagram'
     os.makedirs( output, exist_ok=True)
     for status in ['known', 'novel']:
-        data = open_files(data_path=f"{path}/annotation/annotation_report_{status}_rss.xlsx")
-        meta_data_json = open_json(data_path=f"{path}/metadata.json")
-        data['Population'] = data['Population'].map(meta_data_json)
+        data = open_files(data_path=f"{path}/annotation_report_{status}_rss.xlsx")
+        if data['Population'].nunique() in [2, 3, 4]:
+            pivot_df = make_pivot_table(data=data)
 
-        pivot_df = make_pivot_table(data=data)
-
-        regions = pivot_df['Region'].unique()
-        for region in regions:
-            region_df = pivot_df[pivot_df['Region'] == region]
-            make_venn_diagram(region_df, region, status, output, immuno_region)
-        make_overall_venn(pivot_df, status, output, immuno_region)
+            regions = pivot_df['Region'].unique()
+            for region in regions:
+                region_df = pivot_df[pivot_df['Region'] == region]
+                make_venn_diagram(region_df, region, status, output, immuno_region)
+            make_overall_venn(pivot_df, status, output, immuno_region)
 
 
 if __name__ == '__main__':

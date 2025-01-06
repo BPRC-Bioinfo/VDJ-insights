@@ -32,12 +32,6 @@ def open_fasta(data_path: str) -> list:
     return library
 
 
-def open_json(data_path: str) -> dict:
-    with open(data_path, "r") as file:
-        data = json.load(file)
-    return data
-
-
 def make_pivot_table(data: pd.DataFrame) -> pd.DataFrame:
     pivot_df = data.pivot_table(
         index=['Population', 'Sample', 'Haplotype', 'Function', 'Region'],
@@ -90,7 +84,13 @@ def create_matrix(data: pd.DataFrame, function: str, region: str, output: str,  
     fig = plt.figure(figsize=(num_references * 0.35 + 2, num_samples * 0.35 + 2))
     gs = gridspec.GridSpec(2, 2, width_ratios=[5, 0.5], height_ratios=[0.5, 5], hspace=0.05, wspace=0.05)
     unique_populations = filtered_data['Population'].unique()
-    population_colors = dict(zip(unique_populations, plt.cm.tab20.colors[:len(unique_populations)][::-1]))
+
+    num_colors = len(unique_populations)
+    colors = [plt.cm.tab20(i / 20) for i in range(20)]
+    if num_colors > 20:
+        extra_colors = [plt.cm.viridis(i / (num_colors - 20)) for i in range(num_colors - 20)]
+        colors.extend(extra_colors)
+    population_colors = dict(zip(unique_populations, colors[::-1]))
 
     #bovenste bar
     ax_bar_x = plt.subplot(gs[0, 0], sharex=plt.subplot(gs[1, 0]))
@@ -171,29 +171,23 @@ def create_matrix(data: pd.DataFrame, function: str, region: str, output: str,  
 
 
 def main(path) -> None:
-    data_known = open_files(data_path=f"{path}/annotation/annotation_report_known_rss.xlsx")
-    data_novel = open_files(data_path=f"{path}/annotation/annotation_report_novel_rss.xlsx")
+    data_known = open_files(data_path=f"{path}/annotation_report_known_rss.xlsx")
+    data_novel = open_files(data_path=f"{path}/annotation_report_novel_rss.xlsx")
     data = pd.concat([data_known, data_novel])
 
     output = f"{path}/figure/heatmap"
-
     os.makedirs(output, exist_ok=True)
-    meta_data_json = open_json(data_path=f"{path}/metadata.json")
-
-    data['Population'] = data['Population'].map(meta_data_json)
 
     pivot_df = make_pivot_table(data)
 
     functions = pivot_df['Function'].unique()
     regions = pivot_df['Region'].unique()
 
-    with tqdm(total=len(list(product(functions, regions))), desc="Creating plots", unit="Plot") as pbar:
-        for function, region in product(functions, regions):
-            create_matrix(pivot_df, function=function, region=region, output=output)
-            pbar.update(1)
+    for function, region in product(functions, regions):
+        create_matrix(pivot_df, function=function, region=region, output=output)
 
 
 if __name__ == '__main__':
-    path = "/home/jaimy/output/human/bcr"
+    path = "/home/jaimy/output/human/bcr/annotation"
     main(path)
 
