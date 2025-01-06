@@ -188,7 +188,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
             'IGKJ', 'IGLV', 'IGLJ'
         ]
     }
-
+    #"""
     segments = {
         "TR": [
             "TRBV", "TRBJ", "TRBD", "TRBC",
@@ -202,6 +202,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
             "IGLV", "IGLJ", "IGLC"
         ]
     }
+    #"""
     make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
