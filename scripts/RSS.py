@@ -37,7 +37,7 @@ def open_files(cwd: Path) -> pd.DataFrame:
     return data_c, vdj_grouped
 
 
-@log_error()
+#@log_error()
 def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, sum_lenght_seq: int) -> None:
     """
     Runs the MEME command to find motifs in the given FASTA file.
@@ -48,8 +48,11 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
         rss_length (int): Length of the RSS.
         sum_lenght_seq (int): Sum of the lengths of sequences.
     """
-    meme_command = f"meme {locus_fasta_file_name} -oc {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxsize {sum_lenght_seq}"
-    subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    meme_command = f"meme {locus_fasta_file_name} -o {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxw {rss_length} -maxsize {sum_lenght_seq}"
+    if not meme_output.exists():
+        #subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(meme_command, shell=True, check=True)
+
 
 
 @log_error()
@@ -62,8 +65,9 @@ def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) 
         meme_output (Path): Path to the MEME output directory.
         locus_fasta_file_name (Path): Path to the input FASTA file.
     """
-    fimo_command = f"fimo --thresh 0.0001 --oc {fimo_output} {meme_output}/meme.txt {locus_fasta_file_name}"
-    subprocess.run(fimo_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    fimo_command = f"fimo --thresh 0.0001 --o {fimo_output} {meme_output}/meme.txt {locus_fasta_file_name}"
+    if not fimo_output.exists():
+        subprocess.run(fimo_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
@@ -166,7 +170,6 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                     rss = str(Seq(str(rss)).reverse_complement())
 
                 seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
-
                 locus_fasta_file.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
                 if row["Function"] != "P" and row["Status"] == "Known":
@@ -189,47 +192,6 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
     return combined_results
 
 
-def merge_overlapping_intervals(df):
-    """
-    Merges overlapping intervals in the DataFrame.
-
-    Args:
-        df (pd.DataFrame): Input DataFrame with intervals.
-
-    Returns:
-        pd.DataFrame: DataFrame with merged intervals.
-    """
-    df["Start coord"] = pd.to_numeric(df["Start coord"], errors="coerce")
-    df["End coord"] = pd.to_numeric(df["End coord"], errors="coerce")
-    df = df.dropna(subset=["Start coord", "End coord"])
-
-    processed_groups = []
-
-    grouped = df.groupby(["Sample", "Region", "Segment"], as_index=False)
-
-    for name, group in grouped:
-        group = group.sort_values(by="Start coord").reset_index(drop=True)
-
-        merged_intervals = []
-        current_interval = group.iloc[0]
-
-        for idx in range(1, len(group)):
-            next_interval = group.iloc[idx]
-            if next_interval["Start coord"] <= current_interval["End coord"]:
-                group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"], next_interval["End coord"])
-            else:
-                merged_intervals.append(current_interval)
-                current_interval = next_interval
-
-        merged_intervals.append(current_interval)
-
-        merged_group = pd.DataFrame(merged_intervals)
-        processed_groups.append(merged_group)
-
-    result_df = pd.concat(processed_groups, ignore_index=True)
-    return result_df
-
-
 def add_suffix_to_short_name(group):
     unique_sequences = group['Old name-like seq'].unique()
     if len(unique_sequences) > 1:
@@ -238,7 +200,7 @@ def add_suffix_to_short_name(group):
     return group
 
 
-def main_rss(threads: int) -> None:
+def main_rss(threads: int = 8) -> None:
     """
     Main function to process RSS annotations.
     """
@@ -250,7 +212,7 @@ def main_rss(threads: int) -> None:
 
     combined_df = data_c
 
-    max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
+    max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = [
             executor.submit(process_variant, locus_gene_type, group_locus, config, output_base, cwd)
@@ -261,8 +223,6 @@ def main_rss(threads: int) -> None:
                 future.result()
                 combined_df = pd.concat([combined_df, future.result()])
                 pbar.update(1)
-
-    combined_df = merge_overlapping_intervals(combined_df)
 
     known = combined_df[combined_df["Status"] == "Known"]
     novel = combined_df[combined_df["Status"] == "Novel"]
