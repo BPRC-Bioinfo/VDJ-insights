@@ -5,28 +5,29 @@ All rights reserved.
 
 from tqdm import tqdm
 
-from mapping import mapping_main
-from RSS import main_rss
-from report import report_main
+from .mapping import mapping_main
+from .RSS import main_rss
+from .report import report_main
+
 from pathlib import Path
 import pandas as pd
 import argparse
-from blast import blast_main
-from map_genes import map_main
-from extract_region import region_main
-from report_v2 import report_main as report_main2
+from .blast import blast_main
+from .map_genes import map_main
+from .extract_region import region_main
+from .report_v2 import report_main as report_main2
 
-from figures.barplot import main as barplot_main
-from figures.boxplot import main as boxplot_main
-from figures.broken_regions import main as broken_regions_main
-from figures.heatmap import main as heatmap_main
-from figures.sub_families import main as sub_families_main
-from figures.venn_diagram import main as venn_diagram_main
+from .figures.barplot import main as barplot_main
+from .figures.boxplot import main as boxplot_main
+from .figures.broken_regions import main as broken_regions_main
+from .figures.heatmap import main as heatmap_main
+from .figures.sub_families import main as sub_families_main
+from .figures.venn_diagram import main as venn_diagram_main
 
-from util import make_dir, validate_file, validate_input, validate_metadata_coverage
-from property import log_error
+from .util import make_dir, validate_file, validate_input, validate_metadata_coverage
+from .property import log_error
 
-from logger import console_logger, file_logger
+from .logger import console_logger, file_logger
 
 
 console_log = console_logger(__name__)

@@ -7,15 +7,16 @@ import json
 import re
 import time
 import requests
+from typing import Union
+
 from bs4 import BeautifulSoup
 import argparse
 from pathlib import Path
 from urllib.parse import urlencode
 from Bio import SeqIO
 
-
-from util import make_dir
-from logger import console_logger, file_logger
+from .util import make_dir
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -23,7 +24,7 @@ file_log = file_logger(__name__)
 fasta_files_info = []
 fasta_file_urls = []
 
-def cleanup(directory: str | Path):
+def cleanup(directory: Union[str, Path]):
     """
     Gets a path of a directory as input and loops over the fasta files 
     inside. It removes every found fasta file. After the removal of the 
@@ -38,7 +39,7 @@ def cleanup(directory: str | Path):
     file_log.info(f"Deleting folder: {directory.name}, because --cleanup was selected")
 
 
-def create_library(directory: str | Path, receptor: str, simple_headers):
+def create_library(directory: Union[str, Path], receptor: str, simple_headers):
     """
     Gets a path of a directory that contain the fasta files needed to 
     create the library.fasta file. It first creates the library directory.
@@ -95,7 +96,7 @@ def set_release():
     return str(re.findall(r'\(.*?\)', release.text.strip())[0][1:-1])
 
 
-def write_sequence(name: str, directory: str | Path, sequence: str):
+def write_sequence(name: str, directory: Union[str, Path], sequence: str):
     """
     Write the found VDJ segment sequences. It first establishes a base fasta file. 
     Then it writes the VDJ sequences to the fasta file and logs that 
@@ -120,7 +121,7 @@ def write_sequence(name: str, directory: str | Path, sequence: str):
 
 
 
-def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str, retry_limit=3):
+def fetch_sequence(segment: str, directory: Union[str, Path], species: str, frame: str, retry_limit=3):
     """
     Fetches sequence data from IMGT server using a constructed URL and handles failures with specified retry logic.
     Implements differentiated wait times based on the cause of retry need.
@@ -158,7 +159,7 @@ def fetch_sequence(segment: str, directory: str | Path, species: str, frame: str
         raise
     fasta_file_urls.append(url)
 
-def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: str):
+def scrape_IMGT(species: str, immune_type: str, directory: Union[str, Path], frame: str):
     """
     Uses the argparse values to scrape from the IMGT server. First a dictionary 
     is created with the different VDJ segments that are known.
@@ -188,7 +189,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
             'IGKJ', 'IGLV', 'IGLJ'
         ]
     }
-    #"""
+    """
     segments = {
         "TR": [
             "TRBV", "TRBJ", "TRBD", "TRBC",
@@ -202,7 +203,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
             "IGLV", "IGLJ", "IGLC"
         ]
     }
-    #"""
+    """
     make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
@@ -218,7 +219,7 @@ def scrape_IMGT(species: str, immune_type: str, directory: str | Path, frame: st
             time.sleep(2)
 
 
-def convert_frame(frame: str | None):
+def convert_frame(frame: Union[str, None]):
     """
     Transform the given frame to its secondary value. It creates a dict 
     for this and converts the value based on this dict. 
@@ -236,75 +237,45 @@ def convert_frame(frame: str | None):
     return options[frame or "all"]
 
 
-def argparser_setup():
-    """
-    Establish a list with all the different species the user can choose 
-    from to fetch. Then argparse itself it initiated. A base description is set,
-    as well as the two groups for required parameters and optional parameters.
-    Then all the parameters are set and their extra function if validation 
-    or transformation is needed. In the end a parser (args) is returned 
-    with all the given parameters.
+def save_json(release: str,
+              fasta_files_info: list[dict],
+              fasta_files_url: list[str],
+              file_path: Union[str, Path],
+              species: str,
+              immune_type: str,
+              output_dir: Union[str, Path],
+              frame_selection: str,
+              create_library_bool: bool,
+              cleanup_bool: bool,
+              simple_headers_bool: bool):
 
-    Returns:
-        args (argparse.Namespace): Object with all the given parameters.
-    """
-    latin_names = [
-        'Homo sapiens', 'Mus', 'Bos taurus',
-        'Ovis aries', 'Danio rerio', 'Canis lupus familiaris',
-        'Macaca mulatta', 'Tursiops truncatus', 'Oryctolagus cuniculus',
-        'Heterocephalus glaber', 'Macaca fascicularis',
-    ]
-
-    parser = argparse.ArgumentParser(
-        description='Scrape IMGT for TR and IG segment sequences of a given species.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    required_group = parser.add_argument_group('Required Options')
-    optional_group = parser.add_argument_group('Optional Options')
-
-    required_group.add_argument('-S', "--species", type=lambda s: s.capitalize(), choices=latin_names, required=True, help='Name of the species to scrape for (e.g., "Homo sapiens"). Capitalization is handled automatically.')
-    required_group.add_argument('-T', '--type', type=str.upper, choices=['TR', 'IG'], required=True, help='Type of sequence to scrape: TR (T-cell receptor) or IG (Immunoglobulin).')
-
-    optional_group.add_argument('-O', '--output', type=make_dir, help='Output directory where the results will be saved. The directory will be created if it does not exist.')
-    optional_group.add_argument('-f', '--frame-selection', type=str, choices=['all', 'in-frame', 'in-frame-gaps'], help='ORF frame analysis type. Choices are "all" for F+ORF+all P, "in-frame" for F+ORF+in-frame P, or "in-frame-gaps" for F+ORF+in-frame P with IMGT gaps.')
-    optional_group.add_argument('--create-library', action='store_true', help='Create a library from the IMGT files if specified.')
-    optional_group.add_argument('--cleanup', action='store_true', help='Clean up leftover IMGT files after processing.')
-    optional_group.add_argument('--simple-headers', action='store_true', help='Create simplified headers to improve readability.')
-
-    args = parser.parse_args()
-    return args
-
-
-def save_json(release: str, fasta_files_info:list[str], fasta_files_url:list[str], file_path: str | Path, args):
-    """
-    Save the collected log information to an HTML file using Jinja2 template.
-
-    Args:
-        log_info (list): List of log strings to save.
-        fasta_files_info (list): List of dictionaries containing fasta file names and number of entries.
-        file_path (str): Path to the HTML file.
-        args (argparse.Namespace): Parsed command line arguments.
-    """
     for info, url in zip(fasta_files_info, fasta_files_url):
         info['url'] = url
-        
+
     json_dict = {
         "set_release": release,
-        "species": args.species,
-        "type": args.type,
-        "output": str(args.output),
-        "frame_selection": args.frame_selection,
-        "create_library": args.create_library,
-        "cleanup": args.cleanup,
-        "simple_headers": args.simple_headers,
+        "species": species,
+        "type": immune_type,
+        "output": str(output_dir),
+        "frame_selection": frame_selection,
+        "create_library": create_library_bool,
+        "cleanup": cleanup_bool,
+        "simple_headers": simple_headers_bool,
         "fasta_files": fasta_files_info,
     }
-    
-    with open(str(file_path), 'w') as w:  
+
+    with open(file_path, 'w') as w:
         json.dump(json_dict, w, indent=4)
 
 
-def main():
+def main(species: str,
+         immune_type: str,
+         output_dir: Union[str, Path] = None,
+         frame_selection: str = "all",
+         create_library_bool: bool = True,
+         cleanup_bool: bool = True,
+         simple_headers_bool: bool = True
+         ):
     """
     Main function of the IMGT_scrape script. 
     It first retrieves all the given parameters from argparse. Then logs that 
@@ -316,31 +287,41 @@ def main():
     created and/or that the individual fasta files of the segments
     need to be removed. Lastly there is logged that the scrape is finished.
     """
-    args = argparser_setup()
-    file_log.info(f"Starting scrape for species: {args.species}, type: {args.type}")
+    file_log.info(f"Starting scrape for species: {species}, type: {immune_type}")
 
     cwd = Path.cwd()
-    if args.output:
-        path = cwd / args.output
+    if output_dir:
+        path = cwd / output_dir
     else:
         path = cwd
-    
-    frame_selection = convert_frame(args.frame_selection)
-    imgt_dir = path / args.species.replace(" ", "_").lower()
+    frame_selection = convert_frame(frame_selection)
+    imgt_dir = path / species.replace(" ", "_").lower()
     make_dir(imgt_dir)
     
-    scrape_IMGT(args.species, args.type, imgt_dir, frame_selection)
-    if args.create_library:
-        library_dir = create_library(imgt_dir, args.type, args.simple_headers)
+    scrape_IMGT(species, immune_type, imgt_dir, frame_selection)
+    if create_library_bool:
+        library_dir = create_library(imgt_dir, immune_type, simple_headers_bool)
 
-    if args.cleanup:
+    if cleanup_bool:
         cleanup(imgt_dir)
 
     file_log.info("Scrape completed successfully.")
     json_file = library_dir / "library_info.json"
 
-    save_json(set_release(), fasta_files_info, fasta_file_urls, json_file, args)
+    save_json(
+        release=set_release(),
+        fasta_files_info=fasta_files_info,
+        fasta_files_url=fasta_file_urls,
+        file_path=json_file,
+        species=species,
+        immune_type=immune_type,
+        output_dir=path,
+        frame_selection=frame_selection,
+        create_library_bool=create_library_bool,
+        cleanup_bool=cleanup_bool,
+        simple_headers_bool=simple_headers_bool
+    )
 
 
 if __name__ == '__main__':
-    main()
+    main("Homo sapiens", "IG" )

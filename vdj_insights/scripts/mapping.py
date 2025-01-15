@@ -12,8 +12,8 @@ from pathlib import Path
 
 from Bio import SeqIO
 
-from util import make_dir, calculate_available_resources
-from logger import console_logger, file_logger
+from .util import make_dir, calculate_available_resources
+from .logger import console_logger, file_logger
 
 
 console_log = console_logger(__name__)

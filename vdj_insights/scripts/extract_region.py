@@ -7,23 +7,24 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import re
 import subprocess
+from typing import Union
 from typing import Tuple
 import json
 from tqdm import tqdm
 
 from Bio.Seq import Seq
 
-from util import make_dir, calculate_available_resources
-from property import log_error
+from .util import make_dir, calculate_available_resources
+from .property import log_error
 
-from logger import console_logger, file_logger
+from .logger import console_logger, file_logger
 
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
 
-def write_seq(seq: str, output: str | Path):
+def write_seq(seq: str, output: Union[str, Path]):
     """
     Writes a sequence to an output FASTA file.
     """
@@ -46,14 +47,15 @@ def get_best_coords(sam_list: list[str]):
             bitwise_flag, contig_name, best = sam_bitwise, sublist[1], sublist
     return best[2:], contig_name
 
-def get_length_contig(sam_file: str | Path, contig: str) -> str:
+
+def get_length_contig(sam_file: Union[str, Path], contig: str) -> str:
     cmd = f'grep "^@SQ" {sam_file} | awk \'$2 ~ /{contig}/ {{print $3}}\' | cut -d":" -f2'
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     length_contig = result.stdout.strip("\n")
     return int(length_contig)
 
 
-def get_positions_and_name(sam: str | Path, first: str, second: str):
+def get_positions_and_name(sam: Union[str, Path], first: str, second: str):
     """
     Extracts the positions and contig name from a SAM file for given flanking genes.
     Handles reverse strand mapping and assigns missing genes to the telomere if necessary.
@@ -112,7 +114,7 @@ def get_positions_and_name(sam: str | Path, first: str, second: str):
         return [], []
 
 
-def extract(cwd: str | Path, assembly_fasta: str | Path, directory : str | Path, first: str, second: str, sample: str, haplotype: str):
+def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory : Union[str, Path], first: str, second: str, sample: str, haplotype: str):
     """
     Extracts a sequence from an assembly FASTA file based on flanking genes,
     and writes it to an output FASTA file.
@@ -173,7 +175,7 @@ def clean_filename(filename: str):
     return filename, accession_code
 
 
-def parse_name(filename: str | Path) -> Tuple[str, str, str]:
+def parse_name(filename: Union[str, Path]) -> Tuple[str, str, str]:
     """
     Parses the filename to extract the chromosome, sample (accession code or custom ID), and haplotype information,
     handling any order of parts and missing values.
@@ -195,7 +197,7 @@ def parse_name(filename: str | Path) -> Tuple[str, str, str]:
     return chrom, sample, haplotype
 
 
-def region_main(flanking_genes: list[str], assembly_dir: str | Path, threads: int):
+def region_main(flanking_genes: list[str], assembly_dir: Union[str, Path], threads: int):
     """
     Main function that processes SAM files to create region-specific assembly files
     based on flanking genes specified in the configuration.
@@ -251,4 +253,4 @@ def region_main(flanking_genes: list[str], assembly_dir: str | Path, threads: in
 
 
 if __name__ == '__main__':
-    region_main(["TMEM121", "-", "RPIA", "LSP1P4", "GNAZ", "TOP3B"], "/mnt/nanopore/Jaimy_intern/ensembl_human_unzip", 8)
+    region_main(["TMEM121", "-", "RPIA", "LSP1P4", "GNAZ", "TOP3B"], "/mnt/nanopore/Jaimy_intern/test_one", 8)

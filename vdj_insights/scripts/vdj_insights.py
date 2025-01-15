@@ -19,10 +19,11 @@ import yaml
 import pandas as pd
 from Bio import SeqIO
 
-from logger import console_logger, file_logger
-from annotation import main as annotation_main
-from env_manager import create_and_activate_env, deactivate_env
-from util import make_dir, validate_file, validate_directory, validate_input, load_config, unzip_file
+from .logger import console_logger, file_logger
+from .annotation import main as annotation_main
+from .IMGT_scrape import main as imgt_main
+from .env_manager import create_and_activate_env, deactivate_env
+from .util import make_dir, validate_file, validate_directory, validate_input, load_config, unzip_file
 
 
 console_log = console_logger(__name__)
@@ -265,7 +266,7 @@ def setup_annotation_args(subparsers):
     group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
 
     parser_annotation.add_argument('-l', '--library', type=validate_file, help='Path to the library file. Expected to be in FASTA format.')
-    parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG', 'KIR-LILR'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
     data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
@@ -363,14 +364,12 @@ def run_annotation(args):
             file_log.info(
                 'No library specified, generating it with the IMGT scraper.')
             try:
-                frame = ['all', 'in-frame', 'in-frame-gaps'][0]
-                command = (f'python {settings_dir / "scripts" / "IMGT_scrape.py"} -S "{args.species}" -T "{args.receptor_type}" -f {frame} --create-library --cleanup --simple-headers')
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
-                result = subprocess.run(command, shell=True, check=True)
-                file_log.info(
-                    f"Downloaded the library from the IMGT for {args.species}")
+                imgt_main(species=args.species, immune_type=args.receptor_type)
+                file_log.info(f"Downloaded the library from the IMGT for {args.species}")
             except subprocess.CalledProcessError as e:
                 log_subprocess_error(e)
+                exit()
             finally:
                 deactivate_env()
                 args.library = cwd / 'library' / library
@@ -770,8 +769,8 @@ def log_subprocess_error(e):
         e (subprocess.CalledProcessError): The exception object from a failed subprocess command.
     """
     file_log.error(f"Error occurred while running command: {e}")
-    file_log.error(e.stdout.decode())
-    file_log.error(e.stderr.decode())
+    #file_log.error(e.stdout.decode())
+    #file_log.error(e.stderr.decode())
 
 
 def download_reference_genome(genome_code, reference_dir: Path):
@@ -1080,6 +1079,11 @@ def main():
     setup_pipeline_args(subparsers)
     setup_annotation_args(subparsers)
     setup_html(subparsers)
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+
     args = parser.parse_args()
     if args.command == 'pipeline':
         args.validate_pipeline_args(args)

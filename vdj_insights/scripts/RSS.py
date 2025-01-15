@@ -13,7 +13,7 @@ from Bio.Seq import Seq
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from util import load_config, calculate_available_resources, log_error
+from .util import load_config, calculate_available_resources, log_error
 
 
 def open_files(cwd: Path) -> pd.DataFrame:
@@ -24,7 +24,9 @@ def open_files(cwd: Path) -> pd.DataFrame:
         cwd (Path): Current working directory.
 
     Returns:
-        pd.DataFrame: Grouped DataFrame by 'Region' and 'Segment'.
+        tuple:
+            - pd.DataFrame: DataFrame with non-VDJ segments.
+            - pd.DataFrameGroupBy: Grouped DataFrame by 'Region' and 'Segment' for VDJ segments.
     """
     data_known = pd.read_excel(cwd / "annotation" / "annotation_report_known.xlsx")
     data_novel = pd.read_excel(cwd / "annotation" / "annotation_report_novel.xlsx")
@@ -45,14 +47,12 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
     Args:
         locus_fasta_file_name (Path): Path to the input FASTA file.
         meme_output (Path): Path to the output directory for MEME results.
-        rss_length (int): Length of the RSS.
-        sum_lenght_seq (int): Sum of the lengths of sequences.
+        rss_length (int): Length of the RSS motif.
+        sum_lenght_seq (int): Sum of the lengths of sequences in the FASTA file.
     """
     meme_command = f"meme {locus_fasta_file_name} -o {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxw {rss_length} -maxsize {sum_lenght_seq}"
     if not meme_output.exists():
-        #subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(meme_command, shell=True, check=True)
-
+        subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 @log_error()
@@ -78,7 +78,7 @@ def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
         fimo_intput (Path): Path to the FIMO output directory.
 
     Returns:
-        pd.DataFrame: Processed FIMO output DataFrame.
+        pd.DataFrame: Processed DataFrame with FIMO output, including sequence index, scores, and p/q values.
     """
     fimo_output = fimo_intput / "fimo.txt"
     df_fimo = pd.read_csv(fimo_output, sep='\t')
@@ -94,11 +94,11 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
     Args:
         group_locus (pd.DataFrame): Grouped locus DataFrame.
         df_fimo (pd.DataFrame): FIMO output DataFrame.
-        rss_layout (str): RSS layout type.
-        rss_length (int): Length of the RSS.
+        rss_layout (str): RSS layout type (e.g., "end_plus" or "start_minus").
+        rss_length (int): Length of the RSS motif.
 
     Returns:
-        pd.DataFrame: Updated group locus DataFrame.
+        pd.DataFrame: Updated group locus DataFrame with added FIMO results.
     """
     for index_segment, row in group_locus.iterrows():
         is_present = index_segment in df_fimo['index_group_df'].values and df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'score'].values[0] > 0
@@ -120,17 +120,17 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
 
 def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
     """
-    Processes each variant of a locus gene type.
+    Processes each variant of a locus gene type by generating FASTA files and running MEME/FIMO.
 
     Args:
-        locus_gene_type (tuple): Locus gene type.
+        locus_gene_type (tuple): Tuple representing the locus gene type (e.g., ("IGH", "V")).
         group_locus (pd.DataFrame): Grouped locus DataFrame.
         config (dict): Configuration dictionary.
-        output_base (Path): Base output directory.
+        output_base (Path): Base output directory for results.
         cwd (Path): Current working directory.
 
     Returns:
-        pd.DataFrame: Combined results DataFrame.
+        pd.DataFrame: Combined DataFrame with updated FIMO results for the group locus.
     """
     combined_results = pd.DataFrame()
 
@@ -193,6 +193,15 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
 
 
 def add_suffix_to_short_name(group):
+    """
+    Adds a suffix to duplicate 'Short name' entries to ensure uniqueness.
+
+    Args:
+        group (pd.DataFrame): Grouped DataFrame containing segment data.
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with unique 'Short name' values.
+    """
     unique_sequences = group['Old name-like seq'].unique()
     if len(unique_sequences) > 1:
         seq_to_suffix = {seq: f"_{i + 1}" for i, seq in enumerate(unique_sequences)}
@@ -202,7 +211,10 @@ def add_suffix_to_short_name(group):
 
 def main_rss(threads: int = 8) -> None:
     """
-    Main function to process RSS annotations.
+    Main function to process RSS annotations in parallel using multiple threads.
+
+    Args:
+        threads (int, optional): Number of threads to use for parallel processing. Defaults to 8.
     """
     cwd = Path.cwd()
     config = load_config(cwd / "config" / "config.yaml")

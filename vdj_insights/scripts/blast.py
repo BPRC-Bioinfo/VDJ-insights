@@ -5,15 +5,16 @@ All rights reserved.
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import subprocess
+from typing import Union
 from tempfile import NamedTemporaryFile as Ntf
 from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from util import make_dir, calculate_available_resources
-from property import log_error
+from .util import make_dir, calculate_available_resources
+from .property import log_error
 
-from logger import console_logger, file_logger
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -35,7 +36,7 @@ def make_blast_db(cwd: Path, library: str) -> Path:
 
     Args:
         cwd (Path): The current working directory of the user.
-        library (str): The library file name to be used for creating the BLAST database.
+        library (str): The path to the FASTA reference file used for creating the BLAST database.
 
     Returns:
         Path: The path to the BLAST database directory.
@@ -56,10 +57,10 @@ def make_blast_db(cwd: Path, library: str) -> Path:
     return blast_db_path
 
 
-def construct_blast_command(fasta_file_path: str | Path,
-                            database_path: str | Path,
+def construct_blast_command(fasta_file_path: Union[str, Path],
+                            database_path: Union[str, Path],
                             identity_cutoff: int,
-                            output_file_path: str | Path,
+                            output_file_path: Union[str, Path],
                             length: int,
                             LENGTH_THRESHOLD: int = 50,
                             THREADS: int = 2) -> str:
@@ -95,7 +96,7 @@ def construct_blast_command(fasta_file_path: str | Path,
         identity_cutoff (int): Minimum percentage identity for the BLAST alignment.
         output_file_path (Path): Path to the output BLAST result file.
         length (int): Length of the sequence being aligned.
-        LENGTH_THRESHOLD (int, optional): Threshold for applying additional BLAST parameters. Defaults to 15.
+        LENGTH_THRESHOLD (int, optional): Threshold for applying additional BLAST parameters. Defaults to 50.
 
     Returns:
         str: The constructed BLAST command string.
@@ -117,7 +118,7 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
 
     Extracts the necessary data from the DataFrame row, including the sequence and
     associated metadata. A temporary FASTA file is generated with a header that includes
-    information like the sequence name, start and stop positions, strand, file name, and haplotype.
+    information like the sequence name, start and stop positions, strand, file name, haplotype, tool and accuracy.
 
     The BLAST search is executed using the constructed command, and the results are
     saved in a temporary output file. If an error occurs during the execution, it is logged.
@@ -207,12 +208,12 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path,
 
     Aggregates BLAST results by performing searches with different identity cutoffs.
     Filters the results to include only alignments with 100% query coverage. Extracts
-    additional columns from the BLAST output and saves the final results to an Excel file.
+    additional columns from the BLAST output and saves the final results to an CSV file.
 
     Args:
         df (pd.DataFrame): Input DataFrame with sequence mappings.
         db_path (Path): Path to the BLAST database.
-        blast_file_path (Path): Path to save the BLAST results Excel file.
+        blast_file_path (Path): Path to save the BLAST results into a CSV file.
 
     Returns:
         None
@@ -230,7 +231,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path,
     file_log.info("BLAST operations completed and results saved to csv.")
 
 
-def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str, threads: int) -> None:
+def blast_main(df: pd.DataFrame, blast_file: Union[str, Path], library: str, threads: int) -> None:
     """
     Manages the entire BLAST process, from database creation to saving results.
 
@@ -243,7 +244,7 @@ def blast_main(df: pd.DataFrame, blast_file: str | Path, library: str, threads: 
     Args:
         df (pd.DataFrame): DataFrame containing the sequence data.
         blast_file (str): File path to save the BLAST results.
-        library (str): Library file used for creating the BLAST database.
+        library (str): The path to the FASTA reference file used for creating the BLAST database.
 
     Returns:
         None

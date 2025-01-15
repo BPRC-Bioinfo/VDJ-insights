@@ -9,7 +9,7 @@ import os
 import shutil
 import filecmp
 
-from logger import console_logger, file_logger
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -49,13 +49,11 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
 
     if env_dir.exists() and saved_env_yaml_file.exists():
         if filecmp.cmp(env_file, saved_env_yaml_file, shallow=False):
-            file_log.environment(
-                f"Environment {env_name} is up to date. Activating it.")
+            file_log.environment(f"Environment {env_name} is up to date. Activating it.")
             activate_env(env_dir, env_name)
             return env_dir
         else:
-            file_log.environment(
-                f"Environment {env_name} has changed. Recreating it.")
+            file_log.environment(f"Environment {env_name} has changed. Recreating it.")
             archive_path = get_archive_dir() / env_name
             if archive_path.exists():
                 shutil.rmtree(archive_path)

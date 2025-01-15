@@ -8,10 +8,10 @@ import shutil
 import subprocess
 import pandas as pd
 from Bio import SeqIO
-from order_segments import order_main
+from .order_segments import order_main
 
-from util import make_dir
-from logger import console_logger, file_logger
+from .util import make_dir
+from .logger import console_logger, file_logger
 
 cwd = Path.cwd()
 

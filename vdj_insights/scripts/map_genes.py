@@ -6,15 +6,16 @@ All rights reserved.
 from pathlib import Path
 import shutil
 import subprocess
+from typing import Union
 from tqdm import tqdm
 from time import sleep
 from Bio import SeqIO
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from util import make_dir, unzip_file, calculate_available_resources
-from property import log_error
+from .util import make_dir, unzip_file, calculate_available_resources
+from .property import log_error
 
-from logger import console_logger, file_logger
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -58,7 +59,7 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
 
 
 @log_error()
-def combine_genes(path: str | Path, flanking_output: str | Path) -> Path:
+def combine_genes(path: Union[str, Path], flanking_output: Union[str, Path]) -> Path:
     """
     Combines all gene sequences in a specified directory into a single FASTA file.
 
@@ -103,7 +104,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         Exception: If an unexpected error occurs during the mapping process, logs the error and raises an exception.
     """
     sam_file = output_dir / assembly_file.with_suffix(".sam").name
-    awk_command = "awk '$1 ~ /^@/ || $5 == 60 {print $1, $2, $3, $4, $5}' | awk '!seen[$3,$4]++'"
+    awk_command = "awk '{print $1, $2, $3, $4, $5}'"
     if not sam_file.is_file():
         command = (
             f'minimap2 -ax asm5 --secondary=no -t {threads} '
@@ -113,7 +114,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: list[str], assembly_dir: str | Path, species: str, threads: int) -> None:
+def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species: str, threads: int) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 

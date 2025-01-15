@@ -4,13 +4,15 @@ All rights reserved.
 """
 
 import re
+from typing import Union
+
 import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
 
-from util import seperate_annotation, log_error
-from logger import console_logger, file_logger
+from .util import seperate_annotation, log_error
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
@@ -480,7 +482,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
 
 
 @log_error()
-def report_main(annotation_folder: str | Path, blast_file: str | Path, cell_type: str, library: str | Path, no_split: bool, metadata_folder: str | Path):
+def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], no_split: bool, metadata_folder: Union[str, Path]):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     It performs the following steps:

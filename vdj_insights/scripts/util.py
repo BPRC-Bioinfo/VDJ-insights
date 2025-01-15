@@ -2,6 +2,7 @@
 Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
 All rights reserved.
 """
+from typing import Union
 
 from pathlib import Path
 import pandas as pd
@@ -10,13 +11,13 @@ import zipfile
 import argparse
 import psutil
 
-from logger import console_logger, file_logger
-from property import log_error
+from .logger import console_logger, file_logger
+from .property import log_error
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
-def make_dir(path: str | Path) -> Path | Path:
+def make_dir(path: Union[str, Path]) -> Path:
     """
     Ensures the specified directory exists by creating it if necessary. Checks if the directory exists,
     and if it doesn't, creates the directory along with any necessary parent directories. Logs the creation
@@ -44,7 +45,7 @@ def make_dir(path: str | Path) -> Path | Path:
     return Path(path)
 
 
-def validate_directory(path: str | Path) -> str | Path:
+def validate_directory(path: Union[str, Path]) -> Union[str, Path]:
     """
     Validates that the specified directory exists. Checks if the provided path corresponds to an existing directory.
     If the directory does not exist, raises an `argparse.ArgumentTypeError`.
@@ -129,7 +130,7 @@ def validate_metadata_coverage(input_dir: str, metadata_dir: str) -> bool:
     return True
 
 
-def load_config(path: str | Path) -> dict:
+def load_config(path: Union[str, Path]) -> dict:
     """
     Loads a configuration file (config.yaml) located in the 'config' directory of the current working directory.
 
@@ -154,7 +155,7 @@ def load_config(path: str | Path) -> dict:
         raise
 
 
-def unzip_file(file_path: str | Path, unzip_path: str | Path) -> None:
+def unzip_file(file_path: Union[str, Path], unzip_path: Union[str, Path]) -> None:
     """
     Extracts a zip file to the specified directory.
 

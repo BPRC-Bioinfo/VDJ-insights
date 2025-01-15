@@ -5,7 +5,7 @@ All rights reserved.
 
 import sys
 import traceback
-from logger import console_logger, file_logger
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)

@@ -7,8 +7,8 @@ from mapping import mapping_main
 from pathlib import Path
 import pandas as pd
 
-from util import make_dir
-from logger import console_logger, file_logger
+from .util import make_dir
+from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
