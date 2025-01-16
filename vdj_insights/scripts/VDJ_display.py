@@ -21,7 +21,7 @@ logger = console_logger(__name__)
 file_log = file_logger(__name__)
 
 
-plt.rcParams['figure.dpi'] = 300
+plt.rcParams['figure.dpi'] = 301
 plt.rcParams['savefig.dpi'] = 300
 
 

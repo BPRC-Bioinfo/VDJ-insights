@@ -1,6 +1,5 @@
 
-![Logo](images/BPRC_logo.png)
-
+![Logo](vdj_insights/images/BPRC_logo.png)
 # VDJ-insights
 
 ## Abstract
