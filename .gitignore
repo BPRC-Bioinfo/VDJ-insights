@@ -161,11 +161,129 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-
+# Tool folder
+.tool/*
 # Result folder
 results/*
 
-# .snakemake folder
+# Download folder
+downloads/*
+
+# # Input folder
+# input/*
+
+# seqkit folders
+seqkit*/*
+
+# .snakemake related folders
 .snakemake/*
+.tests/*
+
 # Data folder
 data/*
+
+# Benchmark folder
+benchmarks/*
+
+# Logs folder
+logs/*
+
+# Demo script folder
+demo/*
+
+# Test folder
+test/*
+
+# QC folder
+QC/*
+
+# Some input files in the input folder
+input/input*
+input/chromosome*
+
+# Splitted files folder
+split_files/*
+
+# Filtered files folder
+filtered/*
+raw_sequences/*
+
+# Alignment folder
+alignments/*
+chromosomes/*
+
+#Chromosome folder
+chrom_folder/*
+
+# Merged chromosome folder
+merged/*
+# Combined folder
+combined/*
+
+# Coverage folder
+coverage/*
+
+# Converted folder
+converted/*
+
+# Assemlby folders
+flye/*
+hifiasm/*
+assembly/*
+
+# Mapping information folder
+quast/*
+
+# Scaffold files
+scaffold/*
+
+# BUSCO files
+BUSCO/*
+busco_downloads/*
+
+# Flanking genes files
+flanking/*
+flank_alignment/*
+flanking_genes/*
+
+# Region files
+region/*
+
+# Libraries files
+library/*
+
+# Reference files
+reference/*
+
+# Segment mapping files
+mapping/*
+mapped_genes/*
+# RSS files
+*RSS/*
+
+# Annotation files
+annotation/*
+
+# MEME files
+*meme/*
+
+# Inspector files
+inspector/*
+
+# Final files
+final/*
+
+
+temp/*
+
+# User config file(s)
+config/*
+
+# HTML files
+source/html/*
+!/source/html/sidebar.html
+!/source/html/index.html
+source/images/*
+!source/images/BPRC_logo.png
+
+

@@ -1,0 +1,290 @@
+/* PDF grid */
+.pdf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* PDF items */
+.pdf-item {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-item iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Image container for displaying images in RSS MEME section */
+.image-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.image-container img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tabs Container */
+.tabs {
+    display: flex;
+    gap: 0.5em;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+}
+
+/* Tabs Container */
+.tabs {
+    display: flex;
+    gap: 0.5em;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+    /* Increased margin for better spacing */
+}
+
+/* Tab Links */
+.tab-link {
+    padding: 12px 25px;
+    background: #2575fc;
+    color: white;
+    cursor: pointer;
+    flex: 0 0 auto;
+    text-align: center;
+    border: none;
+    border-radius: 30px;
+    /* Rounded button */
+    font-size: 1em;
+    font-weight: bold;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    /* Prevent text from wrapping */
+}
+
+/* Active Tab Link */
+.tab-link.active {
+    background: #0056b3;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Hover Effects */
+.tab-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Focus Effects for Accessibility */
+.tab-link:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(100, 150, 255, 0.5);
+}
+
+/* Tab Content */
+.tab {
+    display: none;
+}
+
+.tab.active {
+    display: block;
+}
+
+
+
+/* Button for showing more content */
+.show-more-btn {
+    background-color: #ff5733;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    width: 100%;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.show-more-btn:last-child {
+    margin-bottom: 0;
+}
+
+.show-more-btn:hover {
+    background-color: #c44123;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Configuration dashboard for displaying configurations in grid format */
+.config-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* Config block for each section inside the dashboard */
+.config-block {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 250px;
+    overflow-y: auto;
+    position: relative;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.config-block:hover {
+    border-color: #3498db;
+}
+
+/* Scroll indicator styling */
+.config-block::before,
+.config-block::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    pointer-events: none;
+}
+
+.config-block::before {
+    top: 0;
+}
+
+.config-block::after {
+    bottom: 0;
+}
+
+/* Scrollable indicator */
+.config-block.scrollable {
+    border-color: #3498db;
+}
+
+.config-subheading {
+    font-size: 1.5em;
+    color: #0056b3;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #0056b3;
+    padding-bottom: 5px;
+}
+
+/* Config lists for nested data */
+.config-list,
+.config-sublist,
+.config-subsublist {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.config-list>li {
+    margin-bottom: 10px;
+}
+
+.config-sublist>li,
+.config-subsublist>li {
+    margin-bottom: 5px;
+    padding-left: 20px;
+}
+
+.config-item {
+    background-color: #ffffff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    overflow-wrap: break-word;
+}
+
+.config-subitem {
+    background-color: #f1f1f1;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.config-subsubitem {
+    background-color: #e9e9e9;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+/* Scrollable tables */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background-color: #ffffff;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+
+
+.report-table th,
+.report-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 14px;
+}
+
+.report-table th {
+    background-color: #007BFF;
+    color: #fff;
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.region-file .table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 20px;
+}
+
+/* Make the table header sticky when scrolling */
+.region-file .table-container thead th {
+    position: sticky;
+    top: 0;
+    background-color: #007BFF;
+    z-index: 1;
+}
+
+/* Responsive design adjustments */
+@media (max-width: 768px) {
+    .config-dashboard {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .pdf-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .config-dashboard {
+        grid-template-columns: 1fr;
+    }
+}

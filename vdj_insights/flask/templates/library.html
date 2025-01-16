@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}
+   Current library 
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/library.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sequence_modal.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="main-content" id="main-content">
+        <div class="header">
+            <h1 class="report-title">My library</h1>
+            <a href="#" class="back-button alt">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+        </div>
+        <div class="button-row">
+            <div class="library-buttons">
+                <button class="action-btn" id="selectAllBtn">Select all</button>
+                <button class="action-btn warning" id="removeFromLibraryBtn">Remove from Library</button>
+            </div>
+            <div class="library-download">
+                <button id="downloadFastaBtn" title="Press to download the library as FASTA">
+                    <i class="fa-regular fa-circle-down"></i>
+                </button>
+            </div>                        
+        </div>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
+        </div>
+        
+        <div class="table-container" id="headerTable">
+            <table class="report-table" id="sequenceTable">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        <th>Header</th>
+                        <th>Sequence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for header, sequence in sequences.items() %}
+                    <tr>
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td class="reference-cell">{{ header[1:] }}</td>
+                        <td class="sequence-cell" data-sequence="{{ sequence }}" title="Click to view full sequence">{{ sequence }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+     <!-- The Modal -->
+     <div class="modal-backdrop"></div>
+     <div id="sequenceModal" class="modal">
+         <div class="modal-header" id="modalHeader">
+             <!-- Reference value will be injected here -->
+         </div>
+         <p class="header-p">Full sequence:</p>
+         <div class="modal-content">
+             <span class="close">&times;</span>
+             <p id="fullSequence"></p>
+         </div>
+     </div>
+ 
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/library.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search_table.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sequence-cell.js') }}"></script>
+
+{% endblock %}

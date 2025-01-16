@@ -1,0 +1,11 @@
+name: VDJ_display
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - pandas
+  - matplotlib
+  - numpy
+  - biopython
+  - pyyaml
+  - openpyxl

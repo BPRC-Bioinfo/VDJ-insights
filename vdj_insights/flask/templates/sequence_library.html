@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Library Details{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sequence_library.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sequence_modal.css') }}">
+{% endblock %}
+{% block content %}
+    <div class="main-content" id="main-content">
+        <div class="header">
+            <h1 class="report-title">Sequences list</h1>
+            <a href="#" class="back-button alt">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+        </div>
+        <div class="content">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search for sequences..." class="search-bar">
+            </div>            
+            {% for key, value in data.items() %}
+                <div class="library-card">
+                    <div class="library-card-header">
+                        <h3>{{ key }}</h3>
+                        <div class="number-tag">
+                            <p class="number-text">Entry Number: 
+                                <span class="number">{{ value.Number }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Old Name-like</th>
+                                    <th>Start Coord</th>
+                                    <th>End Coord</th>
+                                    <th>Status</th>
+                                    <th>Sample</th>
+                                    <th>Haplotype</th>
+                                    <th>Sequence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub_key, sub_value in value.items() if sub_key != 'Number' %}
+                                    <tr>
+                                        <td class="reference-cell">{{ sub_value.Reference }}</td>
+                                        <td>{{ sub_value['Old name-like'] }}</td>
+                                        <td>{{ sub_value['Start coord'] }}</td>
+                                        <td>{{ sub_value['End coord'] }}</td>
+                                        <td>{{ sub_value.Status }}</td>
+                                        <td>{{ sub_value.Sample }}</td>
+                                        <td>{{ sub_value.Haplotype }}</td>
+                                        <td class="sequence-cell" data-sequence="{{ sub_value.Sequence }}" title="Click to view full sequence">{{ sub_value.Sequence }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+     <!-- The Modal -->
+     <div class="modal-backdrop"></div>
+     <div id="sequenceModal" class="modal">
+         <div class="modal-header" id="modalHeader">
+             <!-- Reference value will be injected here -->
+         </div>
+         <p class="header-p">Full sequence:</p>
+         <div class="modal-content">
+             <span class="close">&times;</span>
+             <p id="fullSequence"></p>
+         </div>
+     </div>
+ 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/sequence-cell.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search_table.js') }}"></script>
+{% endblock %}

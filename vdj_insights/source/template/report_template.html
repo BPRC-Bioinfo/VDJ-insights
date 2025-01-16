@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/report.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tablesorter@2.31.3/dist/js/jquery.tablesorter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tablesorter@2.31.3/dist/js/jquery.tablesorter.widgets.min.js"></script>
+    <title>Full Report</title>
+</head>
+<body>
+    <div id="sidebar-container"></div>
+
+    <div class="main-content" id="main-content">
+        <div id="content-to-pdf" class="container">
+            <div class="header">
+                <h1 class="report-title">Full Report</h1>
+                <div class="header-info">
+                    <p class="report-date"><strong>Date and Time:</strong> {{ date_time }}</p>
+                    <p class="report-date"><strong>Mode: {{ mode }}</strong></p>
+                </div>
+            </div>
+
+            <div class="config-file">
+                <h2 class="report-heading">Configuration Details</h2>
+                
+                
+                <div class="config-dashboard">
+                    {% if config.DATA is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Data</h3>
+                            <ul class="config-list">
+                                {% if config.DATA.assembly is defined %} 
+                                    <li class="config-item"><strong>Assembly input:</strong> {{ config.DATA.assembly }}</li>
+                                    <li class="config-item"><strong>Library:</strong> {{ config.DATA.library }}</li>
+                                {% else %}
+                                    <strong>Nanopore:</strong>
+                                    <li class="config-item">{{ config.DATA.ORIGINAL.nanopore }}</li>
+                                    <li class="config-item">{{ config.DATA.MOVED.nanopore }}</li>
+                                    <strong>Pacbio:</strong>
+                                    <li class="config-item"> {{ config.DATA.ORIGINAL.pacbio }}</li>
+                                    <li class="config-item"> {{ config.DATA.MOVED.pacbio }}</li>
+                                {% endif %} 
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if config.ALL_CHROMOSOMES is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Chromosomes</h3>
+                            <ul class="config-list">
+                                {% for chromosome in config.ALL_CHROMOSOMES %}
+                                <li class="config-item">{{ chromosome }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if config.HAPLOTYPES is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Haplotypes</h3>
+                            <ul class="config-list">
+                                {% for haplotype in config.HAPLOTYPES %}
+                                <li class="config-item">{{ haplotype }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    {% if config.BUSCO_DATASET is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">BUSCO Dataset</h3>
+                            <ul class="config-list">
+                                <li class="config-item">{{ config.BUSCO_DATASET }}</li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    {% if config.ASSEMBLY_CHROMOSOMES is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Assembly Chromosomes</h3>
+                            <ul class="config-list">
+                                {% for assembly_chromosome in config.ASSEMBLY_CHROMOSOMES %}
+                                <li class="config-item">{{ assembly_chromosome }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if config.SPECIES is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Species</h3>
+                            <ul class="config-list">
+                                <li class="config-item"><strong>Name:</strong> {{ config.SPECIES.name }}</li>
+                                {% if config.SPECIES.genome is defined %}
+                                    <li class="config-item"><strong>Genome:</strong> {{ config.SPECIES.genome }}</li>
+                                {% endif %}
+                                <li class="config-item"><strong>Cell:</strong> {{ config.SPECIES.cell }}</li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    {% if config.FLANKING_GENES is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">Flanking Genes</h3>
+                            <ul class="config-list">
+                                {% for gene in config.FLANKING_GENES %}
+                                <li class="config-item">{{ gene }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    {% if config.RSS_LAYOUT is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">RSS Extraction</h3>
+                            <ul class="config-list">
+                                {% for gene, rss_types in config.RSS_LAYOUT.items() %}
+                                <li class="config-item"><strong>{{ gene }}</strong>
+                                    <ul class="config-sublist">
+                                        {% for rss_type, orientations in rss_types.items() %}
+                                        <li class="config-subitem">{{ rss_type }}
+                                            <ul class="config-subsublist">
+                                                <li class="config-subsubitem">+: {{ orientations["+"] }}</li>
+                                                <li class="config-subsubitem">-: {{ orientations["-"] }}</li>
+                                            </ul>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if config.RSS_LENGTH is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">RSS Heptamer and nonamer lengths</h3>
+                            <ul class="config-list">
+                                {% for length, value in config.RSS_LENGTH.items() %}
+                                <li class="config-item">{{ length }}: {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if config.RSS_MERS is defined %}
+                        <div class="config-block">
+                            <h3 class="config-subheading">RSS Heptamer and nonamer</h3>
+                            <ul class="config-list">
+                                {% for length, mers in config.RSS_MERS.items() %}
+                                <li class="config-item">{{ length }}
+                                    <ul class="config-sublist">
+                                        {% for mer in mers %}
+                                        <li class="config-subitem">{{ mer }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            
+            {% if  qc_data%}
+                <!-- QC Table Section -->
+                <div class="qc-file">
+                    <h2 class="report-heading">Quality control data</h2>
+                    <div class="tabs">
+                        {% for folder in qc_data.keys() %}
+                        <div class="tab-link" data-tab="{{ folder }}">{{ folder|capitalize }}</div>
+                        {% endfor %}
+                    </div>
+                    {% for folder, files in qc_data.items() %}
+                    <div id="{{ folder }}" class="tab">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>File</th>
+                                    <th>Format</th>
+                                    <th>Type</th>
+                                    <th>Num Seqs</th>
+                                    <th>Sum Len</th>
+                                    <th>Min Len</th>
+                                    <th>Avg Len</th>
+                                    <th>Max Len</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in files %}
+                                <tr>
+                                    <td>{{ row.file }}</td>
+                                    <td>{{ row.format }}</td>
+                                    <td>{{ row.type }}</td>
+                                    <td>{{ row.num_seqs }}</td>
+                                    <td>{{ row.sum_len }}</td>
+                                    <td>{{ row.min_len }}</td>
+                                    <td>{{ row.avg_len }}</td>
+                                    <td>{{ row.max_len }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if  quast_data %}
+                <!-- QUAST Data Section -->
+                <div class="quast-file">
+                    <h2 class="report-heading">Assembly data (QUAST)</h2>
+                    <div class="tabs">
+                        {% for folder in quast_data.keys() %}
+                        <div class="tab-link" data-tab="{{ folder }}">{{ folder|capitalize }}</div>
+                        {% endfor %}
+                    </div>
+                    {% for folder, data in quast_data.items() %}
+                    <div id="{{ folder }}" class="tab">
+                        <div class="table-container">
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        {% for column in data.transposed_report[0].keys() %}
+                                        <th>{{ column }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in data.transposed_report %}
+                                    <tr>
+                                        {% for value in row.values() %}
+                                        <td>{{ value }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <h3>Assembly PDFs</h3>
+                        <div class="pdf-grid">
+                            {% for pdf in data.pdfs %}
+                            <div class="pdf-item">
+                                <iframe src="{{ pdf }}" type="application/pdf"></iframe>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if busco_data %}
+                <!-- BUSCO Data Section -->
+                <div class="busco-file">
+                    <h2 class="report-heading">BUSCO Data</h2>
+                    <div class="tabs">
+                        {% for chromosome in busco_data.keys() %}
+                        <div class="tab-link" data-tab="busco-{{ chromosome }}">{{ chromosome|capitalize }}</div>
+                        {% endfor %}
+                    </div>
+                    {% for chromosome, haplotypes in busco_data.items() %}
+                    <div id="busco-{{ chromosome }}" class="tab">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Haplotype</th>
+                                    <th>Single BUSCOs</th>
+                                    <th>Fragmented BUSCOs</th>
+                                    <th>Duplicates BUSCOs</th>
+                                    <th>Missing BUSCOs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for haplotype, metrics in haplotypes.items() %}
+                                <tr>
+                                    <td>{{ haplotype|capitalize }}</td>
+                                    <td>{{ metrics['Single BUSCOs'] }}</td>
+                                    <td>{{ metrics['Fragmented BUSCOs'] }}</td>
+                                    <td>{{ metrics['Duplicates BUSCOs'] }}</td>
+                                    <td>{{ metrics['Missing BUSCOs'] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if region_data %}
+                <!-- Region Data Section -->
+                <div class="region-file">
+                    <h2 class="report-heading">Extracted regions</h2>
+                    <div class="table-container">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Sample Name</th>
+                                    <th>Region Name</th>
+                                    <th>Haplotype</th>
+                                    <th>Length (bps)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in region_data %}
+                                <tr>
+                                    <td>{{ row.sample_name }}</td>
+                                    <td>{{ row.region_name }}</td>
+                                    <td>{{ row.haplotype }}</td>
+                                    <td>{{ row.length }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if rss_meme_data %}
+            <!-- RSS MEME Data Section -->
+                <div class="rss-meme-file">
+                    <h2 class="report-heading">RSS MEME sequence motifs</h2>
+                    <div class="tabs">
+                        {% for branch in rss_meme_data.keys() %}
+                        <div class="tab-link" data-tab="{{ branch }}">{{ branch.split('_')[0] | capitalize }}</div>
+                        {% endfor %}
+                    </div>
+                    {% for branch, types in rss_meme_data.items() %}
+                    <div id="{{ branch }}" class="tab">
+                        <div class="tabs">
+                            {% for type in types.keys() %}
+                            <div class="tab-link" data-tab="{{ branch }}-{{ type }}">{{ type }}</div>
+                            {% endfor %}
+                        </div>
+                        {% for type, logos in types.items() %}
+                        <div id="{{ branch }}-{{ type }}" class="tab">
+                            {% for logo in logos %}
+                            <div class="image-container">
+                                <h3>{{ logo.folder | replace('_', ' ') }}</h3>
+                                <img src="{{ logo.logo }}" alt="{{ logo.folder }} logo">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+
+            <!-- Annotation Summary Section -->
+            <div class="annotation-summary">
+                <h2 class="report-heading">Annotation Summary</h2>
+                {% if annotation_summary_100_plus %}
+                    <!-- Tabs for Known Matches (100% Plus) -->
+                    <h3>Identified known segments</h3>
+                    <div class="tabs">
+                        {% for region in annotation_summary_100_plus|groupby('Region') %}
+                        <div class="tab-link" data-tab="summary-100-plus-{{ region.grouper }}">{{ region.grouper }}</div>
+                        {% endfor %}
+                    </div>
+                    {% for region, rows in annotation_summary_100_plus|groupby('Region') %}
+                    <div id="summary-100-plus-{{ region }}" class="tab">
+                        <div class="table-container">
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Region</th>
+                                        <th>Haplotype</th>
+                                        <th>Function</th>
+                                        <th>Segment</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in rows %}
+                                    <tr>
+                                        <td>{{ row.Region }}</td>
+                                        <td>{{ row.Haplotype }}</td>
+                                        <td>{{ row.Function }}</td>
+                                        <td>{{ row.Segment }}</td>
+                                        <td>{{ row.Count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="show-more-btn" onclick="location.href='annotation_details_known.html'">Show All</button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if  annotation_summary_plus %}
+                    <!-- Tabs for Novel Segments (Plus) -->
+                    <h3>Identified novel segments</h3>
+                    <div class="tabs">
+                        {% for region in annotation_summary_plus|groupby('Region') %}
+                        <div class="tab-link" data-tab="summary-plus-{{ region.grouper }}">{{ region.grouper }}</div>
+                        {% endfor %}
+                    </div>
+                    {% for region, rows in annotation_summary_plus|groupby('Region') %}
+                    <div id="summary-plus-{{ region }}" class="tab">
+                        <div class="table-container">
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Region</th>
+                                        <th>Haplotype</th>
+                                        <th>Function</th>
+                                        <th>Segment</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in rows %}
+                                    <tr>
+                                        <td>{{ row.Region }}</td>
+                                        <td>{{ row.Haplotype }}</td>
+                                        <td>{{ row.Function }}</td>
+                                        <td>{{ row.Segment }}</td>
+                                        <td>{{ row.Count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="show-more-btn" onclick="location.href='annotation_details_novel.html'">Show All</button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+    </div>
+    <script src="../js/loadSidebar.js"></script>
+    <script src="../js/report.js"></script> 
+</body>
+</html>

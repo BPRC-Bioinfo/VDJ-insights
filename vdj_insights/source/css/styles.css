@@ -1,0 +1,377 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    background-color: #ffffff;
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    padding: 20px;
+    background-color: #ffffff;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 1s ease-in-out;
+    overflow-y: auto;
+}
+
+/* Main content styling */
+.main-content {
+    flex: 1;
+    margin-left: 250px;
+    transition: margin-left 0.3s ease;
+    overflow-y: auto;
+}
+
+.main-content.shifted {
+    margin-left: 80px;
+}
+
+/* Flexbox for header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header .report-title {
+    font-size: 2.5em;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.header .report-date {
+    font-size: 1em;
+    color: #7f8c8d;
+}
+
+/* Flexbox for main content */
+.report-main-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Styling for headings */
+.report-title,
+.report-heading {
+    color: #2c3e50;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.report-title {
+    font-size: 2.5em;
+    border-bottom: 2px solid #2c3e50;
+    padding-bottom: 0.2em;
+}
+
+.report-heading {
+    font-size: 2em;
+    margin-top: 1.5em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #34495e;
+}
+
+/* Styling for paragraphs */
+.report-intro {
+    margin-bottom: 1em;
+    line-height: 1.8;
+    text-align: justify;
+    color: #333;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+/* Styling for lists */
+.report-list {
+    line-height: 1.8;
+    margin-bottom: 1.5em;
+    padding-left: 1.5em;
+    color: #333;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.report-list li {
+    margin-bottom: 0.5em;
+}
+
+/* Styling for tables */
+.report-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 1.5em;
+    background-color: #ffffff;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.5s ease-in-out;
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.report-table th,
+.report-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+    width: calc(100% / 12);
+}
+
+.report-table th {
+    background-color: #0063a5;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.report-table th:hover {
+    background-color: #005287;
+}
+
+.report-table td {
+    background-color: #ffffff;
+    color: #333;
+    font-size: 14px;
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Rounded corners for table */
+.report-table tr:first-child th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.report-table tr:first-child th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.report-table tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+.report-table tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+
+/* Styling for status messages */
+.success {
+    color: #27ae60;
+    font-weight: bold;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.warning {
+    color: #f39c12;
+    font-weight: bold;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+.error {
+    color: #e74c3c;
+    font-weight: bold;
+    animation: fadeInUp 0.5s ease-in-out;
+}
+
+/* Button styling */
+.report-button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 1em;
+    animation: fadeInUp 0.5s ease-in-out;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.report-button:hover {
+    background-color: #2980b9;
+}
+
+/* Keyframes for animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Config Section Styling */
+.config-file {
+    margin-top: 20px;
+}
+
+.config-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.config-block {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 250px;
+    overflow-y: auto;
+    position: relative;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.config-block:hover {
+    border-color: #3498db;
+}
+
+/* Scroll indicator styling */
+.config-block::before,
+.config-block::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    pointer-events: none;
+}
+
+.config-block::before {
+    top: 0;
+}
+
+.config-block::after {
+    bottom: 0;
+}
+
+/* Scrollable indicator */
+.config-block.scrollable {
+    border-color: #3498db;
+}
+
+.config-subheading {
+    font-size: 1.5em;
+    color: #0056b3;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #0056b3;
+    padding-bottom: 5px;
+}
+
+.config-list,
+.config-sublist,
+.config-subsublist {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.config-list>li {
+    margin-bottom: 10px;
+}
+
+.config-sublist>li,
+.config-subsublist>li {
+    margin-bottom: 5px;
+    padding-left: 20px;
+    position: relative;
+}
+
+.config-item {
+    background-color: #ffffff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.config-subitem {
+    background-color: #f1f1f1;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.config-subsubitem {
+    background-color: #e9e9e9;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.config-sublist>li:before,
+.config-subsublist>li:before {
+    content: "•";
+    position: absolute;
+    left: -15px;
+    color: #3498db;
+}
+
+.config-text {
+    font-size: 1em;
+    color: #333;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    body {
+        margin: 20px;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    .report-title {
+        font-size: 2em;
+    }
+
+    .report-heading {
+        font-size: 1.75em;
+    }
+
+    .report-main-content table,
+    .report-main-content th,
+    .report-main-content td {
+        font-size: 0.9em;
+    }
+
+    .report-button {
+        font-size: 0.9em;
+        padding: 8px 16px;
+    }
+
+    .config-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .config-block {
+        height: auto;
+    }
+}
