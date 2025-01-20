@@ -149,6 +149,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
         locus_with_gaps_fasta_file_name = locus_with_gaps_fasta_file_name / f"{locus_type}_{rss_variant}.fasta"
 
         sum_lenght_seq = 0
+        sum_seq = 0
         with open(locus_fasta_file_name, 'w') as locus_fasta_file, open(locus_with_gaps_fasta_file_name, 'w') as locus_fasta_file2:
             for index_segment, row in group_locus.iterrows():
                 start_coord_segment = row["Start coord"]
@@ -166,28 +167,31 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                     start_rss, end_rss = [(start_coord_segment - rss_length), start_coord_segment]
 
                 rss = record.seq[start_rss:end_rss].replace("-", "N")
-                if strand == '-':
-                    rss = str(Seq(str(rss)).reverse_complement())
+                if rss:
+                    if strand == '-':
+                        rss = str(Seq(str(rss)).reverse_complement())
 
-                seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
-                locus_fasta_file.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                    seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
+                    locus_fasta_file.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
-                if row["Function"] != "P" and row["Status"] == "Known":
-                    spacer = len(spacer) * "N"
-                    locus_fasta_file2.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                    if row["Function"] != "P" and row["Status"] == "Known":
+                        spacer = len(spacer) * "N"
+                        locus_fasta_file2.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        sum_seq = sum_seq + 1
 
-                sum_lenght_seq += len(rss)
+                    sum_lenght_seq += len(rss)
 
-        meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
-        os.makedirs(cwd / output_base / "meme_output", exist_ok=True)
-        run_meme(locus_fasta_file_name=locus_with_gaps_fasta_file_name, meme_output=meme_output, rss_length=rss_length, sum_lenght_seq=sum_lenght_seq)
+        if sum_seq > 1:
+            meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
+            os.makedirs(cwd / output_base / "meme_output", exist_ok=True)
+            run_meme(locus_fasta_file_name=locus_with_gaps_fasta_file_name, meme_output=meme_output, rss_length=rss_length, sum_lenght_seq=sum_lenght_seq)
 
-        fimo_output = cwd / output_base / "fimo_output" / f"{locus_type}_{rss_variant}"
-        os.makedirs(cwd / output_base / "fimo_output", exist_ok=True)
-        run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name)
+            fimo_output = cwd / output_base / "fimo_output" / f"{locus_type}_{rss_variant}"
+            os.makedirs(cwd / output_base / "fimo_output", exist_ok=True)
+            run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name)
 
-        df_fimo = get_fimo_output(fimo_intput=fimo_output)
-        group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, rss_layout=rss_layout, rss_length=rss_length)
+            df_fimo = get_fimo_output(fimo_intput=fimo_output)
+            group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, rss_layout=rss_layout, rss_length=rss_length)
     combined_results = pd.concat([combined_results, group_locus])
     return combined_results
 
