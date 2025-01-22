@@ -28,9 +28,15 @@ def open_files(cwd: Path) -> pd.DataFrame:
             - pd.DataFrame: DataFrame with non-VDJ segments.
             - pd.DataFrameGroupBy: Grouped DataFrame by 'Region' and 'Segment' for VDJ segments.
     """
-    data_known = pd.read_excel(cwd / "annotation" / "annotation_report_known.xlsx")
-    data_novel = pd.read_excel(cwd / "annotation" / "annotation_report_novel.xlsx")
-    data = pd.concat([data_known, data_novel])
+    file_known = cwd / "annotation" / "annotation_report_known.xlsx"
+    file_novel = cwd / "annotation" / "annotation_report_novel.xlsx"
+
+    dataframes = []
+    if file_known.exists():
+        dataframes.append(pd.read_excel(file_known))
+    if file_novel.exists():
+        dataframes.append(pd.read_excel(file_novel))
+    data = pd.concat(dataframes, ignore_index=True)
 
     data_c = data[~data["Segment"].isin(["V", "D", "J"])]
     data_vdj = data[data["Segment"].isin(["V", "D", "J"])]
@@ -243,13 +249,13 @@ def main_rss(threads: int = 8) -> None:
     known = combined_df[combined_df["Status"] == "Known"]
     novel = combined_df[combined_df["Status"] == "Novel"]
 
-    novel = novel.groupby('Short name', group_keys=False).apply(add_suffix_to_short_name)
-
-    known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-    novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-
-    known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
-    novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)
+    if not known.empty:
+        known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
+    if not novel.empty:
+        novel = novel.groupby('Short name', group_keys=False).apply(add_suffix_to_short_name)
+        novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)
 
 
 if __name__ == '__main__':
