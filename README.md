@@ -6,24 +6,36 @@
 
 VDJ insights offers a robust framework for assembling and annotating the TCR and BCR regions using long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). We designed this tool to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors (BCR). This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
 
+---
+
 ## Installation
 
-VDJ insights requires a specific environment to run. You can install all necessary dependencies by setting up a Conda environment using the provided pipeline.yaml file. 
+VDJ Insights is currently supported only on Linux systems. The Python environment required to run the pipeline is automatically configured using PIO, eliminating the need for manual Conda environment setup. Please ensure that Python and Conda are installed on your system before running the pipeline.
+To install VDJ Insights, you can choose one of the following methods:
 
-clone the VDJ insights repository:
-``` bash
-git clone https://github.com/BPRC-CGR/TCR_macaque
-```
+### Option 1: Clone the repository
+1. Clone the VDJ Insights repository:
+   ```bash
+   git clone https://github.com/BPRC-CGR/VDJ-insights
+   ```
 
-Open the terminal and run the following command to create the Conda environment:
-``` bash
-conda env create -f pipeline.yaml --name pipeline
-```
+2. Navigate to the repository directory and run PIO to install dependencies:
+   ```bash
+   cd vdj_insights
+   ```
 
-Activate the Conda environment you created earlier by running:
-``` bash
-conda activate pipeline
-```
+3. Run the pipeline using Python's -m option:
+   ```bash
+   python -m vdj_insights.<pipeline|annotation|html> [arguments]
+   ```
+**Note:** When cloning the repository, the pipeline must always be executed using the python -m option. This ensures that Python correctly recognizes the package structure and runs the pipeline without additional installation steps.
+### Option 2: Install via pip
+1. Use pip to install VDJ Insights directly:
+   ```bash
+   pip install vdj_insights
+   ```
+
+After installation, the environment is ready to use, and you can proceed with running the pipeline.
 
 ## Overview VDJ insights
 
@@ -67,14 +79,14 @@ python vdj-insights pipeline -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fast
 It is possible to analyse already assemble genomes using the FASTA file as input. You can use the following command to run the script:
 
 ```bash
-python vdj-insights annotation -a <assembly_directory> | -i <input_directory> -l <library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads> -m <mappingtool, mapping_tool> -M <metadata_directory> -o <output_directory> --default
+python vdj-insights annotation -a <assembly_directory> | -i <input_directory> -l <library_directory/library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads> -m <mappingtool, mapping_tool> -M <metadata_directory> -o <output_directory> --default
 ```
 
 ### **Required Arguments:**
 | **Argument**        | **Description**                                                                                   | **Example**              |
 |---------------------|---------------------------------------------------------------------------------------------------|-------------------------|
 | `-r, --receptor-type` | Type of receptor to analyze. Choices are `TR` (T-cell receptor), `IG` (immunoglobulin), or `KIR-LILR`. **(Required when using `--default`)**| `-r TR`                 |
-| `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`). | `-a /path/to/assembly.fasta` or `-i /path/to/region.fasta` |
+| `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`). | `-a /path/to/assembly` or `-i /path/to/region` |
 | `-l, --library`     | Path to the library FASTA file containing V(D)J segment sequences. **(Required when using -i)** | `-l /path/to/library.fasta`|
 | `-f, --flanking-genes` | Comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. **(Required when using `-a`)** | `-f MGAM2,EPHB6` |
 | `-s, --species`     | Species name, e.g., `Homo sapiens`. **(Required when using `-a`)** | `-s "Homo sapiens"` |
