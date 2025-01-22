@@ -108,6 +108,7 @@ def validate_input(path: str) -> str:
         )
     return str(input_path)
 
+
 @log_error()
 def validate_metadata_coverage(input_dir: str, metadata_dir: str) -> bool:
     input_files = []
