@@ -159,7 +159,6 @@ def add_values(df):
     df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda x: pd.Series(parse_btop(x)))
 
     split_query_df = df['query'].str.split('#', expand=True)
-    #split_query_df = df['query'].str.split(r'[#:]', expand=True)
 
     df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool', 'mapping_accuracy']] = split_query_df[[0, 1, 2, 3, 4, 5, 6, 7]]
     return df
@@ -309,10 +308,9 @@ def filter_df(group_df, cell_type):
     best_row["Old name-like"] = best_row["Reference"]
     best_row["Short name"] = best_row["Reference"].apply(
         lambda ref: fetch_prefix(ref, cell_type))
-    if int(best_row.Mismatches.iloc[0]) != 0:
-        best_row["Old name-like"] = best_row["Reference"] + "-like"
-        best_row["Short name"] = best_row["Reference"].apply(
-            lambda ref: fetch_prefix(ref, cell_type)) + "-like"
+    best_row["Old name-like"] = best_row["Reference"] + "-like"
+    best_row["Short name"] = best_row["Reference"].apply(
+        lambda ref: fetch_prefix(ref, cell_type)) + "-like"
     return best_row.squeeze()
 
 
@@ -360,9 +358,6 @@ def run_like_and_length(df, record, cell_type):
     df = add_like_to_df(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
-
-    #length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
-    #df = df[length_mask]
     df["Sample"] = df["Path"].apply(extract_sample)
     return df
 
@@ -519,4 +514,6 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
         known_df = known_df.apply(add_orf, axis=1)
         known_df = group_similar(known_df, cell_type)
         annotation(known_df, annotation_folder,'annotation_report_known.xlsx', no_split, metadata_folder)
+    console_log.info(f"Known segments detected: {known_df.shape[0]}")
+    console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
 
