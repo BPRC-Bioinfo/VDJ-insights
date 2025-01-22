@@ -104,12 +104,8 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         Exception: If an unexpected error occurs during the mapping process, logs the error and raises an exception.
     """
     sam_file = output_dir / assembly_file.with_suffix(".sam").name
-    awk_command = "awk '{print $1, $2, $3, $4, $5}'"
     if not sam_file.is_file():
-        command = (
-            f'minimap2 -ax asm5 --secondary=no -t {threads} '
-            f'{assembly_file} {flanking_genes} | {awk_command} > {sam_file}'
-        )
+        command = (f'minimap2 -ax asm5 -t {threads} {assembly_file} {flanking_genes} > {sam_file}')
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
@@ -147,6 +143,7 @@ def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species:
         for assembly_file in assembly_files
     ]
     total_tasks = len(tasks)
+
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(map_flanking_genes, *arg): arg for arg in tasks}
