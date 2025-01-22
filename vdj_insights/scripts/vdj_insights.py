@@ -269,7 +269,7 @@ def setup_annotation_args(subparsers):
     parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG', 'KIR-LILR'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
-    data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
+    data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes.')
     data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
 
     parser_annotation.add_argument('-M', '--metadata',required=False, type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
@@ -401,9 +401,16 @@ def load_library_from_json(json_file_path):
 
 
 def load_annotation_data(cwd):
-    novel = pd.read_excel(cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
-    known = pd.read_excel(cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
-    return pd.concat([novel, known])[["Start coord", "End coord", "Reference", "Old name-like", "Status",
+    file_known = cwd / "annotation" / "annotation_report_known.xlsx"
+    file_novel = cwd / "annotation" / "annotation_report_novel.xlsx"
+
+    dataframes = []
+    if file_known.exists():
+        dataframes.append(pd.read_excel(file_known))
+    if file_novel.exists():
+        dataframes.append(pd.read_excel(file_novel))
+    data = pd.concat(dataframes, ignore_index=True)
+    return data[["Start coord", "End coord", "Reference", "Old name-like", "Status",
                                       "Sample", "Haplotype", "Old name-like seq"]].apply(lambda col: col.str.strip() if col.dtype == "object" else col)
 
 
