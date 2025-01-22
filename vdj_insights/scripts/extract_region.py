@@ -124,7 +124,6 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
     sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
 
     coords, name = get_positions_and_name(sam, first, second)
-
     if coords:
         if len(set(name)) == 1:
             contig_name = name[0]
