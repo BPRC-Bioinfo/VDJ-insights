@@ -115,7 +115,7 @@ def validate_flanking_genes(value: str) -> list:
     flanking_genes = [gene.strip().upper() for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
         raise argparse.ArgumentTypeError(f"""The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).""")
-    return flanking_genes
+    return value
 
 
 def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
@@ -216,7 +216,7 @@ def main(args=None):
     if args.assembly:
         map_main(args.flanking_genes, args.assembly, args.species, args.threads)
         region_main(args.flanking_genes, args.assembly, args.threads)
-    #exit()
+
     df = get_or_create(args.receptor_type, annotation_folder, args.mapping_tool, region_dir, args.library, args.threads)
 
     blast_file = annotation_folder / "blast_results.csv"
@@ -235,6 +235,7 @@ def main(args=None):
                 for func, args in zip(functions, args_list):
                     func(*args)
                     pbar.update(1)
+
     else:
         report_main2(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
 

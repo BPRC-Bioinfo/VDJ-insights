@@ -308,9 +308,10 @@ def filter_df(group_df, cell_type):
     best_row["Old name-like"] = best_row["Reference"]
     best_row["Short name"] = best_row["Reference"].apply(
         lambda ref: fetch_prefix(ref, cell_type))
-    best_row["Old name-like"] = best_row["Reference"] + "-like"
-    best_row["Short name"] = best_row["Reference"].apply(
-        lambda ref: fetch_prefix(ref, cell_type)) + "-like"
+    if float(best_row["% identity"].iloc[0]) < 100.0:
+        best_row["Old name-like"] = best_row["Reference"] + "-like"
+        best_row["Short name"] = best_row["Reference"].apply(
+            lambda ref: fetch_prefix(ref, cell_type)) + "-like"
     return best_row.squeeze()
 
 
@@ -476,6 +477,23 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
         df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
 
 
+def add_suffix_to_short_name(group):
+    """
+    Adds a suffix to duplicate 'Short name' entries to ensure uniqueness.
+
+    Args:
+        group (pd.DataFrame): Grouped DataFrame containing segment data.
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with unique 'Short name' values.
+    """
+    unique_sequences = group['Old name-like seq'].unique()
+    if len(unique_sequences) > 1:
+        seq_to_suffix = {seq: f"_{i + 1}" for i, seq in enumerate(unique_sequences)}
+        group['Short name'] = group['Short name'] + group['Old name-like seq'].map(seq_to_suffix)
+        group['Old name-like'] = group['Old name-like'] + group['Old name-like seq'].map(seq_to_suffix)
+    return group
+
 @log_error()
 def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], no_split: bool, metadata_folder: Union[str, Path]):
     """
@@ -508,6 +526,7 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
         novel_df = novel_df.apply(add_orf, axis=1)
         annotation_long(novel_df, annotation_folder)
         novel_df = group_similar(novel_df, cell_type)
+        novel_df = novel_df.groupby('Old name-like seq', group_keys=False).apply(add_suffix_to_short_name)
         annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
     if not known_df.empty:
         known_df = run_like_and_length(known_df, segments_library, cell_type)

@@ -129,9 +129,8 @@ def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species:
     make_dir(map_flanking_genes_dir)
 
     console_log.info(f"Downloading flanking genes for {species}")
-
     for gene in flanking_genes:
-        if gene != "-":
+        if gene != "-" and len(gene) > 1:
             download_flanking_genes(gene, flanking_genes_dir, species)
 
     gene_output = combine_genes(flanking_genes_dir, flanking_genes_dir / "all_genes.fna")

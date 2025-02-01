@@ -119,6 +119,8 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
     Extracts a sequence from an assembly FASTA file based on flanking genes,
     and writes it to an output FASTA file.
     """
+    if second == "":
+        second = "-"
     outfile = directory / f"{sample}_{first}_{second}_{haplotype}.fasta"
     log_data = {}
     sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
@@ -137,13 +139,19 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
 
             log_data = {
                 "flanking_regions": f"{first}-{second}",
-                "Contig": contig_name
+                "Contig": contig_name,
+                "5_Flanking_gene": first,
+                "3_Flanking_gene": second,
+                "5_Coords": min(coords),
+                "3_Coords": max(coords)
             }
         else:
             file_log.warning(
                 f"Broken region detected, unable to create a valid region.: {assembly_fasta.name}, {first}, {second}, {name[0]}, {name[1]}, {min(coords)}, {max(coords)}")
             log_data = {
                 "flanking_regions": f"{first}-{second}",
+                "5_Flanking_gene": first,
+                "3_Flanking_gene": second,
                 "5_Contig": name[0],
                 "3_Contig": name[1]
             }
@@ -214,7 +222,6 @@ def region_main(flanking_genes: list[str], assembly_dir: Union[str, Path], threa
         for assembly in assembly_files:
             chrom, sample, haplotype = parse_name(assembly)
             tasks.append((cwd, assembly, directory, first, second, sample, haplotype))
-
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
 
@@ -233,10 +240,16 @@ def region_main(flanking_genes: list[str], assembly_dir: Union[str, Path], threa
                     if "Contig" in log_data:
                         output_json[assembly_name][flanking_key]["5_Contig"] = log_data["Contig"]
                         output_json[assembly_name][flanking_key]["3_Contig"] = log_data["Contig"]
+                        output_json[assembly_name][flanking_key]["5_Flanking_gene"] = log_data["5_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["3_Flanking_gene"] = log_data["3_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["5_Coords"] = log_data["5_Coords"]
+                        output_json[assembly_name][flanking_key]["3_Coords"] = log_data["3_Coords"]
                         output_json[assembly_name][flanking_key]["assembly_type"] = "Complete"
                     else:
                         output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
                         output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]
+                        output_json[assembly_name][flanking_key]["5_Flanking_gene"] = log_data["5_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["3_Flanking_gene"] = log_data["3_Flanking_gene"]
                         output_json[assembly_name][flanking_key]["assembly_type"] = "Fragmented"
                 pbar.update(1)
 

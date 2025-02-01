@@ -149,8 +149,7 @@ def validate_flanking_genes(value):
     Raises:
         argparse.ArgumentTypeError: If the number of genes is not even.
     """
-    flanking_genes = [gene.strip().upper() if gene.strip() !=
-                      '-' else '' for gene in value.split(',')]
+    flanking_genes = [gene.strip().upper() if gene.strip() != '-' else '-' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
         file_log.error(f"The specified flanking genes: {flanking_genes} should be even numbers.")
         raise argparse.ArgumentTypeError(f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
@@ -359,6 +358,7 @@ def run_annotation(args):
     cwd = Path.cwd()
     file_log.info('Running the annotation program')
     library = cwd / 'library' / f'library.fasta'
+
     if not args.library:
         if not library.is_file():
             file_log.info(
@@ -375,6 +375,13 @@ def run_annotation(args):
                 args.library = cwd / 'library' / library
         else:
             args.library = cwd / 'library' / library
+    else:
+        library_path = Path(args.library)
+        destination = cwd / 'library' / library_path.name
+        make_dir(cwd / 'library')
+        shutil.copy(args.library, destination)
+        args.library = cwd / 'library' / library
+
     create_config(output_dir, settings_dir, args)
     try:
         create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
@@ -453,6 +460,26 @@ def open_browser():
     webbrowser.open_new('http://127.0.0.1:5000/')
 
 
+def get_python_executable():
+    """
+    Checks whether 'python' or 'python3' is available and returns the appropriate executable.
+
+    Returns:
+        str: The name of the Python executable ('python' or 'python3').
+
+    Raises:
+        RuntimeError: If neither 'python' nor 'python3' is found in the PATH.
+    """
+    if shutil.which("python"):
+        return "python"
+    elif shutil.which("python3"):
+        return "python3"
+    else:
+        raise RuntimeError(
+            "No suitable Python executable found. Ensure 'python' or 'python3' is available in PATH."
+        )
+
+
 def run_html(args):
     console_log.info(
         "Running the HTML report, which should automatically open in your browser.\n"
@@ -470,8 +497,9 @@ def run_html(args):
     try:
         if not args.dev_mode:
             threading.Timer(1, open_browser).start()
+        python_executable = get_python_executable()
         process = subprocess.Popen(
-            ['python', str(output_dir / 'app.py')],
+            [python_executable, str(output_dir / 'app.py')],
             stdout=False if args.dev_mode else subprocess.DEVNULL,
             stderr=False if args.dev_mode else subprocess.DEVNULL,
         )
