@@ -74,7 +74,7 @@ def construct_blast_command(fasta_file_path: Union[str, Path],
     - `-outfmt '6 ...'`: Defines custom output columns, including alignment details like
       query ID, subject ID, percent identity, alignment length, mismatches, gap opens,
       query and subject start and end positions, e-value, bit score, query and subject
-      sequences, and query coverage.
+      sequences, query coverage and btop.
     - `-perc_identity`: Sets the minimum percentage identity for alignments.
     - `-out`: Specifies the path to the output file for the BLAST results.
 
@@ -134,14 +134,14 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
     Raises:
         subprocess.CalledProcessError: If the BLAST command fails.
     """
-    header, sequence, start, stop, fasta_file_name, strand, haplotype, tool, accuracy = row["name"], row[
-        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"], row["tool"], row["accuracy"]
+    header, sequence, start, stop, fasta_file_name, strand, haplotype, tool = row["name"], row[
+        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"], row["tool"]
 
     sequence = sequence.replace("-", "")
 
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
         sep = "#"
-        fasta_header = f">{header}{sep}{start}{sep}{stop}{sep}{strand}{sep}{fasta_file_name}{sep}{haplotype}{sep}{tool}{sep}{accuracy}\n"
+        fasta_header = f">{header}{sep}{start}{sep}{stop}{sep}{strand}{sep}{fasta_file_name}{sep}{haplotype}{sep}{tool}{sep}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 
@@ -153,7 +153,7 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
 
 
 # @log_error()
-def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, threads : int,  CUTOFFS=[100, 75, 50]) -> pd.DataFrame:
+def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, threads : int,  CUTOFFS=[50]) -> pd.DataFrame:
     """
     Iterates over a set of identity cutoffs (100%, 75%, 50%) and performs parallel BLAST
     searches for each row in the input DataFrame. Uses `execute_blast_search()` to obtain

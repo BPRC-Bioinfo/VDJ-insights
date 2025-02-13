@@ -238,19 +238,19 @@ def region_main(flanking_genes: list[str], assembly_dir: Union[str, Path], threa
                     if flanking_key not in output_json[assembly_name]:
                         output_json[assembly_name][flanking_key] = {}
                     if "Contig" in log_data:
-                        output_json[assembly_name][flanking_key]["5_Contig"] = log_data["Contig"]
-                        output_json[assembly_name][flanking_key]["3_Contig"] = log_data["Contig"]
-                        output_json[assembly_name][flanking_key]["5_Flanking_gene"] = log_data["5_Flanking_gene"]
-                        output_json[assembly_name][flanking_key]["3_Flanking_gene"] = log_data["3_Flanking_gene"]
-                        output_json[assembly_name][flanking_key]["5_Coords"] = log_data["5_Coords"]
-                        output_json[assembly_name][flanking_key]["3_Coords"] = log_data["3_Coords"]
-                        output_json[assembly_name][flanking_key]["assembly_type"] = "Complete"
+                        output_json[assembly_name][flanking_key]["5'-contig"] = log_data["Contig"]
+                        output_json[assembly_name][flanking_key]["3'-contig"] = log_data["Contig"]
+                        output_json[assembly_name][flanking_key]["5'-flanking_gene"] = log_data["5_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["3'-flanking_gene"] = log_data["3_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["5'-Coords"] = log_data["5_Coords"]
+                        output_json[assembly_name][flanking_key]["3'-Coords"] = log_data["3_Coords"]
+                        output_json[assembly_name][flanking_key]["Extraction status"] = "Complete"
                     else:
-                        output_json[assembly_name][flanking_key]["5_Contig"] = log_data["5_Contig"]
-                        output_json[assembly_name][flanking_key]["3_Contig"] = log_data["3_Contig"]
-                        output_json[assembly_name][flanking_key]["5_Flanking_gene"] = log_data["5_Flanking_gene"]
-                        output_json[assembly_name][flanking_key]["3_Flanking_gene"] = log_data["3_Flanking_gene"]
-                        output_json[assembly_name][flanking_key]["assembly_type"] = "Fragmented"
+                        output_json[assembly_name][flanking_key]["5'-contig"] = log_data["5_Contig"]
+                        output_json[assembly_name][flanking_key]["3'-contig"] = log_data["3_Contig"]
+                        output_json[assembly_name][flanking_key]["5'-flanking_gene"] = log_data["5_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["3'-flanking_gene"] = log_data["3_Flanking_gene"]
+                        output_json[assembly_name][flanking_key]["Extraction status"] = "Fragmented"
                 pbar.update(1)
 
     log_file = cwd / "broken_regions.json"

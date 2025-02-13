@@ -97,7 +97,7 @@ def filter_group(group):
     return not (group['% identity'] == 100).any()
 
 
-def main_df(df):
+def split_df(df):
     """
     Processes the BLAST results DataFrame to filter out entries that contain gaps in the sequences or have 100% identity.
     Converts the '% identity' column to float for numerical operations and filters out 100% identity entries,
@@ -498,21 +498,6 @@ def add_suffix_to_short_name(group):
 def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], no_split: bool, metadata_folder: Union[str, Path]):
     """
     Main function to process and generate the annotation reports from the BLAST results.
-    It performs the following steps:
-        1. Loads the configuration and reference sequence records.
-        2. Processes the BLAST results DataFrame to add necessary columns and filter the results.
-        3. Generates the condensed and full annotation reports.
-
-    Args:
-        annotation_folder (Path): The directory where the reports will be saved.
-        blast_file (Path or str): Path to the input BLAST results file (Excel format).
-        cell_type (str): The cell type used to fetch prefixes.
-        library (Path or str): Path to the reference sequence library in FASTA format.
-        no_split (bool): A flag indicating whether to split the report by sample.
-        metadata_folder (Path or str): Path to the metadata file.
-
-    Raises:
-        Exception: If any step fails, logs the error and raises an exception.
     """
     cwd = Path.cwd()
     segments_library = make_record_dict(library)
@@ -520,19 +505,30 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     df = pd.read_csv(blast_file, low_memory=False)
     df = add_values(df)
 
-    novel_df, known_df = main_df(df)
+    novel_df, known_df = split_df(df)
     if not novel_df.empty:
         novel_df = run_like_and_length(novel_df, segments_library, cell_type)
         novel_df = novel_df.apply(add_orf, axis=1)
-        annotation_long(novel_df, annotation_folder)
-        novel_df = group_similar(novel_df, cell_type)
-        novel_df = novel_df.groupby('Old name-like seq', group_keys=False).apply(add_suffix_to_short_name)
-        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
+        novel_df["Status"] = "Novel"
     if not known_df.empty:
         known_df = run_like_and_length(known_df, segments_library, cell_type)
         known_df = known_df.apply(add_orf, axis=1)
-        known_df = group_similar(known_df, cell_type)
-        annotation(known_df, annotation_folder,'annotation_report_known.xlsx', no_split, metadata_folder)
+        known_df["Status"] = "Known"
+
+    combined_df = pd.concat([novel_df, known_df], ignore_index=True)
+
+    grouped_df = group_similar(combined_df, cell_type)
+
+    known_df = grouped_df[grouped_df["Status"] == "Known"]
+    novel_df = grouped_df[grouped_df["Status"] == "Novel"]
+
+    if not novel_df.empty:
+        annotation_long(novel_df, annotation_folder)
+        novel_df = novel_df.groupby('Reference', group_keys=False).apply(add_suffix_to_short_name)
+        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
+
+    if not known_df.empty:
+        annotation(known_df, annotation_folder, 'annotation_report_known.xlsx', no_split, metadata_folder)
+
     console_log.info(f"Known segments detected: {known_df.shape[0]}")
     console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
-

@@ -40,7 +40,6 @@ def open_files(cwd: Path) -> pd.DataFrame:
 
     data_c = data[~data["Segment"].isin(["V", "D", "J"])]
     data_vdj = data[data["Segment"].isin(["V", "D", "J"])]
-
     vdj_grouped = data_vdj.groupby(["Region", "Segment"])
     return data_c, vdj_grouped
 
@@ -59,7 +58,6 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
     meme_command = f"meme {locus_fasta_file_name} -o {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxw {rss_length} -maxsize {sum_lenght_seq}"
     if not meme_output.exists():
         subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
 
 @log_error()
 def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) -> None:
@@ -107,7 +105,8 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
         pd.DataFrame: Updated group locus DataFrame with added FIMO results.
     """
     for index_segment, row in group_locus.iterrows():
-        is_present = index_segment in df_fimo['index_group_df'].values and df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'score'].values[0] > 0
+        df_match = df_fimo[df_fimo["index_group_df"] == index_segment]
+        is_present = not df_match.empty and df_match["score"].values[0] > 0
 
         if rss_layout == "end_plus":
             direction = 3
@@ -116,10 +115,10 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
 
         group_locus.loc[index_segment, f"{direction}'-RSS"] = str(is_present)
         if is_present:
-            group_locus.loc[index_segment, f"{direction}'-p-value"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'p-value'].values[0]
-            group_locus.loc[index_segment, f"{direction}'-q-value"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'q-value'].values[0]
-            group_locus.loc[index_segment, f"{direction}'-score"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'score'].values[0]
-            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'matched sequence'].values[0].upper()
+            group_locus.loc[index_segment, f"{direction}'-p-value"] = df_match["p-value"].values[0]
+            group_locus.loc[index_segment, f"{direction}'-q-value"] = df_match["q-value"].values[0]
+            group_locus.loc[index_segment, f"{direction}'-score"] = df_match["score"].values[0]
+            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched sequence"].values[0].upper()
 
     return group_locus
 

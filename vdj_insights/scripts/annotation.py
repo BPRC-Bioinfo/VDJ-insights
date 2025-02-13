@@ -58,8 +58,9 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
         df["haplotype"] = df['file'].apply(lambda x: Path(x).stem.split('_')[-1])
-    unique_combinations = df.drop_duplicates(subset=["start", "stop", "reference"])
+    unique_combinations = df.drop_duplicates(subset=["reference", "start", "stop", "name"])
     return unique_combinations.reset_index(drop=True)
+    #return df.reset_index(drop=True)
 
 
 def get_or_create(cell_type: str, annotation_folder: Path, mapping_tool: list, input_dir: str, library: str, threads: int) -> pd.DataFrame:
@@ -152,6 +153,7 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
     optional_group.add_argument('-t', '--threads', type=int,required=False, default=8, help='Number of threads to run the analysis.')
 
     return parser
+
 
 @log_error()
 def main(args=None):
