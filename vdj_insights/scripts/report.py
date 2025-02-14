@@ -160,7 +160,7 @@ def add_values(df):
 
     split_query_df = df['query'].str.split('#', expand=True)
 
-    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool', 'mapping_accuracy']] = split_query_df[[0, 1, 2, 3, 4, 5, 6, 7]]
+    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool']] = split_query_df[[0, 1, 2, 3, 4, 5, 6]]
     return df
 
 
@@ -180,7 +180,7 @@ def add_like_to_df(df):
         'mismatches', '% Mismatches of total alignment',
         'start', 'stop',
         'subject seq', 'query seq',
-        'tool', 'mapping_accuracy', '% identity', 'strand', 'path', 'haplotype',
+        'tool', '% identity', 'strand', 'path', 'haplotype',
         'query_seq_length', 'subject_seq_length', 'btop', 'SNPs', 'Insertions', 'Deletions'
 
     ]]
@@ -189,7 +189,7 @@ def add_like_to_df(df):
         'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord',
         'Reference seq', 'Old name-like seq',
-        'tool', 'mapping_accuracy', '% identity','Strand', 'Path', 'Haplotype',
+        'tool', '% identity','Strand', 'Path', 'Haplotype',
         'Reference Length', 'Old name-like Length', 'BTOP', 'SNPs', 'Insertions', 'Deletions'
     ]
     output_df = output_df.sort_values(by="Reference")
@@ -375,18 +375,16 @@ def group_similar(df, cell_type):
     Returns:
         pd.DataFrame: The grouped and filtered DataFrame.
     """
-    df = df.groupby(['Start coord', 'End coord', 'Sample']).apply(lambda group: filter_df(group, cell_type))
+    df = df.groupby(['Sample', 'Start coord', 'End coord']).apply(lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
 
-    cols_to_convert = ["Start coord", "End coord", "% identity", "mapping_accuracy", "Mismatches"]
+    cols_to_convert = ["Start coord", "End coord", "% identity", "Mismatches"]
     df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors='coerce')
+
 
     filterd_df = (
         df
-        .sort_values(
-            by=['Sample', '% identity', 'mapping_accuracy', 'Mismatches'],
-            ascending=[True, False, False, True]
-        )
+        .sort_values(by=['Sample', '% identity', 'Mismatches'], ascending=[True, False, True])
         .groupby(['Start coord', 'End coord'], as_index=False)
         .first()
     )
@@ -394,23 +392,24 @@ def group_similar(df, cell_type):
     filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
     longest_sequences = (
         filterd_df
-        .sort_values(["Sample", "% identity", "Alignment_length"], ascending=[True, False, False])
+        .sort_values(by=["Sample", "% identity", "Alignment_length"], ascending=[True, False, False])
         .groupby(["Sample", "Start coord"], as_index=False)
         .first()
     )
-
     processed_groups = []
-    grouped = longest_sequences.groupby(["Sample", "Region", "Segment"], as_index=False)
+    grouped = longest_sequences.groupby(["Sample", "Region"], as_index=False)
     for name, group in grouped:
-        group = group.sort_values(by="Start coord").reset_index(drop=True)
+        group = group.sort_values(by=["Start coord", "% identity"], ascending=[True, False]).reset_index(drop=True)
         merged_intervals = []
         current_interval = group.iloc[0]
 
         for idx in range(1, len(group)):
             next_interval = group.iloc[idx]
             if next_interval["Start coord"] <= current_interval["End coord"]:
-                group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"],
-                                                                    next_interval["End coord"])
+                if next_interval["% identity"] > current_interval["% identity"]:
+                    current_interval = next_interval
+                else:
+                    group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"], next_interval["End coord"])
             else:
                 merged_intervals.append(current_interval)
                 current_interval = next_interval
@@ -440,7 +439,7 @@ def annotation_long(df, annotation_folder):
     df = df[['Reference', 'Old name-like', 'Mismatches',
              '% Mismatches of total alignment', 'Start coord',
              'End coord', 'Function', 'Path', 'Region', 'Segment',
-             'Haplotype', 'Sample', 'Short name', 'Message', 'tool','mapping_accuracy', '% identity']]
+             'Haplotype', 'Sample', 'Short name', 'Message', 'tool', '% identity']]
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
@@ -462,7 +461,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
     file_log.info(f"Generating {file_name}!")
 
     df["Status"] = "Known" if "known" in file_name else "Novel"
-    df = df[["Sample", "Haplotype", "Region", "Segment", "Start coord", "End coord", "Strand", "Reference", "Old name-like", "Short name", "Similar references", "Old name-like seq", "Reference seq", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "mapping_accuracy", "tool", "Function", "Status", "Message", "Path"]]
+    df = df[["Sample", "Haplotype", "Region", "Segment", "Start coord", "End coord", "Strand", "Reference", "Old name-like", "Short name", "Similar references", "Old name-like seq", "Reference seq", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "tool", "Function", "Status", "Message", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
@@ -475,6 +474,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
     if not no_split:
         file_log.info("Creating individual sample excel files...")
         df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
+
 
 
 def add_suffix_to_short_name(group):
@@ -494,6 +494,7 @@ def add_suffix_to_short_name(group):
         group['Old name-like'] = group['Old name-like'] + group['Old name-like seq'].map(seq_to_suffix)
     return group
 
+
 @log_error()
 def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], no_split: bool, metadata_folder: Union[str, Path]):
     """
@@ -505,6 +506,7 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     df = add_values(df)
 
     novel_df, known_df = split_df(df)
+
     if not novel_df.empty:
         novel_df = run_like_and_length(novel_df, segments_library, cell_type)
         novel_df = novel_df.apply(add_orf, axis=1)
@@ -516,7 +518,9 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
 
     combined_df = pd.concat([novel_df, known_df], ignore_index=True)
 
+
     grouped_df = group_similar(combined_df, cell_type)
+    print(grouped_df[(grouped_df["Reference"] == 'D87022_IGLV8-61*01_Homo_sapiens') & (grouped_df["Start coord"] == 1038015) & ( grouped_df["Sample"]== 'GCA_018469925.1')])
 
     known_df = grouped_df[grouped_df["Status"] == "Known"]
     novel_df = grouped_df[grouped_df["Status"] == "Novel"]
