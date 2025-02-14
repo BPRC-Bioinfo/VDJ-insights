@@ -59,9 +59,9 @@ def make_blast_db(cwd: Path, library: str) -> Path:
 
 def construct_blast_command(fasta_file_path: Union[str, Path],
                             database_path: Union[str, Path],
-                            identity_cutoff: int,
                             output_file_path: Union[str, Path],
                             length: int,
+                            IDENTITY_CUTOFF: int = 50,
                             LENGTH_THRESHOLD: int = 50,
                             THREADS: int = 2) -> str:
     """
@@ -103,7 +103,7 @@ def construct_blast_command(fasta_file_path: Union[str, Path],
     """
     blast_columns = "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs btop"
     extra = "-word_size 7 -evalue 1000 -penalty -3 -reward 1 -gapopen 5 -gapextend 2 -dust no"
-    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {identity_cutoff} -max_target_seqs 5 -out {output_file_path} -num_threads {THREADS}"
+    command = f"blastn -task megablast -query {fasta_file_path} -db {database_path}/blast_db -outfmt '{blast_columns}' -perc_identity {IDENTITY_CUTOFF} -max_target_seqs 5 -out {output_file_path} -num_threads {THREADS}"
 
     if length <= LENGTH_THRESHOLD:
         command += f" {extra}"
@@ -111,7 +111,7 @@ def construct_blast_command(fasta_file_path: Union[str, Path],
 
 
 @log_error()
-def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: int) -> str:
+def execute_blast_search(row: pd.Series, database_path: Path) -> str:
     """
     Executes a BLAST search for a given row from a DataFrame. Creates a temporary FASTA
     file from the row data and runs the BLAST command against the specified database.
@@ -146,14 +146,14 @@ def execute_blast_search(row: pd.Series, database_path: Path, identity_cutoff: i
         fasta_temp.flush()
 
         blast_result_path = Ntf(mode='w+', delete=False, suffix='_blast.txt').name
-        command = construct_blast_command(fasta_temp.name, database_path, identity_cutoff, blast_result_path, len(sequence))
+        command = construct_blast_command(fasta_temp.name, database_path, blast_result_path, len(sequence))
         subprocess.run(command, shell=True, check=True)
         file_log.info(f"Executed BLAST search for {header}")
     return blast_result_path
 
 
 # @log_error()
-def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, threads : int,  CUTOFFS=[50]) -> pd.DataFrame:
+def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, threads : int) -> pd.DataFrame:
     """
     Iterates over a set of identity cutoffs (100%, 75%, 50%) and performs parallel BLAST
     searches for each row in the input DataFrame. Uses `execute_blast_search()` to obtain
@@ -176,27 +176,25 @@ def aggregate_blast_results(dataframe: pd.DataFrame, database_path: Path, thread
         subprocess.CalledProcessError: If a BLAST command fails during execution.
     """
     aggregated_results = pd.DataFrame()
-    total_searches = len(dataframe) * len(CUTOFFS)
+    total_searches = len(dataframe)
 
     max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
 
     with tqdm(total=total_searches, desc="Running BLAST searches", unit="search") as pbar:
         with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-            for cutoff in CUTOFFS:
-                futures = {executor.submit(execute_blast_search, row, database_path, cutoff): row for _, row in dataframe.iterrows()}
-                for future in as_completed(futures):
-                    result_file_path_str = future.result()
-                    blast_columns = [
-                        'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
-                        'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
-                        'query seq', 'subject seq', 'query cov', 'btop'
-                    ]
-                    temp_df = pd.read_csv(result_file_path_str, sep='\t', names=blast_columns)
-                    if not temp_df.empty:
-                        temp_df['cutoff'] = cutoff
-                        aggregated_results = pd.concat([aggregated_results, temp_df], ignore_index=True)
-                    Path(result_file_path_str).unlink()
-                    pbar.update(1)
+            futures = {executor.submit(execute_blast_search, row, database_path): row for _, row in dataframe.iterrows()}
+            for future in as_completed(futures):
+                result_file_path_str = future.result()
+                blast_columns = [
+                    'query', 'subject', '% identity', 'alignment length', 'mismatches', 'gap opens',
+                    'q. start', 'q. end', 's. start', 's. end', 'evalue', 'bit score',
+                    'query seq', 'subject seq', 'query cov', 'btop'
+                ]
+                temp_df = pd.read_csv(result_file_path_str, sep='\t', names=blast_columns)
+                if not temp_df.empty:
+                    aggregated_results = pd.concat([aggregated_results, temp_df], ignore_index=True)
+                Path(result_file_path_str).unlink()
+                pbar.update(1)
 
     file_log.info("Aggregation of BLAST results completed.")
     return aggregated_results
