@@ -384,25 +384,25 @@ def group_similar(df, cell_type):
     filterd_df = (
         df
         .sort_values(
-            by=['% identity', 'mapping_accuracy', 'Mismatches'],
-            ascending=[False, False, True]
+            by=['Sample', '% identity', 'mapping_accuracy', 'Mismatches'],
+            ascending=[True, False, False, True]
         )
         .groupby(['Start coord', 'End coord'], as_index=False)
         .first()
     )
+
     filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
     longest_sequences = (
         filterd_df
-        .sort_values(["% identity", "Alignment_length"], ascending=[False, False])
-        .groupby("Start coord")
-        .head(1)
+        .sort_values(["Sample", "% identity", "Alignment_length"], ascending=[True, False, False])
+        .groupby(["Sample", "Start coord"], as_index=False)
+        .first()
     )
 
     processed_groups = []
     grouped = longest_sequences.groupby(["Sample", "Region", "Segment"], as_index=False)
     for name, group in grouped:
         group = group.sort_values(by="Start coord").reset_index(drop=True)
-
         merged_intervals = []
         current_interval = group.iloc[0]
 
@@ -499,7 +499,6 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
-    cwd = Path.cwd()
     segments_library = make_record_dict(library)
 
     df = pd.read_csv(blast_file, low_memory=False)
