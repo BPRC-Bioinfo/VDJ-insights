@@ -132,7 +132,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
             if not outfile.is_file():
                 file_log.info(f"Extracting region: {first}, {second}, {contig_name}, {min(coords)}, {max(coords)}")
 
-                cmd = f"samtools faidx {assembly_fasta} {contig_name}:{min(coords)+1}-{max(coords)}"
+                cmd = f"samtools faidx {assembly_fasta} {contig_name}:{min(coords)}-{max(coords)}"
                 result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
                 write_seq(str(Seq(concatenated_sequence)), outfile)
