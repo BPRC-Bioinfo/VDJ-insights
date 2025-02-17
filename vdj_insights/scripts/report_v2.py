@@ -6,7 +6,7 @@ from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
 
-from .util import seperate_annotation, log_error
+from .util import log_error
 from .logger import console_logger, file_logger
 
 def parse_btop(btop):

@@ -11,7 +11,7 @@ from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
 
-from .util import seperate_annotation, log_error
+from .util import log_error, make_dir
 from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
@@ -443,7 +443,7 @@ def annotation_long(df, annotation_folder):
     df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
 
 
-def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadata_folder):
+def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
     """
     Generates a full annotation report and saves it as the specified file name.
     The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
@@ -471,10 +471,11 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
     full_annotation_path = annotation_folder / file_name
     df.to_excel(full_annotation_path, index=False)
 
-    if not no_split:
-        file_log.info("Creating individual sample excel files...")
-        df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
-
+    for sample, sample_df in df.groupby("Sample"):
+        path = annotation_folder / "individual" / sample
+        make_dir(path)
+        new_file = path / file_name
+        sample_df.to_excel(new_file, index=False)
 
 
 def add_suffix_to_short_name(group):
@@ -496,7 +497,7 @@ def add_suffix_to_short_name(group):
 
 
 @log_error()
-def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], no_split: bool, metadata_folder: Union[str, Path]):
+def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], metadata_folder: Union[str, Path]):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
@@ -518,9 +519,7 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
 
     combined_df = pd.concat([novel_df, known_df], ignore_index=True)
 
-
     grouped_df = group_similar(combined_df, cell_type)
-    print(grouped_df[(grouped_df["Reference"] == 'D87022_IGLV8-61*01_Homo_sapiens') & (grouped_df["Start coord"] == 1038015) & ( grouped_df["Sample"]== 'GCA_018469925.1')])
 
     known_df = grouped_df[grouped_df["Status"] == "Known"]
     novel_df = grouped_df[grouped_df["Status"] == "Novel"]
@@ -528,10 +527,10 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     if not novel_df.empty:
         annotation_long(novel_df, annotation_folder)
         novel_df = novel_df.groupby('Reference', group_keys=False).apply(add_suffix_to_short_name)
-        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
+        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', metadata_folder)
 
     if not known_df.empty:
-        annotation(known_df, annotation_folder, 'annotation_report_known.xlsx', no_split, metadata_folder)
+        annotation(known_df, annotation_folder, 'annotation_report_known.xlsx', metadata_folder)
 
     console_log.info(f"Known segments detected: {known_df.shape[0]}")
     console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
