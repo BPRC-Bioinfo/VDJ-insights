@@ -226,7 +226,7 @@ def main(args=None):
         blast_main(df, blast_file, args.library, args.threads)
 
     if args.receptor_type == "TR" or args.receptor_type == "IG":
-        report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
+        report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
         main_rss(args.threads)
         if args.metadata:
             functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main,
@@ -239,7 +239,7 @@ def main(args=None):
                     pbar.update(1)
 
     else:
-        report_main2(annotation_folder, blast_file, args.receptor_type, args.library, args.no_split, args.metadata)
+        report_main2(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
