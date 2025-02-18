@@ -1,38 +1,50 @@
 default:
   TR:
     FLANKING_GENES:
-      - SALL2
-      - DAD1
-      - MGAM2
-      - EPHB6
-      - EPDR1
-      - VPS41
+      TRA:
+        - SALL2
+        - DAD1
+      TRB:
+        - MGAM2
+        - EPHB6
+      TRG:
+        - EPDR1
+        - VPS41
   IG:
-     FLANKING_GENES:
-      - TMEM121
-      - "-"
-      - RPIA
-      - LSP1P4
-      - GNAZ
-      - TOP3B
+    FLANKING_GENES:
+      IGH:
+        - TMEM121
+        - "-"
+      IGK:
+        - RPIA
+        - LSP1P4
+      IGL:
+        - GNAZ
+        - TOP3B
 
 Macaca_mulatta:
   TR:
     FLANKING_GENES:
-      - SALL2
-      - DAD1
-      - MGAM2
-      - EPHB6
-      - EPDR1
-      - VPS41
+      TRA:
+        - SALL2
+        - DAD1
+      TRB:
+        - MGAM2
+        - EPHB6
+      TRG:
+        - EPDR1
+        - VPS41
   IG:
      FLANKING_GENES:
-      - TMEM121
-      - "-" 
-      - PAX8
-      - RPIA
-      - GNAZ
-      - TOP3B
+       IGH:
+         - TMEM121
+         - "-"
+       IGK:
+         - PAX8
+         - RPIA
+       IGL:
+         - GNAZ
+         - TOP3B
 
 Macaca_fascicularis:
   TR:
@@ -73,17 +85,23 @@ Mus_musculus:
 Homo_sapiens:
   TR:
     FLANKING_GENES:
-      - SALL2
-      - DAD1
-      - MGAM2
-      - EPHB6
-      - EPDR1
-      - VPS41
+      TRA:
+        - SALL2
+        - DAD1
+      TRB:
+        - MGAM2
+        - EPHB6
+      TRG:
+        - EPDR1
+        - VPS41
   IG:
-     FLANKING_GENES:
-      - TMEM121
-      - "-" 
-      - RPIA
-      - LSP1P4
-      - GNAZ
-      - TOP3B
+    FLANKING_GENES:
+      IGH:
+        - TMEM121
+        - "-"
+      IGK:
+        - RPIA
+        - LSP1P4
+      IGL:
+        - GNAZ
+        - TOP3B

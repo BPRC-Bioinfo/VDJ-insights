@@ -118,7 +118,7 @@ def execute_blast_search(row: pd.Series, database_path: Path) -> str:
 
     Extracts the necessary data from the DataFrame row, including the sequence and
     associated metadata. A temporary FASTA file is generated with a header that includes
-    information like the sequence name, start and stop positions, strand, file name, haplotype, tool and accuracy.
+    information like the sequence name, start and stop positions, strand, file name, tool and accuracy.
 
     The BLAST search is executed using the constructed command, and the results are
     saved in a temporary output file. If an error occurs during the execution, it is logged.
@@ -134,14 +134,12 @@ def execute_blast_search(row: pd.Series, database_path: Path) -> str:
     Raises:
         subprocess.CalledProcessError: If the BLAST command fails.
     """
-    header, sequence, start, stop, fasta_file_name, strand, haplotype, tool = row["name"], row[
-        "sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["haplotype"], row["tool"]
+    header, sequence, start, stop, fasta_file_name, strand, tool = row["name"], row["sequence"], row["start"], row["stop"], row["fasta-file"], row["strand"], row["tool"]
 
     sequence = sequence.replace("-", "")
-
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
         sep = "#"
-        fasta_header = f">{header}{sep}{start}{sep}{stop}{sep}{strand}{sep}{fasta_file_name}{sep}{haplotype}{sep}{tool}{sep}\n"
+        fasta_header = f">{header}{sep}{start}{sep}{stop}{sep}{strand}{sep}{fasta_file_name}{sep}{tool}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()
 
@@ -222,11 +220,7 @@ def run_blast_operations(df: pd.DataFrame, db_path: Path, blast_file_path: Path,
     blast_results = aggregate_blast_results(df, db_path, threads)
     blast_results['query cov'] = pd.to_numeric(blast_results['query cov'], errors='coerce')
     blast_results = blast_results.query("`query cov` == 100")
-    path_df = blast_results['query'].str.split('#', expand=True)
-    blast_results[['start', 'stop']] = path_df[[1, 2]]
     blast_results.to_csv(blast_file_path, index=False)
-
-    file_log.info("BLAST operations completed and results saved to csv.")
 
 
 def blast_main(df: pd.DataFrame, blast_file: Union[str, Path], library: str, threads: int) -> None:

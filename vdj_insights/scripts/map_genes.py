@@ -110,7 +110,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species: str, threads: int) -> None:
+def map_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], species: str, threads: int) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 
@@ -129,7 +129,9 @@ def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species:
     make_dir(map_flanking_genes_dir)
 
     console_log.info(f"Downloading flanking genes for {species}")
-    for gene in flanking_genes:
+
+    flanking_genes_list = [gene for genes in flanking_genes.values() for gene in genes]
+    for gene in flanking_genes_list:
         if gene != "-" and len(gene) > 1:
             download_flanking_genes(gene, flanking_genes_dir, species)
 

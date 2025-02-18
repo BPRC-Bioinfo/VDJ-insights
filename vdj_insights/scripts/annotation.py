@@ -15,7 +15,6 @@ import argparse
 from .blast import blast_main
 from .map_genes import map_main
 from .extract_region import region_main
-from .report_v2 import report_main as report_main2
 
 from .figures.barplot import main as barplot_main
 from .figures.boxplot import main as boxplot_main
@@ -57,7 +56,6 @@ def combine_df(mapping_tools: list, cell_type: str, input_dir: str, library: str
         file_log.info(f"Processing tool: {tool}")
         mapping_df = mapping_main(tool, cell_type, input_dir, library, threads)
         df = pd.concat([df, mapping_df])
-        df["haplotype"] = df['file'].apply(lambda x: Path(x).stem.split('_')[-1])
     unique_combinations = df.drop_duplicates(subset=["reference", "start", "stop", "name"])
     return unique_combinations.reset_index(drop=True)
     #return df.reset_index(drop=True)
@@ -225,21 +223,17 @@ def main(args=None):
     if not blast_file.exists():
         blast_main(df, blast_file, args.library, args.threads)
 
-    if args.receptor_type == "TR" or args.receptor_type == "IG":
-        report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
-        main_rss(args.threads)
-        if args.metadata:
-            functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main,
-                         heatmap_main]
-            args_list = [(annotation_folder,), (annotation_folder,), (cwd,), (annotation_folder,),
-                         (annotation_folder, args.receptor_type), (annotation_folder,)]
-            with tqdm(total=len(functions), desc="Creating plots", unit="Plot") as pbar:
-                for func, args in zip(functions, args_list):
-                    func(*args)
-                    pbar.update(1)
-
-    else:
-        report_main2(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
+    report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
+    main_rss(args.threads)
+    if args.metadata:
+        functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main,
+                     heatmap_main]
+        args_list = [(annotation_folder,), (annotation_folder,), (cwd,), (annotation_folder,),
+                     (annotation_folder, args.receptor_type), (annotation_folder,)]
+        with tqdm(total=len(functions), desc="Creating plots", unit="Plot") as pbar:
+            for func, args in zip(functions, args_list):
+                func(*args)
+                pbar.update(1)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")

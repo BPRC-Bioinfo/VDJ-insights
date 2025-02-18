@@ -63,29 +63,6 @@ def get_sequence(line, fasta):
     return str(specific_sequence[int(start): int(stop)])
 
 
-def get_region_and_segment(name, cell_type):
-    """
-    Determines the region and segment from a potential segment name.
-
-    This function identifies the region and segment in the provided name
-    by checking for a part that starts with the specified cell type.
-
-    Args:
-        name (str): The name of a potential segment.
-        cell_type (str): The type of cell (e.g., TR, IG) to look for in the name.
-
-    Returns:
-        str, str: The region and segment names, or "other" and "-" if not found.
-    """
-    prefix = [i for i in name.split("_") if i.startswith(cell_type)]
-    if prefix:
-        prefix = re.sub(r"[0-9]", "", prefix[0])
-        if prefix.startswith(cell_type):
-            return prefix[0:3], prefix[3]
-    else:
-        return "other", "-"
-
-
 def parse_bed(file_path, fasta, mapping_type, cell_type):
     """
     Parses a BED file and extracts relevant information for each entry.
@@ -95,7 +72,6 @@ def parse_bed(file_path, fasta, mapping_type, cell_type):
     The function returns a list of all the entries found in the BED file.
 
     Args:
-        file_path (str): Path to the BED file.
         accuracy (int): Accuracy score between 1 and 100.
         fasta (str): Path to the reference FASTA file.
         mapping_type (str): The type of mapping tool used (`bowtie`, `bowtie2`, or `minimap2`).
@@ -108,8 +84,7 @@ def parse_bed(file_path, fasta, mapping_type, cell_type):
     with open(file_path, "r") as file:
         for line in file:
             line = line.strip().split("\t")
-            region, segment = get_region_and_segment(line[3], cell_type)
-            line.extend([get_sequence(line, fasta), str(file_path), mapping_type, region, segment, fasta])
+            line.extend([get_sequence(line, fasta), mapping_type, fasta])
             entries.append(line)
     return entries
 
@@ -245,17 +220,14 @@ def make_df(all_entries):
         "score",
         "strand",
         "sequence",
-        "file",
         "tool",
-        "region",
-        "segment",
         "fasta-file"
     ]
     df = pd.DataFrame(all_entries, columns=headers)
     return df.reset_index(drop=True)
 
 
-def run_single_task(fasta, indir, outdir, rfasta, mapping_type, cell_type, threads_per_process):
+def run_single_task(fasta, outdir, rfasta, mapping_type, cell_type, threads_per_process):
     """
     Runs the mapping process for each FASTA file in the input directory.
 
@@ -265,7 +237,6 @@ def run_single_task(fasta, indir, outdir, rfasta, mapping_type, cell_type, threa
     file entries.
 
     Args:
-        indir (Path): Path to the input directory containing FASTA files.
         outdir (Path): Path to the output directory where indices are stored.
         rfasta (Path): Path to the reference FASTA file.
         beddir (Path): Path to the directory where BED files are stored.
@@ -330,7 +301,7 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads):
 
     max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
     with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [executor.submit(run_single_task, fasta, indir, outdir, rfasta, mapping_type, cell_type, 2) for fasta in tasks]
+        futures = [executor.submit(run_single_task, fasta, outdir, rfasta, mapping_type, cell_type, 2) for fasta in tasks]
         with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:
             for future in as_completed(futures):
                 try:

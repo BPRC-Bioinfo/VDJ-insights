@@ -47,26 +47,30 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
     env_dir = env_root_dir / env_name
     saved_env_yaml_file = saved_env_yaml_dir / f"{env_name}.yaml"
 
-    if env_dir.exists() and saved_env_yaml_file.exists():
-        if filecmp.cmp(env_file, saved_env_yaml_file, shallow=False):
+    if env_dir.exists():
+        if saved_env_yaml_file.exists() and filecmp.cmp(env_file, saved_env_yaml_file, shallow=False):
             file_log.environment(f"Environment {env_name} is up to date. Activating it.")
             activate_env(env_dir, env_name)
             return env_dir
-        else:
-            file_log.environment(f"Environment {env_name} has changed. Recreating it.")
-            archive_path = get_archive_dir() / env_name
-            if archive_path.exists():
-                shutil.rmtree(archive_path)
-            shutil.move(env_dir, archive_path)
+        elif not saved_env_yaml_file.exists():
+            file_log.environment(f"Environment {env_name} exists but no saved YAML found. Assuming up-to-date.")
+            activate_env(env_dir, env_name)
+            return env_dir
+
+        file_log.environment(f"Environment {env_name} has changed. Recreating it.")
+        archive_path = get_archive_dir() / env_name
+        if archive_path.exists():
+            shutil.rmtree(archive_path)
+        shutil.move(env_dir, archive_path)
 
     file_log.environment(f"Creating environment {env_name}.")
     result = subprocess.run(
-        ["conda", "env", "create", "--file",
-            str(env_file), "--prefix", str(env_dir)],
+        ["conda", "env", "create", "--file", str(env_file), "--prefix", str(env_dir)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
     )
+
     if result.returncode != 0:
         file_log.error(f"Error creating environment: {result.stderr}")
         return None
