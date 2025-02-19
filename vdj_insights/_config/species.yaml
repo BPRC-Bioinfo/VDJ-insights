@@ -49,38 +49,50 @@ Macaca_mulatta:
 Macaca_fascicularis:
   TR:
     FLANKING_GENES:
-      - SALL2
-      - DAD1
-      - MGAM
-      - EPHB6
-      - EPDR1
-      - VPS41
+      TRA:
+        - SALL2
+        - DAD1
+      TRB:
+        - MGAM
+        - EPHB6
+      TRG:
+        - EPDR1
+        - VPS41
   IG:
-     FLANKING_GENES:
-      - TMEM121
-      - "-" 
-      - PAX8
-      - RPIA
-      - GNAZ
-      - TOP3B
+    FLANKING_GENES:
+      IGH:
+        - TMEM121
+        - "-"
+      IGK:
+        - PAX8
+        - RPIA
+      IGL:
+        - GNAZ
+        - TOP3B
 
 Mus_musculus:
   TR:
     FLANKING_GENES:
-      - SALL2
-      - DAD1
-      - MGAM2-PS
-      - EPHB6
-      - VPS41
-      - EPDR1
+      TRA:
+        - SALL2
+        - DAD1
+      TRB:
+        - MGAM2-PS
+        - EPHB6
+      TRG:
+        - VPS41
+        - EPDR1
   IG:
-     FLANKING_GENES:
-      - TMEM121
-      - "-" 
-      - Tacstd2
-      - RPIA
-      - Hira
-      - Or2n12
+    FLANKING_GENES:
+      IGH:
+        - TMEM121
+        - "-"
+      IGK:
+        - Tacstd2
+        - RPIA
+      IGL:
+        - Hira
+        - Or2n12
 
 Homo_sapiens:
   TR:

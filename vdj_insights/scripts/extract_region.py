@@ -39,20 +39,26 @@ def filter_best_mapq(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tuple[list[tuple[str, int, int]], str, str]:
     sam_file = pd.read_csv(sam, sep="\t", header=None, comment='@', dtype=str, usecols=[0, 1, 2, 3, 4], names=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
+    if sam_file.empty:
+        return [], first, second
     sam_file["MAPQ"] = sam_file["MAPQ"].astype(int)
-    #sam_file = sam_file[sam_file["MAPQ"] > 0]
 
-    filtered_first = sam_file[sam_file["QNAME"].str.contains(first)].copy() if first != "-" else None
-    filtered_second = sam_file[sam_file["QNAME"].str.contains(second)].copy() if second != "-" else None
+    filtered_first = sam_file[sam_file["QNAME"].str.contains(first, na=False)] if first != "-" else pd.DataFrame(columns=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
+    filtered_second = sam_file[sam_file["QNAME"].str.contains(second, na=False)] if second != "-" else pd.DataFrame(columns=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
 
-    if filtered_first is not None:
+    if filtered_first.empty and first != "-":
+        file_log.warning(f"Flanking gene {first} not found in SAM file.")
+        first = None
+    if filtered_second.empty and second != "-":
+        file_log.warning(f"Flanking gene {second} not found in SAM file.")
+        second = None
+
+    if not filtered_first.empty:
         filtered_first["POS"] = filtered_first["POS"].astype(int)
-    if filtered_second is not None:
+    if not filtered_second.empty:
         filtered_second["POS"] = filtered_second["POS"].astype(int)
 
-
     extraction_regions = []
-
     if not filtered_first.empty:
         for rname in filtered_first["RNAME"].unique():
             first_subset = filtered_first[filtered_first["RNAME"] == rname]
@@ -78,7 +84,8 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
                     extraction_regions.append((rname, 0, start))
                 else:
                     second = "-"
-                    extraction_regions.append((rname, start-5_000_000, end))
+                    extraction_regions.append((rname, start, end))
+
                 return extraction_regions, first, second
             else:
                 continue
@@ -125,22 +132,26 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
             log_data = {
                 "Region": immuno_region,
                 "Contig": contig_name,
-                "5_Flanking_gene": first,
-                "3_Flanking_gene": second,
-                "5_Coords": int(start),
-                "3_Coords": int(end),
+                "5'-contig": contig_name,
+                "3'-contig": contig_name,
+                "5_flanking_gene": first,
+                "3_flanking_gene": second,
+                "5_coords": int(start),
+                "3_coords": int(end),
             }
         else:
             log_data = {
                 "Region": immuno_region,
-                "5_Flanking_gene": first,
-                "3_Flanking_gene": second,
+                "5'-contig": contig_name,
+                "3'-contig": contig_name,
+                "5_flanking_gene": first,
+                "3_flanking_gene": second,
             }
     else:
         file_log.warning(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
     return log_data if log_data else None
 
-
+@log_error()
 def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], threads: int):
     """
     Main function that processes SAM files to create region-specific assembly files
@@ -159,7 +170,6 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
             tasks.append((cwd, assembly, directory, extract_flanking_genes[0], extract_flanking_genes[1], assembly.stem, region))
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
-
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(extract, *task): task for task in tasks}
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
@@ -172,20 +182,14 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
                         output_json[assembly_name] = {}
                     if immuno_region not in output_json[assembly_name]:
                         output_json[assembly_name][immuno_region] = {}
-                    if "Contig" in log_data:
-                        output_json[assembly_name][immuno_region]["5'-contig"] = log_data["Contig"]
-                        output_json[assembly_name][immuno_region]["3'-contig"] = log_data["Contig"]
-                        output_json[assembly_name][immuno_region]["5'-flanking_gene"] = log_data["5_Flanking_gene"]
-                        output_json[assembly_name][immuno_region]["3'-flanking_gene"] = log_data["3_Flanking_gene"]
-                        output_json[assembly_name][immuno_region]["5'-Coords"] = log_data["5_Coords"]
-                        output_json[assembly_name][immuno_region]["3'-Coords"] = log_data["3_Coords"]
-                        output_json[assembly_name][immuno_region]["Extraction status"] = "Complete"
-                    else:
-                        output_json[assembly_name][immuno_region]["5'-contig"] = log_data["5_Contig"]
-                        output_json[assembly_name][immuno_region]["3'-contig"] = log_data["3_Contig"]
-                        output_json[assembly_name][immuno_region]["Extraction status"] = "Fragmented"
+                    output_json[assembly_name][immuno_region]["5'-contig"] = log_data.get("5'-contig", None)
+                    output_json[assembly_name][immuno_region]["3'-contig"] = log_data.get("3'-contig", None)
+                    output_json[assembly_name][immuno_region]["5'-flanking_gene"] = log_data.get("5_flanking_gene", None)
+                    output_json[assembly_name][immuno_region]["3'-flanking_gene"] = log_data.get("3_flanking_gene",None)
+                    output_json[assembly_name][immuno_region]["5'-Coords"] = log_data.get("5_coords", None)
+                    output_json[assembly_name][immuno_region]["3'-Coords"] = log_data.get("3_coords", None)
+                    output_json[assembly_name][immuno_region]["Extraction status"] = "Complete" if log_data.get("Contig") else "Fragmented"
                 pbar.update(1)
-
     log_file = cwd / "broken_regions.json"
     with open(log_file, 'w') as f:
         json.dump(output_json, f, indent=4)

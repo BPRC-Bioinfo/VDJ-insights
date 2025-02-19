@@ -514,3 +514,19 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
 
     console_log.info(f"Known segments detected: {known_df.shape[0]}")
     console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
+
+
+    pivot_table_sheet1 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Function', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet2 = combined_df.pivot_table(index='Sample', columns=['Region', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet3 = combined_df.pivot_table(index='Sample', columns=['Region', 'Function', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet4 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet5 = combined_df.pivot_table(index='Sample', columns=['Region'], aggfunc='size', fill_value=0)
+    pivot_table_sheet6 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status'], aggfunc='size', fill_value=0)
+
+    with pd.ExcelWriter(f"{annotation_folder}/pivot_tables.xlsx") as writer:
+        pivot_table_sheet1.to_excel(writer, sheet_name="Total")
+        pivot_table_sheet2.to_excel(writer, sheet_name="Segment")
+        pivot_table_sheet3.to_excel(writer, sheet_name="Function")
+        pivot_table_sheet4.to_excel(writer, sheet_name="Status")
+        pivot_table_sheet5.to_excel(writer, sheet_name="Region_total")
+        pivot_table_sheet6.to_excel(writer, sheet_name="Function_total")
