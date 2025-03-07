@@ -38,6 +38,7 @@ def filter_best_mapq(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tuple[list[tuple[str, int, int]], str, str]:
+
     sam_file = pd.read_csv(sam, sep="\t", header=None, comment='@', dtype=str, usecols=[0, 1, 2, 3, 4], names=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
     if sam_file.empty:
         return [], first, second
@@ -114,6 +115,10 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
     sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
 
     coords, first, second = get_positions_and_name(sam, first, second)
+
+    if len(coords) > 1:
+        coords = [coords[0]]
+    print(coords)
     if coords:
         contig_name = coords[0][0]
         start = coords[0][1]

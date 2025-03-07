@@ -3,6 +3,7 @@ Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
 All rights reserved.
 """
 
+import time
 from pathlib import Path
 import shutil
 import subprocess
@@ -41,7 +42,17 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
     output_fna = path / f"{gene}.fna"
     if not output_fna.is_file():
         command = f'datasets download gene symbol {gene} --taxon "{species}" --include gene --filename {output_zip}'
-        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        max_retries = 10
+        retry_delay = 5
+        for attempt in range(1, max_retries + 1):
+            try:
+                subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                break
+            except subprocess.CalledProcessError as e:
+                print(e.stderr)
+                if attempt < max_retries:
+                    time.sleep(retry_delay)
 
         unzip_file(output_zip, path)
 

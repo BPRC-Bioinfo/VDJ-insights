@@ -154,7 +154,7 @@ def validate_flanking_genes(value):
         file_log.error(f"The specified flanking genes: {flanking_genes} should be even numbers.")
         raise argparse.ArgumentTypeError(f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
     file_log.info(f"Validated flanking genes: {flanking_genes}")
-    return flanking_genes
+    return value
 
 
 def validate_chromosome(value):
@@ -1023,11 +1023,17 @@ def initialize_config(args, species_config, settings_dir, config):
 
     # Handling flanking genes based on default settings
     flanking_genes = getattr(args, 'flanking_genes', None)
-
     if not flanking_genes and args.default:
-        flanking_genes = species_config.get(
-            args.species.capitalize().replace(" ", "_"), "default"
-        ).get(args.receptor_type, {}).get("FLANKING_GENES")
+        species = args.species.capitalize().replace(" ", "_")
+        receptor = args.receptor_type
+
+        species_data = species_config.get(species, species_config.get("default", {}))
+        receptor_data = species_data.get(receptor, species_config["default"].get(receptor, {}))
+        flanking_genes = receptor_data.get("FLANKING_GENES", {})
+
+        #flanking_genes = species_config.get(
+        #    args.species.capitalize().replace(" ", "_"), "default"
+        #).get(args.receptor_type, {}).get("FLANKING_GENES")
 
     if flanking_genes:
         config.setdefault("FLANKING_GENES", flanking_genes)

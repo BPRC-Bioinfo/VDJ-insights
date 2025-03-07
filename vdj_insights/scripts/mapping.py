@@ -109,7 +109,7 @@ def make_bowtie2_command(bowtie_db, rfasta, sam_file, threads):
     Returns:
         str: A fully configured Bowtie2 command string.
     """
-    command = f"bowtie2 --very-sensitive -p {threads} --score-min L,0,-0.5 -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 --end-to-end --very-sensitive -p {threads} --score-min L,0,-0.5 -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -128,7 +128,11 @@ def make_bowtie_command(bowtie_db, rfasta, sam_file, threads):
     Returns:
         str: A fully configured Bowtie command string.
     """
-    command = f"bowtie -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    #command = f"bowtie -a -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -k 2 -n 2 -p {threads} -M 3 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+
+    #command = f"bowtie --best -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+
     return command
 
 
@@ -297,6 +301,8 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads):
     rfasta = library
     all_entries = []
     tasks = list(indir.glob("*.fasta"))
+    #    assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / assembly_dir).glob(ext)]
+
     total_tasks = len(tasks)
 
     max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)

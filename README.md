@@ -60,12 +60,12 @@ python vdj-insights pipeline -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fast
 ---
 
 ### **Optional Arguments**
-| **Argument**         | **Description**                                                                                                    | **Example**                |
-|----------------------|--------------------------------------------------------------------------------------------------------------------|---------------------------|
-| `-f, --flanking-genes` | Comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. The genes should be added as pairs.                 | `-f MGAM2,EPHB6`           |
-| `-c, --chromosomes`  | List of chromosomes where `TR` or `IG` is located. Values must be integers between 1-22 or `X`, `Y`.               | `-c 14,22`                 |
-| `-t, --threads`      |  Number of threads for parallel processing (default: `8`).                                 | `-t 16`                    |
-| `--default`          | Uses default settings for the analysis. Cannot be used with `-f/--flanking-genes` or `-c/--chromosomes`.           | `--default`                |
+| **Argument**         | **Description**                                                                                          | **Example**                |
+|----------------------|----------------------------------------------------------------------------------------------------------|---------------------------|
+| `-f, --flanking-genes` | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is available, use `"-"` as a placeholder. | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'`           |
+| `-c, --chromosomes`  | List of chromosomes where `TR` or `IG` is located. Values must be integers between 1-22 or `X`, `Y`.     | `-c 14,22`                 |
+| `-t, --threads`      | Number of threads for parallel processing (default: `8`).                                                | `-t 16`                    |
+| `--default`          | Uses default settings for the analysis. Cannot be used with `-f/--flanking-genes` or `-c/--chromosomes`. | `--default`                |
 
 ---
 
@@ -83,13 +83,13 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 ```
 
 ### **Required Arguments:**
-| **Argument**        | **Description**                                                                                 | **Example**              |
-|---------------------|-------------------------------------------------------------------------------------------------|-------------------------|
-| `-r, --receptor-type` | Type of receptor to analyze. Choices are `TR` (T-cell receptor), `IG` (immunoglobulin), or `KIR-LILR`. **(Required when using `--default`)**| `-r TR`                 |
-| `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`). | `-a /path/to/assembly` or `-i /path/to/region` |
-| `-l, --library`     | Path to the library FASTA file containing V(D)J segment sequences. **(Required when using -i)** | `-l /path/to/library.fasta`|
-| `-f, --flanking-genes` | Comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. **(Required when using `-a`)** | `-f MGAM2,EPHB6` |
-| `-s, --species`     | Species name, e.g., `Homo sapiens`. | `-s "Homo sapiens"` |
+| **Argument**        | **Description**                                                                                                                                        | **Example**              |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
+| `-r, --receptor-type` | Type of receptor to analyze. Choices are `TR` (T-cell receptor) or `IG` (immunoglobulin). **(Required when using `--default`)**                        | `-r TR`                 |
+| `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`).                                        | `-a /path/to/assembly` or `-i /path/to/region` |
+| `-l, --library`     | Path to the library FASTA file containing V(D)J segment sequences. **(Required when using -i)**                                                        | `-l /path/to/library.fasta`|
+| `-f, --flanking-genes` | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is available, use `"-"` as a placeholder. | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'`           |
+| `-s, --species`     | Species name, e.g., `Homo sapiens`.                                                                                                                    | `-s "Homo sapiens"` |
 
 ---
 
@@ -178,4 +178,6 @@ This program was developed by the department of Comparative genetics & Refinemen
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Sayed Jamiel Mohammadi](https://github.com/sayedjm)
 - [@Giang Le](https://github.com/GiangLeN)
+- [@SusanOtt](https://github.com/SusanOtt)
+
 

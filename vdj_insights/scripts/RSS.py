@@ -177,11 +177,11 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                         rss = str(Seq(str(rss)).reverse_complement())
 
                     seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
-                    locus_fasta_file.write(f">{row['Target sequence']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                    locus_fasta_file.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
                     if row["Function"] != "P" and row["Status"] == "Known":
                         spacer = len(spacer) * "N"
-                        locus_fasta_file2.write(f">{row['Target sequence']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
 
                     sum_lenght_seq += len(rss)
