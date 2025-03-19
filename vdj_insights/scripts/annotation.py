@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from .mapping import mapping_main
 from .report import report_main
+from .functionality import main_functionality
 from .RSS import main_rss
 from .CDR import main_cdr
 
@@ -207,12 +208,17 @@ def main(args=None):
     timing_results.append(["Report and filtering", round(end - start, 2)])
 
     start = time.time()
+    main_functionality(args.receptor_type, args.species, args.threads)
+    end = time.time()
+    timing_results.append(["Predict functionality", round(end - start, 2)])
+
+    start = time.time()
     main_rss(args.threads)
     end = time.time()
     timing_results.append(["RSS extraction and validation", round(end - start, 2)])
 
     start = time.time()
-    main_cdr(args.threads)
+    main_cdr(args.species, args.threads)
     end = time.time()
     timing_results.append(["CDR identification", round(end - start, 2)])
 
@@ -325,7 +331,7 @@ def main_old(args=None):
     #create report and rss
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
     main_rss(args.threads)
-    main_cdr(args.threads)
+    main_cdr(args.species, args.threads)
 
     #create figures
     if args.metadata:

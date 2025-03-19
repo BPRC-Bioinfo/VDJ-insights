@@ -190,37 +190,6 @@ def add_like_to_df(df):
     return output_df
 
 
-def orf_function(aa, segment):
-    """
-    Determines the functional status of a segment based on its amino acid sequence.
-    If the sequence ends with a single stop codon ('*') and has no internal stop codons, it is considered 'F/ORF'.
-    If the sequence has internal stop codons, it is considered 'P'.
-    Additionally, a message is generated to indicate if the stop codon is at a critical position.
-
-    Args:
-        aa (str): The amino acid sequence of the segment.
-        segment (str): The type of segment (V, D, or J).
-
-    Returns:
-        tuple: A tuple containing:
-            - message (str): A message indicating the presence of a stop codon.
-            - function_type (str): The functional status of the segment ('F/ORF' or 'P').
-    """
-    end_codon = aa[-1] == "*" and aa.count("*") == 1
-    function_dict = {
-        "V": "F/ORF" if end_codon or not "*" in aa else "P",
-        "D": "PF/ORF",
-        "J": "PF/ORF"
-    }
-    function_type = function_dict.get(segment, "Unknown")
-    message = ""
-    if end_codon:
-        if segment not in function_dict:
-            message = "Segment not recognized."
-        else: #ALLEEN VOOR V SEGMENTEN
-            message = "the STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement"
-    return message, function_type
-
 
 def trim_sequence(sequence, strand):
     """
@@ -246,29 +215,6 @@ def trim_sequence(sequence, strand):
         sequence = sequence[:-excess_bases]
     amino_acid_sequence = sequence.translate()
     return amino_acid_sequence, sequence
-
-
-def add_orf(row):
-    """
-    Adds a 'Function' column to the DataFrame row, indicating the functional status of the segment.
-    The status is determined by translating the nucleotide sequence into amino acids and checking for stop codons.
-    If the sequence contains a single stop codon at the end, it is marked as 'F/ORF'. Otherwise, it is marked as 'P'.
-    Additionally, a 'Message' column is added to provide information about the stop codon position.
-
-    Args:
-        row (pd.Series): The current row of the DataFrame.
-
-    Returns:
-        pd.Series: The updated row with 'Function' and 'Message' columns added.
-    """
-    #hier
-    sequence, strand, segment = row[['Target sequence', 'Strand', "Segment"]]
-    sequence = sequence.replace("-", "")
-    amino_acid_sequence, sequence = trim_sequence(sequence, strand)
-    message, function_type = orf_function(amino_acid_sequence, segment)
-    row["Function"] = function_type
-    row["Message"] = message
-    return row
 
 
 def filter_df(group_df, cell_type):
@@ -432,7 +378,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Function", "Status", "Message", "Path"]]
+    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Status", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
@@ -487,11 +433,9 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
 
     if not novel_df.empty:
         novel_df = run_like_and_length(novel_df, segments_library, cell_type)
-        novel_df = novel_df.apply(add_orf, axis=1)
         novel_df["Status"] = "Novel"
     if not known_df.empty:
         known_df = run_like_and_length(known_df, segments_library, cell_type)
-        known_df = known_df.apply(add_orf, axis=1)
         known_df["Status"] = "Known"
 
     combined_df = pd.concat([novel_df, known_df], ignore_index=True)
@@ -516,17 +460,17 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
 
 
-    pivot_table_sheet1 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Function', 'Segment'], aggfunc='size', fill_value=0)
+    #pivot_table_sheet1 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Function', 'Segment'], aggfunc='size', fill_value=0)
     pivot_table_sheet2 = combined_df.pivot_table(index='Sample', columns=['Region', 'Segment'], aggfunc='size', fill_value=0)
-    pivot_table_sheet3 = combined_df.pivot_table(index='Sample', columns=['Region', 'Function', 'Segment'], aggfunc='size', fill_value=0)
+    #pivot_table_sheet3 = combined_df.pivot_table(index='Sample', columns=['Region', 'Function', 'Segment'], aggfunc='size', fill_value=0)
     pivot_table_sheet4 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Segment'], aggfunc='size', fill_value=0)
     pivot_table_sheet5 = combined_df.pivot_table(index='Sample', columns=['Region'], aggfunc='size', fill_value=0)
     pivot_table_sheet6 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status'], aggfunc='size', fill_value=0)
 
     with pd.ExcelWriter(f"{annotation_folder}/pivot_tables.xlsx") as writer:
-        pivot_table_sheet1.to_excel(writer, sheet_name="Total")
+        #pivot_table_sheet1.to_excel(writer, sheet_name="Total")
         pivot_table_sheet2.to_excel(writer, sheet_name="Segment")
-        pivot_table_sheet3.to_excel(writer, sheet_name="Function")
+        #pivot_table_sheet3.to_excel(writer, sheet_name="Function")
         pivot_table_sheet4.to_excel(writer, sheet_name="Status")
         pivot_table_sheet5.to_excel(writer, sheet_name="Region_total")
         pivot_table_sheet6.to_excel(writer, sheet_name="Function_total")

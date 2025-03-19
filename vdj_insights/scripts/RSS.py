@@ -5,6 +5,7 @@ All rights reserved.
 
 import os
 import subprocess
+import difflib
 
 import pandas as pd
 from Bio import SeqIO, motifs
@@ -58,6 +59,7 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
     meme_command = f"meme {locus_fasta_file_name} -o {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxw {rss_length} -maxsize {sum_lenght_seq}"
     if not meme_output.exists():
         subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 @log_error()
 def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) -> None:
@@ -114,13 +116,43 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
             direction = 5
 
         group_locus.loc[index_segment, f"{direction}'-RSS"] = str(is_present)
+        group_locus[f"{direction}'-RSS"] = group_locus[f"{direction}'-RSS"].astype(str)
+
         if is_present:
             group_locus.loc[index_segment, f"{direction}'-p-value"] = df_match["p-value"].values[0]
             group_locus.loc[index_segment, f"{direction}'-q-value"] = df_match["q-value"].values[0]
             group_locus.loc[index_segment, f"{direction}'-score"] = df_match["score"].values[0]
             group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched sequence"].values[0].upper()
+        else:
+            group_locus.loc[index_segment, "Function"] = "pseudo"
+            group_locus.loc[index_segment, "Function_messenger"] = "None functionality RSS found"
 
     return group_locus
+
+
+def check_conserved(seq_l:str , seq_r: str, mer1: int, mer2: int, rss_layout: str, row):
+    if rss_layout == "end_plus":
+        heptamer = "CACAGTG"
+        nonamer = "ACAAAAACC"
+    elif rss_layout == "start_minus":
+        heptamer = "CACTGTG"
+        nonamer = "GGTTTTTGT"
+    threshold = 50
+
+    if mer1 == 7 and mer2 == 9:
+        heptamer_matcher = difflib.SequenceMatcher(None, heptamer, seq_l).ratio() * 100
+        nonamer_matcher = difflib.SequenceMatcher(None, nonamer, seq_r).ratio() * 100
+        #if "IGHD" in row:
+            #print(f"{mer1} {mer2} {heptamer} {seq_l} {round(heptamer_matcher)}| {nonamer}  {seq_r} {round(nonamer_matcher)} {rss_layout}")
+    elif mer1 == 9 and mer2 == 7:
+        heptamer_matcher = difflib.SequenceMatcher(None, heptamer, seq_r).ratio() * 100
+        nonamer_matcher = difflib.SequenceMatcher(None, nonamer, seq_l).ratio() * 100
+        #if "IGHD" in row:
+            #print(f"{mer1} {mer2} {heptamer} {seq_r} {round(heptamer_matcher)} | {nonamer}  {seq_l} {round(nonamer_matcher)} {rss_layout}")
+
+    if heptamer_matcher < threshold or nonamer_matcher < threshold:
+        return False
+    return True
 
 
 def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
@@ -155,7 +187,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
 
         sum_lenght_seq = 0
         sum_seq = 0
-        with open(locus_fasta_file_name, 'w') as locus_fasta_file, open(locus_with_gaps_fasta_file_name, 'w') as locus_fasta_file2:
+        with (open(locus_fasta_file_name, 'w') as locus_fasta_file, open(locus_with_gaps_fasta_file_name, 'w') as locus_fasta_file2):
             for index_segment, row in group_locus.iterrows():
                 start_coord_segment = row["Start coord"]
                 end_coord_segment = row["End coord"]
@@ -171,19 +203,25 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                 elif rss_layout == "start_minus":
                     start_rss, end_rss = [(start_coord_segment - rss_length), start_coord_segment]
 
-                rss = record.seq[start_rss:end_rss].replace("-", "N")
+                rss = record.seq[start_rss:end_rss].replace("-", "N").upper()
                 if rss:
                     if strand == '-':
-                        rss = str(Seq(str(rss)).reverse_complement())
+                        rss = str(Seq(str(rss)).reverse_complement()).upper()
 
                     seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
+
+                    check = check_conserved(seq_l, seq_r, mer1, mer2, rss_layout,  row['Target name'])
+
                     locus_fasta_file.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
-                    if row["Function"] != "P" and row["Status"] == "Known":
+                    if check and row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
                         spacer = len(spacer) * "N"
                         locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
-
+                    elif check and row["Status"] == "Known" and row["Segment"] in ["D"]:
+                        spacer = len(spacer) * "N"
+                        locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        sum_seq = sum_seq + 1
                     sum_lenght_seq += len(rss)
 
         if sum_seq > 1:

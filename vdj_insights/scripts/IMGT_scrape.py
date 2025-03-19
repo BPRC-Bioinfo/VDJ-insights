@@ -137,8 +137,7 @@ def fetch_sequence(segment: str, directory: Union[str, Path], species: str, fram
         url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}"
         if frame == "8.1":
             url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}&IMGTlabel=L-PART1+L-PART2"
-            #url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}&IMGTlabel=L-PART1+V-EXON" # for testing and validation
-
+        #print(url)
         response = requests.get(url)
         sleep_time = 2
         if response.status_code == 200:
@@ -322,7 +321,6 @@ def main(species: str,
     file_log.info("Scrape completed successfully.")
     if create_library_bool:
         json_file = library_dir / "library_info.json"
-        print(json_file)
         save_json(
             release=set_release(),
             fasta_files_info=fasta_files_info,

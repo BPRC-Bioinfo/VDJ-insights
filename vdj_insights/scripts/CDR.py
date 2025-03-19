@@ -40,6 +40,7 @@ def scrape_imgt(species: str, path: Path) -> dict:
     all_sequences = {}
     for immune_type, seg_list in segments.items():
         for segment in seg_list:
+            species = species.replace(" ", "_")
             url = f"https://www.imgt.org/download/V-QUEST/IMGT_V-QUEST_reference_directory/{species}/{immune_type}/{segment}.fasta"
             response = requests.get(url)
             if response.status_code == 200:
@@ -161,7 +162,7 @@ def process_variant(gene_subgroup: str, group_df: pd.DataFrame, all_sequences_df
     return combined_results
 
 
-def main_cdr(threads: int = 12) -> None:
+def main_cdr(species: str, threads: int = 12) -> None:
     """
     Hoofdfunctie om de CDR-annotaties te verwerken.
     """
@@ -171,7 +172,7 @@ def main_cdr(threads: int = 12) -> None:
     library_path = output_base / "fasta" / "library"
     library_path.mkdir(parents=True, exist_ok=True)
 
-    all_sequences = scrape_imgt(species="Homo_sapiens", path=library_path)
+    all_sequences = scrape_imgt(species=species, path=library_path)
     if all_sequences:
         all_sequences_df = create_dataframe(all_sequences=all_sequences)
 

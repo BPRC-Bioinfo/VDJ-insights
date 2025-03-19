@@ -377,7 +377,7 @@ def run_annotation(args):
             args.library = cwd / 'library' / library
     else:
         library_path = Path(args.library)
-        destination = cwd / 'library' / library_path.name
+        destination = cwd / 'library' / "library.fasta"
         make_dir(cwd / 'library')
         shutil.copy(args.library, destination)
         args.library = cwd / 'library' / library
