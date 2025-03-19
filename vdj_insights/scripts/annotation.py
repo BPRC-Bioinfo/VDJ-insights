@@ -239,7 +239,7 @@ def main(args=None):
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
-
+ #end
 
 def main_old(args=None):
     """
