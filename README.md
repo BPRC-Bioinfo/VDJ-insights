@@ -168,4 +168,5 @@ This tool was developed by the department of Comparative genetics & Refinement o
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Sayed Jamiel Mohammadi](https://github.com/sayedjm)
 - [@Giang Le](https://github.com/GiangLeN)
+- [@Jesse_Bruijnesteijn](https://github.com/JesseBNL)
 
