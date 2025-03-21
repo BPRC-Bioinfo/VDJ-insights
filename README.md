@@ -163,7 +163,7 @@ If you use VDJ insights in your work, please cite:
 <cite>
 
 ## Acknowledgements
-This program was developed by the department of Comparative genetics & Refinement of the Biomedical Primate Research Centre ([BPRC](https://www.bprc.nl/en)) in Rijswijk, the Netherlands, as part of their research efforts to advance scientific understanding and contribute to biomedical research.
+This tool was developed by the department of Comparative genetics & Refinement of the Biomedical Primate Research Centre ([BPRC](https://www.bprc.nl/en)) in Rijswijk, the Netherlands.
 
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Sayed Jamiel Mohammadi](https://github.com/sayedjm)
