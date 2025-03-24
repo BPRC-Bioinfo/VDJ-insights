@@ -22,7 +22,7 @@ def make_dataframe(data: pd.DataFrame) -> pd.DataFrame:
             rows.append({
                 "Region": region,
                 "Assembly": assembly.split("-")[0],
-                "Assembly_Type": info["assembly_type"]
+                "Assembly_Type": info["Extraction status"]
             })
             found_regions.add(region)
 

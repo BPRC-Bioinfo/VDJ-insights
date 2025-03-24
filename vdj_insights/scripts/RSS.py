@@ -5,6 +5,7 @@ All rights reserved.
 
 import os
 import subprocess
+import difflib
 
 import pandas as pd
 from Bio import SeqIO, motifs
@@ -28,13 +29,18 @@ def open_files(cwd: Path) -> pd.DataFrame:
             - pd.DataFrame: DataFrame with non-VDJ segments.
             - pd.DataFrameGroupBy: Grouped DataFrame by 'Region' and 'Segment' for VDJ segments.
     """
-    data_known = pd.read_excel(cwd / "annotation" / "annotation_report_known.xlsx")
-    data_novel = pd.read_excel(cwd / "annotation" / "annotation_report_novel.xlsx")
-    data = pd.concat([data_known, data_novel])
+    file_known = cwd / "annotation" / "annotation_report_known.xlsx"
+    file_novel = cwd / "annotation" / "annotation_report_novel.xlsx"
+
+    dataframes = []
+    if file_known.exists():
+        dataframes.append(pd.read_excel(file_known))
+    if file_novel.exists():
+        dataframes.append(pd.read_excel(file_novel))
+    data = pd.concat(dataframes, ignore_index=True)
 
     data_c = data[~data["Segment"].isin(["V", "D", "J"])]
     data_vdj = data[data["Segment"].isin(["V", "D", "J"])]
-
     vdj_grouped = data_vdj.groupby(["Region", "Segment"])
     return data_c, vdj_grouped
 
@@ -101,7 +107,8 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
         pd.DataFrame: Updated group locus DataFrame with added FIMO results.
     """
     for index_segment, row in group_locus.iterrows():
-        is_present = index_segment in df_fimo['index_group_df'].values and df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'score'].values[0] > 0
+        df_match = df_fimo[df_fimo["index_group_df"] == index_segment]
+        is_present = not df_match.empty and df_match["score"].values[0] > 0
 
         if rss_layout == "end_plus":
             direction = 3
@@ -109,13 +116,43 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
             direction = 5
 
         group_locus.loc[index_segment, f"{direction}'-RSS"] = str(is_present)
+        group_locus[f"{direction}'-RSS"] = group_locus[f"{direction}'-RSS"].astype(str)
+
         if is_present:
-            group_locus.loc[index_segment, f"{direction}'-p-value"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'p-value'].values[0]
-            group_locus.loc[index_segment, f"{direction}'-q-value"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'q-value'].values[0]
-            group_locus.loc[index_segment, f"{direction}'-score"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'score'].values[0]
-            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_fimo.loc[df_fimo['index_group_df'] == index_segment, 'matched sequence'].values[0].upper()
+            group_locus.loc[index_segment, f"{direction}'-p-value"] = df_match["p-value"].values[0]
+            group_locus.loc[index_segment, f"{direction}'-q-value"] = df_match["q-value"].values[0]
+            group_locus.loc[index_segment, f"{direction}'-score"] = df_match["score"].values[0]
+            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched sequence"].values[0].upper()
+        else:
+            group_locus.loc[index_segment, "Function"] = "pseudo"
+            group_locus.loc[index_segment, "Function_messenger"] = "None functionality RSS found"
 
     return group_locus
+
+
+def check_conserved(seq_l:str , seq_r: str, mer1: int, mer2: int, rss_layout: str, row):
+    if rss_layout == "end_plus":
+        heptamer = "CACAGTG"
+        nonamer = "ACAAAAACC"
+    elif rss_layout == "start_minus":
+        heptamer = "CACTGTG"
+        nonamer = "GGTTTTTGT"
+    threshold = 50
+
+    if mer1 == 7 and mer2 == 9:
+        heptamer_matcher = difflib.SequenceMatcher(None, heptamer, seq_l).ratio() * 100
+        nonamer_matcher = difflib.SequenceMatcher(None, nonamer, seq_r).ratio() * 100
+        #if "IGHD" in row:
+            #print(f"{mer1} {mer2} {heptamer} {seq_l} {round(heptamer_matcher)}| {nonamer}  {seq_r} {round(nonamer_matcher)} {rss_layout}")
+    elif mer1 == 9 and mer2 == 7:
+        heptamer_matcher = difflib.SequenceMatcher(None, heptamer, seq_r).ratio() * 100
+        nonamer_matcher = difflib.SequenceMatcher(None, nonamer, seq_l).ratio() * 100
+        #if "IGHD" in row:
+            #print(f"{mer1} {mer2} {heptamer} {seq_r} {round(heptamer_matcher)} | {nonamer}  {seq_l} {round(nonamer_matcher)} {rss_layout}")
+
+    if heptamer_matcher < threshold or nonamer_matcher < threshold:
+        return False
+    return True
 
 
 def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
@@ -149,7 +186,8 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
         locus_with_gaps_fasta_file_name = locus_with_gaps_fasta_file_name / f"{locus_type}_{rss_variant}.fasta"
 
         sum_lenght_seq = 0
-        with open(locus_fasta_file_name, 'w') as locus_fasta_file, open(locus_with_gaps_fasta_file_name, 'w') as locus_fasta_file2:
+        sum_seq = 0
+        with (open(locus_fasta_file_name, 'w') as locus_fasta_file, open(locus_with_gaps_fasta_file_name, 'w') as locus_fasta_file2):
             for index_segment, row in group_locus.iterrows():
                 start_coord_segment = row["Start coord"]
                 end_coord_segment = row["End coord"]
@@ -165,48 +203,40 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                 elif rss_layout == "start_minus":
                     start_rss, end_rss = [(start_coord_segment - rss_length), start_coord_segment]
 
-                rss = record.seq[start_rss:end_rss].replace("-", "N")
-                if strand == '-':
-                    rss = str(Seq(str(rss)).reverse_complement())
+                rss = record.seq[start_rss:end_rss].replace("-", "N").upper()
+                if rss:
+                    if strand == '-':
+                        rss = str(Seq(str(rss)).reverse_complement()).upper()
 
-                seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
-                locus_fasta_file.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                    seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
 
-                if row["Function"] != "P" and row["Status"] == "Known":
-                    spacer = len(spacer) * "N"
-                    locus_fasta_file2.write(f">{row['Old name-like']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                    check = check_conserved(seq_l, seq_r, mer1, mer2, rss_layout,  row['Target name'])
 
-                sum_lenght_seq += len(rss)
+                    locus_fasta_file.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
-        meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
-        os.makedirs(cwd / output_base / "meme_output", exist_ok=True)
-        run_meme(locus_fasta_file_name=locus_with_gaps_fasta_file_name, meme_output=meme_output, rss_length=rss_length, sum_lenght_seq=sum_lenght_seq)
+                    if check and row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
+                        spacer = len(spacer) * "N"
+                        locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        sum_seq = sum_seq + 1
+                    elif check and row["Status"] == "Known" and row["Segment"] in ["D"]:
+                        spacer = len(spacer) * "N"
+                        locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        sum_seq = sum_seq + 1
+                    sum_lenght_seq += len(rss)
 
-        fimo_output = cwd / output_base / "fimo_output" / f"{locus_type}_{rss_variant}"
-        os.makedirs(cwd / output_base / "fimo_output", exist_ok=True)
-        run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name)
+        if sum_seq > 1:
+            meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
+            os.makedirs(cwd / output_base / "meme_output", exist_ok=True)
+            run_meme(locus_fasta_file_name=locus_with_gaps_fasta_file_name, meme_output=meme_output, rss_length=rss_length, sum_lenght_seq=sum_lenght_seq)
 
-        df_fimo = get_fimo_output(fimo_intput=fimo_output)
-        group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, rss_layout=rss_layout, rss_length=rss_length)
+            fimo_output = cwd / output_base / "fimo_output" / f"{locus_type}_{rss_variant}"
+            os.makedirs(cwd / output_base / "fimo_output", exist_ok=True)
+            run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name)
+
+            df_fimo = get_fimo_output(fimo_intput=fimo_output)
+            group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, rss_layout=rss_layout, rss_length=rss_length)
     combined_results = pd.concat([combined_results, group_locus])
     return combined_results
-
-
-def add_suffix_to_short_name(group):
-    """
-    Adds a suffix to duplicate 'Short name' entries to ensure uniqueness.
-
-    Args:
-        group (pd.DataFrame): Grouped DataFrame containing segment data.
-
-    Returns:
-        pd.DataFrame: Updated DataFrame with unique 'Short name' values.
-    """
-    unique_sequences = group['Old name-like seq'].unique()
-    if len(unique_sequences) > 1:
-        seq_to_suffix = {seq: f"_{i + 1}" for i, seq in enumerate(unique_sequences)}
-        group['Short name'] = group['Short name'] + group['Old name-like seq'].map(seq_to_suffix)
-    return group
 
 
 def main_rss(threads: int = 8) -> None:
@@ -239,14 +269,12 @@ def main_rss(threads: int = 8) -> None:
     known = combined_df[combined_df["Status"] == "Known"]
     novel = combined_df[combined_df["Status"] == "Novel"]
 
-    novel = novel.groupby('Short name', group_keys=False).apply(add_suffix_to_short_name)
-
-    known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-    novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-
-    known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
-    novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)
-
-
-if __name__ == '__main__':
-    main_rss(threads=12)
+    if not combined_df.empty:
+        combined_df = combined_df.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        combined_df.to_excel(cwd / "annotation" / "annotation_report_all_rss.xlsx", index=False)
+    if not known.empty:
+        known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
+    if not novel.empty:
+        novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)

@@ -13,7 +13,7 @@ def open_files(data_path: str) -> pd.DataFrame:
 
 def make_pivot_table(data: pd.DataFrame) -> pd.DataFrame:
     pivot_df = data.pivot_table(
-        index=['Population', 'Sample', 'Haplotype', 'Region', 'Function'],
+        index=['Population', 'Sample', 'Region', 'Function'],
         columns='Segment',
         aggfunc='size',
         fill_value=0
@@ -23,7 +23,7 @@ def make_pivot_table(data: pd.DataFrame) -> pd.DataFrame:
 
 def make_plot(data: pd.DataFrame, output: str, status: str) -> None:
     data.reset_index(inplace=True)
-    long_df = data.melt(id_vars=['Population', 'Sample', 'Haplotype', 'Region', 'Function'], var_name='Segment', value_name='Count')
+    long_df = data.melt(id_vars=['Population', 'Sample', 'Region', 'Function'], var_name='Segment', value_name='Count')
     long_df = long_df[long_df['Count'] > 0]
 
     segmenten = long_df['Segment'].unique()

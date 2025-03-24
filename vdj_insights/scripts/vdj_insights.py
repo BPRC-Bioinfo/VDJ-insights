@@ -149,13 +149,12 @@ def validate_flanking_genes(value):
     Raises:
         argparse.ArgumentTypeError: If the number of genes is not even.
     """
-    flanking_genes = [gene.strip().upper() if gene.strip() !=
-                      '-' else '' for gene in value.split(',')]
+    flanking_genes = [gene.strip().upper() if gene.strip() != '-' else '-' for gene in value.split(',')]
     if len(flanking_genes) % 2 == 1:
         file_log.error(f"The specified flanking genes: {flanking_genes} should be even numbers.")
         raise argparse.ArgumentTypeError(f"The specified flanking genes: {flanking_genes} should be even numbers (e.g., 2, 4, 6, 8) rather than odd (e.g., 1, 3, 5).")
     file_log.info(f"Validated flanking genes: {flanking_genes}")
-    return flanking_genes
+    return value
 
 
 def validate_chromosome(value):
@@ -269,7 +268,7 @@ def setup_annotation_args(subparsers):
     parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG', 'KIR-LILR'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
-    data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
+    data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes.')
     data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
 
     parser_annotation.add_argument('-M', '--metadata',required=False, type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
@@ -359,6 +358,7 @@ def run_annotation(args):
     cwd = Path.cwd()
     file_log.info('Running the annotation program')
     library = cwd / 'library' / f'library.fasta'
+
     if not args.library:
         if not library.is_file():
             file_log.info(
@@ -375,6 +375,13 @@ def run_annotation(args):
                 args.library = cwd / 'library' / library
         else:
             args.library = cwd / 'library' / library
+    else:
+        library_path = Path(args.library)
+        destination = cwd / 'library' / "library.fasta"
+        make_dir(cwd / 'library')
+        shutil.copy(args.library, destination)
+        args.library = cwd / 'library' / library
+
     create_config(output_dir, settings_dir, args)
     try:
         create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
@@ -401,9 +408,16 @@ def load_library_from_json(json_file_path):
 
 
 def load_annotation_data(cwd):
-    novel = pd.read_excel(cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
-    known = pd.read_excel(cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
-    return pd.concat([novel, known])[["Start coord", "End coord", "Reference", "Old name-like", "Status",
+    file_known = cwd / "annotation" / "annotation_report_known.xlsx"
+    file_novel = cwd / "annotation" / "annotation_report_novel.xlsx"
+
+    dataframes = []
+    if file_known.exists():
+        dataframes.append(pd.read_excel(file_known))
+    if file_novel.exists():
+        dataframes.append(pd.read_excel(file_novel))
+    data = pd.concat(dataframes, ignore_index=True)
+    return data[["Start coord", "End coord", "Reference", "Old name-like", "Status",
                                       "Sample", "Haplotype", "Old name-like seq"]].apply(lambda col: col.str.strip() if col.dtype == "object" else col)
 
 
@@ -446,6 +460,26 @@ def open_browser():
     webbrowser.open_new('http://127.0.0.1:5000/')
 
 
+def get_python_executable():
+    """
+    Checks whether 'python' or 'python3' is available and returns the appropriate executable.
+
+    Returns:
+        str: The name of the Python executable ('python' or 'python3').
+
+    Raises:
+        RuntimeError: If neither 'python' nor 'python3' is found in the PATH.
+    """
+    if shutil.which("python"):
+        return "python"
+    elif shutil.which("python3"):
+        return "python3"
+    else:
+        raise RuntimeError(
+            "No suitable Python executable found. Ensure 'python' or 'python3' is available in PATH."
+        )
+
+
 def run_html(args):
     console_log.info(
         "Running the HTML report, which should automatically open in your browser.\n"
@@ -463,8 +497,9 @@ def run_html(args):
     try:
         if not args.dev_mode:
             threading.Timer(1, open_browser).start()
+        python_executable = get_python_executable()
         process = subprocess.Popen(
-            ['python', str(output_dir / 'app.py')],
+            [python_executable, str(output_dir / 'app.py')],
             stdout=False if args.dev_mode else subprocess.DEVNULL,
             stderr=False if args.dev_mode else subprocess.DEVNULL,
         )
@@ -988,11 +1023,17 @@ def initialize_config(args, species_config, settings_dir, config):
 
     # Handling flanking genes based on default settings
     flanking_genes = getattr(args, 'flanking_genes', None)
-
     if not flanking_genes and args.default:
-        flanking_genes = species_config.get(
-            args.species.capitalize().replace(" ", "_"), "default"
-        ).get(args.receptor_type, {}).get("FLANKING_GENES")
+        species = args.species.capitalize().replace(" ", "_")
+        receptor = args.receptor_type
+
+        species_data = species_config.get(species, species_config.get("default", {}))
+        receptor_data = species_data.get(receptor, species_config["default"].get(receptor, {}))
+        flanking_genes = receptor_data.get("FLANKING_GENES", {})
+
+        #flanking_genes = species_config.get(
+        #    args.species.capitalize().replace(" ", "_"), "default"
+        #).get(args.receptor_type, {}).get("FLANKING_GENES")
 
     if flanking_genes:
         config.setdefault("FLANKING_GENES", flanking_genes)

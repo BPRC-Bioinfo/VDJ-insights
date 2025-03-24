@@ -3,6 +3,7 @@ Copyright (c) 2023-2025 Biomedical Primate Research Centre, the Netherlands.
 All rights reserved.
 """
 
+import time
 from pathlib import Path
 import shutil
 import subprocess
@@ -41,7 +42,17 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
     output_fna = path / f"{gene}.fna"
     if not output_fna.is_file():
         command = f'datasets download gene symbol {gene} --taxon "{species}" --include gene --filename {output_zip}'
-        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        max_retries = 10
+        retry_delay = 5
+        for attempt in range(1, max_retries + 1):
+            try:
+                subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                break
+            except subprocess.CalledProcessError as e:
+                print(e.stderr)
+                if attempt < max_retries:
+                    time.sleep(retry_delay)
 
         unzip_file(output_zip, path)
 
@@ -104,17 +115,13 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         Exception: If an unexpected error occurs during the mapping process, logs the error and raises an exception.
     """
     sam_file = output_dir / assembly_file.with_suffix(".sam").name
-    awk_command = "awk '{print $1, $2, $3, $4, $5}'"
     if not sam_file.is_file():
-        command = (
-            f'minimap2 -ax asm5 --secondary=no -t {threads} '
-            f'{assembly_file} {flanking_genes} | {awk_command} > {sam_file}'
-        )
+        command = (f'minimap2 -ax asm5 -t {threads} {assembly_file} {flanking_genes} > {sam_file}')
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species: str, threads: int) -> None:
+def map_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], species: str, threads: int) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 
@@ -134,8 +141,9 @@ def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species:
 
     console_log.info(f"Downloading flanking genes for {species}")
 
-    for gene in flanking_genes:
-        if gene != "-":
+    flanking_genes_list = [gene for genes in flanking_genes.values() for gene in genes]
+    for gene in flanking_genes_list:
+        if gene != "-" and len(gene) > 1:
             download_flanking_genes(gene, flanking_genes_dir, species)
 
     gene_output = combine_genes(flanking_genes_dir, flanking_genes_dir / "all_genes.fna")
@@ -147,6 +155,7 @@ def map_main(flanking_genes: list[str], assembly_dir: Union[str, Path], species:
         for assembly_file in assembly_files
     ]
     total_tasks = len(tasks)
+
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(map_flanking_genes, *arg): arg for arg in tasks}

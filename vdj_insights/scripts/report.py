@@ -11,7 +11,7 @@ from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
 
-from .util import seperate_annotation, log_error
+from .util import log_error, make_dir
 from .logger import console_logger, file_logger
 
 console_log = console_logger(__name__)
@@ -75,7 +75,7 @@ def add_region_segment(row, cell_type):
     Returns:
         pd.Series: The updated row with 'Region', 'Segment', and 'Short name' columns added.
     """
-    query = row['Old name-like']
+    query = row['Target name']
     prefix = fetch_prefix(query, cell_type)
     short_name = prefix
     prefix = re.sub(r"[0-9-]", "", prefix)
@@ -97,7 +97,7 @@ def filter_group(group):
     return not (group['% identity'] == 100).any()
 
 
-def main_df(df):
+def split_df(df):
     """
     Processes the BLAST results DataFrame to filter out entries that contain gaps in the sequences or have 100% identity.
     Converts the '% identity' column to float for numerical operations and filters out 100% identity entries,
@@ -133,9 +133,9 @@ def parse_btop(btop):
             i += 2
         elif btop[i] == "-":
             if i > 0 and btop[i - 1].isalpha():
-                deletions += 1
-            elif i + 1 < len(btop) and btop[i + 1].isalpha():
                 insertions += 1
+            elif i + 1 < len(btop) and btop[i + 1].isalpha():
+                deletions += 1
             i += 1
         else:
             i += 1
@@ -159,9 +159,7 @@ def add_values(df):
     df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda x: pd.Series(parse_btop(x)))
 
     split_query_df = df['query'].str.split('#', expand=True)
-    #split_query_df = df['query'].str.split(r'[#:]', expand=True)
-
-    df[['query', 'start', 'stop', 'strand', 'path', 'haplotype', 'tool', 'mapping_accuracy']] = split_query_df[[0, 1, 2, 3, 4, 5, 6, 7]]
+    df[['query', 'start', 'stop', 'strand', 'path', 'tool']] = split_query_df[[0, 1, 2, 3, 4, 5]]
     return df
 
 
@@ -177,57 +175,20 @@ def add_like_to_df(df):
         pd.DataFrame: The DataFrame with the added 'Old name-like' column and renamed columns.
     """
     output_df = df[[
-        'subject', 'query',
-        'mismatches', '% Mismatches of total alignment',
-        'start', 'stop',
-        'subject seq', 'query seq',
-        'tool', 'mapping_accuracy', '% identity', 'strand', 'path', 'haplotype',
+        'subject', 'query','mismatches', '% Mismatches of total alignment',
+        'start', 'stop', 'subject seq', 'query seq', 'tool', '% identity', 'strand', 'path',
         'query_seq_length', 'subject_seq_length', 'btop', 'SNPs', 'Insertions', 'Deletions'
 
     ]]
     output_df.columns = [
-        'Reference', 'Old name-like',
-        'Mismatches', '% Mismatches of total alignment',
-        'Start coord', 'End coord',
-        'Reference seq', 'Old name-like seq',
-        'tool', 'mapping_accuracy', '% identity','Strand', 'Path', 'Haplotype',
-        'Reference Length', 'Old name-like Length', 'BTOP', 'SNPs', 'Insertions', 'Deletions'
+        'Library name', 'Target name', 'Mismatches', '% Mismatches of total alignment',
+        'Start coord', 'End coord', 'Library sequence', 'Target sequence', 'Mapping tool', '% identity','Strand', 'Path',
+        'Target length', 'subject library length', 'BTOP', 'SNPs', 'Insertions', 'Deletions'
     ]
-    output_df = output_df.sort_values(by="Reference")
-    output_df['Old name-like'] = output_df['Old name-like'] + '-like'
+
+    output_df = output_df.sort_values(by="Library name")
     return output_df
 
-
-def orf_function(aa, segment):
-    """
-    Determines the functional status of a segment based on its amino acid sequence.
-    If the sequence ends with a single stop codon ('*') and has no internal stop codons, it is considered 'F/ORF'.
-    If the sequence has internal stop codons, it is considered 'P'.
-    Additionally, a message is generated to indicate if the stop codon is at a critical position.
-
-    Args:
-        aa (str): The amino acid sequence of the segment.
-        segment (str): The type of segment (V, D, or J).
-
-    Returns:
-        tuple: A tuple containing:
-            - message (str): A message indicating the presence of a stop codon.
-            - function_type (str): The functional status of the segment ('F/ORF' or 'P').
-    """
-    end_codon = aa[-1] == "*" and aa.count("*") == 1
-    function_dict = {
-        "V": "F/ORF" if end_codon or not "*" in aa else "P",
-        "D": "PF/ORF",
-        "J": "PF/ORF"
-    }
-    function_type = function_dict.get(segment, "Unknown")
-    message = ""
-    if end_codon:
-        if segment not in function_dict:
-            message = "Segment not recognized."
-        else: #ALLEEN VOOR V SEGMENTEN
-            message = "the STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement"
-    return message, function_type
 
 
 def trim_sequence(sequence, strand):
@@ -256,35 +217,13 @@ def trim_sequence(sequence, strand):
     return amino_acid_sequence, sequence
 
 
-def add_orf(row):
-    """
-    Adds a 'Function' column to the DataFrame row, indicating the functional status of the segment.
-    The status is determined by translating the nucleotide sequence into amino acids and checking for stop codons.
-    If the sequence contains a single stop codon at the end, it is marked as 'F/ORF'. Otherwise, it is marked as 'P'.
-    Additionally, a 'Message' column is added to provide information about the stop codon position.
-
-    Args:
-        row (pd.Series): The current row of the DataFrame.
-
-    Returns:
-        pd.Series: The updated row with 'Function' and 'Message' columns added.
-    """
-    sequence, strand, segment = row[['Old name-like seq', 'Strand', "Segment"]]
-    sequence = sequence.replace("-", "")
-    amino_acid_sequence, sequence = trim_sequence(sequence, strand)
-    message, function_type = orf_function(amino_acid_sequence, segment)
-    row["Function"] = function_type
-    row["Message"] = message
-    return row
-
-
 def filter_df(group_df, cell_type):
     """
     Filters a group of sequences to identify the best reference sequence and creates a list of similar references.
     The best reference is determined based on the presence of the 'Specific Part' (a combination of region and segment)
     in the 'Reference' column, sorting by 'Mismatches' and 'Reference', and taking the first hit.
     If no specific hit is found, the first row of the group is used.
-    The remaining similar references are stored in the 'Similar references' column, and the 'Old name-like' is updated.
+    The remaining similar references are stored in the 'Similar references' column, and the 'Target name' is updated.
 
     Args:
         group_df (pd.DataFrame): The current group of sequences.
@@ -295,23 +234,23 @@ def filter_df(group_df, cell_type):
     """
     group_df['Specific Part'] = group_df["Region"] + group_df["Segment"]
     specific_part_in_reference = group_df.apply(
-        lambda x: x['Specific Part'] in x['Reference'], axis=1)
-    query_subject_length_equal = group_df['Reference seq'].str.len(
-    ) == group_df['Old name-like seq'].str.len()
+        lambda x: x['Specific Part'] in x['Library name'], axis=1)
+    query_subject_length_equal = group_df['Library sequence'].str.len(
+    ) == group_df['Target sequence'].str.len()
     filtered_rows = group_df[specific_part_in_reference & query_subject_length_equal]
-    best_row = filtered_rows.sort_values(by=['Mismatches', 'Reference']).head(1)
+    best_row = filtered_rows.sort_values(by=['Mismatches', 'Library name']).head(1)
 
     if best_row.empty:
         best_row = group_df.head(1)
     all_references = ', '.join(
-        set(group_df['Reference']) - set(best_row['Reference']))
+        set(group_df['Library name']) - set(best_row['Library name']))
     best_row['Similar references'] = all_references
-    best_row["Old name-like"] = best_row["Reference"]
-    best_row["Short name"] = best_row["Reference"].apply(
+    best_row["Target name"] = best_row["Library name"]
+    best_row["Short name"] = best_row["Library name"].apply(
         lambda ref: fetch_prefix(ref, cell_type))
-    if int(best_row.Mismatches.iloc[0]) != 0:
-        best_row["Old name-like"] = best_row["Reference"] + "-like"
-        best_row["Short name"] = best_row["Reference"].apply(
+    if float(best_row["% identity"].iloc[0]) < 100.0:
+        best_row["Target name"] = best_row["Library name"] + "-like"
+        best_row["Short name"] = best_row["Library name"].apply(
             lambda ref: fetch_prefix(ref, cell_type)) + "-like"
     return best_row.squeeze()
 
@@ -328,8 +267,8 @@ def add_reference_length(row, record):
     Returns:
         pd.Series: The updated row with the 'Library Length' column added.
     """
-    reference = row["Reference"]
-    row["Library Length"] = len(record[reference].seq)
+    reference = row["Library name"]
+    row["Library length"] = len(record[reference].seq)
     return row
 
 
@@ -345,8 +284,8 @@ def extract_sample(path):
 
 def run_like_and_length(df, record, cell_type):
     """
-    Adds 'Old name-like', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
-    Filters the DataFrame to retain only rows where the reference length, old name-like length, and library length are equal.
+    Adds 'Target name', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
+    Filters the DataFrame to retain only rows where the reference length, Target name length, and library length are equal.
     Adds a 'Sample' column, which is extracted from the path.
 
     Args:
@@ -360,16 +299,13 @@ def run_like_and_length(df, record, cell_type):
     df = add_like_to_df(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
-
-    #length_mask = df[["Reference Length", "Old name-like Length", "Library Length"]].apply(lambda x: x.nunique() == 1, axis=1)
-    #df = df[length_mask]
     df["Sample"] = df["Path"].apply(extract_sample)
     return df
 
 
 def group_similar(df, cell_type):
     """
-    Groups sequences by their start coordinate, end coordinate, and haplotype, and filters each group to identify the best reference sequence.
+    Groups sequences by their start coordinate, end coordinate, and filters each group to identify the best reference sequence.
     The best reference sequence is selected based on the number of mismatches and the reference name, and similar references are stored.
 
     Args:
@@ -379,42 +315,41 @@ def group_similar(df, cell_type):
     Returns:
         pd.DataFrame: The grouped and filtered DataFrame.
     """
-    df = df.groupby(['Start coord', 'End coord', 'Sample']).apply(lambda group: filter_df(group, cell_type))
+    df = df.groupby(['Sample', 'Start coord', 'End coord']).apply(lambda group: filter_df(group, cell_type))
     df = df.reset_index(drop=True)
 
-    cols_to_convert = ["Start coord", "End coord", "% identity", "mapping_accuracy", "Mismatches"]
+    cols_to_convert = ["Start coord", "End coord", "% identity", "Mismatches"]
     df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors='coerce')
+
 
     filterd_df = (
         df
-        .sort_values(
-            by=['% identity', 'mapping_accuracy', 'Mismatches'],
-            ascending=[False, False, True]
-        )
+        .sort_values(by=['Sample', '% identity', 'Mismatches'], ascending=[True, False, True])
         .groupby(['Start coord', 'End coord'], as_index=False)
         .first()
     )
+
     filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
     longest_sequences = (
         filterd_df
-        .sort_values(["% identity", "Alignment_length"], ascending=[False, False])
-        .groupby("Start coord")
-        .head(1)
+        .sort_values(by=["Sample", "% identity", "Alignment_length"], ascending=[True, False, False])
+        .groupby(["Sample", "Start coord"], as_index=False)
+        .first()
     )
-
     processed_groups = []
-    grouped = longest_sequences.groupby(["Sample", "Region", "Segment"], as_index=False)
+    grouped = longest_sequences.groupby(["Sample", "Region"], as_index=False)
     for name, group in grouped:
-        group = group.sort_values(by="Start coord").reset_index(drop=True)
-
+        group = group.sort_values(by=["Start coord", "% identity"], ascending=[True, False]).reset_index(drop=True)
         merged_intervals = []
         current_interval = group.iloc[0]
 
         for idx in range(1, len(group)):
             next_interval = group.iloc[idx]
             if next_interval["Start coord"] <= current_interval["End coord"]:
-                group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"],
-                                                                    next_interval["End coord"])
+                if next_interval["% identity"] > current_interval["% identity"]:
+                    current_interval = next_interval
+                else:
+                    group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"], next_interval["End coord"])
             else:
                 merged_intervals.append(current_interval)
                 current_interval = next_interval
@@ -428,27 +363,7 @@ def group_similar(df, cell_type):
     return result_df
 
 
-def annotation_long(df, annotation_folder):
-    """
-    Generates a condensed version of the annotation report, saving it as 'annotation_report_long.xlsx'.
-    The report includes key columns such as reference names, coordinates, functions, paths, and regions.
-
-    Args:
-        df (pd.DataFrame): The DataFrame containing BLAST results.
-        annotation_folder (Path): The directory where the report will be saved.
-
-    Raises:
-        OSError: If the file cannot be created or written to.
-    """
-    file_log.info("Generating annotation_report_long.xlsx!")
-    df = df[['Reference', 'Old name-like', 'Mismatches',
-             '% Mismatches of total alignment', 'Start coord',
-             'End coord', 'Function', 'Path', 'Region', 'Segment',
-             'Haplotype', 'Sample', 'Short name', 'Message', 'tool','mapping_accuracy', '% identity']]
-    df.to_excel(annotation_folder / 'annotation_report_long.xlsx', index=False)
-
-
-def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadata_folder):
+def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
     """
     Generates a full annotation report and saves it as the specified file name.
     The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
@@ -463,60 +378,99 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, no_split, metadat
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    file_log.info(f"Generating {file_name}!")
-
-    df["Status"] = "Known" if "known" in file_name else "Novel"
-    df = df[["Sample", "Haplotype", "Region", "Segment", "Start coord", "End coord", "Strand", "Reference", "Old name-like", "Short name", "Similar references", "Old name-like seq", "Reference seq", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "mapping_accuracy", "tool", "Function", "Status", "Message", "Path"]]
+    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Status", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
-        df = df.merge(metadata_df[['Accession', 'Population']], left_on='Sample', right_on='Accession', how='left')
-        df = df.drop(columns=["Accession"])
+        merge_cols = ["Accession"]
+        if "Population" in metadata_df.columns:
+            merge_cols.append("Population")
+        if "Haplotype" in metadata_df.columns:
+            merge_cols.append("Haplotype")
+        if len(merge_cols) > 1:
+            df = df.merge(metadata_df[merge_cols], left_on="Sample", right_on="Accession", how="left")
+            df = df.drop(columns=["Accession"])
 
     full_annotation_path = annotation_folder / file_name
     df.to_excel(full_annotation_path, index=False)
 
-    if not no_split:
-        file_log.info("Creating individual sample excel files...")
-        df.groupby("Sample").apply(lambda group: seperate_annotation(group, annotation_folder, file_name))
+    for sample, sample_df in df.groupby("Sample"):
+        path = annotation_folder / "individual" / sample
+        make_dir(path)
+        new_file = path / file_name
+        sample_df.to_excel(new_file, index=False)
+
+
+def add_suffix_to_short_name(group):
+    """
+    Adds a suffix to duplicate 'Short name' entries to ensure uniqueness.
+
+    Args:
+        group (pd.DataFrame): Grouped DataFrame containing segment data.
+
+    Returns:
+        pd.DataFrame: Updated DataFrame with unique 'Short name' values.
+    """
+    unique_sequences = group['Target sequence'].unique()
+    if len(unique_sequences) > 1:
+        seq_to_suffix = {seq: f"_{i + 1}" for i, seq in enumerate(unique_sequences)}
+        group['Short name'] = group['Short name'] + group['Target sequence'].map(seq_to_suffix)
+        group['Target name'] = group['Target name'] + group['Target sequence'].map(seq_to_suffix)
+    return group
 
 
 @log_error()
-def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], no_split: bool, metadata_folder: Union[str, Path]):
+def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], metadata_folder: Union[str, Path]):
     """
     Main function to process and generate the annotation reports from the BLAST results.
-    It performs the following steps:
-        1. Loads the configuration and reference sequence records.
-        2. Processes the BLAST results DataFrame to add necessary columns and filter the results.
-        3. Generates the condensed and full annotation reports.
-
-    Args:
-        annotation_folder (Path): The directory where the reports will be saved.
-        blast_file (Path or str): Path to the input BLAST results file (Excel format).
-        cell_type (str): The cell type used to fetch prefixes.
-        library (Path or str): Path to the reference sequence library in FASTA format.
-        no_split (bool): A flag indicating whether to split the report by sample.
-        metadata_folder (Path or str): Path to the metadata file.
-
-    Raises:
-        Exception: If any step fails, logs the error and raises an exception.
     """
-    cwd = Path.cwd()
     segments_library = make_record_dict(library)
 
     df = pd.read_csv(blast_file, low_memory=False)
     df = add_values(df)
 
-    novel_df, known_df = main_df(df)
+    novel_df, known_df = split_df(df)
+
     if not novel_df.empty:
         novel_df = run_like_and_length(novel_df, segments_library, cell_type)
-        novel_df = novel_df.apply(add_orf, axis=1)
-        annotation_long(novel_df, annotation_folder)
-        novel_df = group_similar(novel_df, cell_type)
-        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', no_split, metadata_folder)
+        novel_df["Status"] = "Novel"
     if not known_df.empty:
         known_df = run_like_and_length(known_df, segments_library, cell_type)
-        known_df = known_df.apply(add_orf, axis=1)
-        known_df = group_similar(known_df, cell_type)
-        annotation(known_df, annotation_folder,'annotation_report_known.xlsx', no_split, metadata_folder)
+        known_df["Status"] = "Known"
 
+    combined_df = pd.concat([novel_df, known_df], ignore_index=True)
+
+    grouped_df = group_similar(combined_df, cell_type)
+
+    known_df = grouped_df[grouped_df["Status"] == "Known"]
+    novel_df = grouped_df[grouped_df["Status"] == "Novel"]
+
+    if not novel_df.empty:
+        novel_df = novel_df.groupby('Library name', group_keys=False).apply(add_suffix_to_short_name)
+        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', metadata_folder)
+
+    if not known_df.empty:
+        annotation(known_df, annotation_folder, 'annotation_report_known.xlsx', metadata_folder)
+
+    combined_df = pd.concat([novel_df, known_df], ignore_index=True)
+    if not combined_df.empty:
+        annotation(combined_df, annotation_folder, 'annotation_report_all.xlsx', metadata_folder)
+
+    console_log.info(f"Known segments detected: {known_df.shape[0]}")
+    console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
+
+
+    #pivot_table_sheet1 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Function', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet2 = combined_df.pivot_table(index='Sample', columns=['Region', 'Segment'], aggfunc='size', fill_value=0)
+    #pivot_table_sheet3 = combined_df.pivot_table(index='Sample', columns=['Region', 'Function', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet4 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Segment'], aggfunc='size', fill_value=0)
+    pivot_table_sheet5 = combined_df.pivot_table(index='Sample', columns=['Region'], aggfunc='size', fill_value=0)
+    pivot_table_sheet6 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status'], aggfunc='size', fill_value=0)
+
+    with pd.ExcelWriter(f"{annotation_folder}/pivot_tables.xlsx") as writer:
+        #pivot_table_sheet1.to_excel(writer, sheet_name="Total")
+        pivot_table_sheet2.to_excel(writer, sheet_name="Segment")
+        #pivot_table_sheet3.to_excel(writer, sheet_name="Function")
+        pivot_table_sheet4.to_excel(writer, sheet_name="Status")
+        pivot_table_sheet5.to_excel(writer, sheet_name="Region_total")
+        pivot_table_sheet6.to_excel(writer, sheet_name="Function_total")

@@ -1,33 +1,45 @@
 
 ![Logo](vdj_insights/images/BPRC_logo.png)
-# VDJ-insights
+# VDJ-Insights
 
 ## Abstract
 
-VDJ insights offers a robust framework for assembling and annotating the TCR and BCR regions using long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). We designed this tool to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors (BCR). This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
+VDJ-Insights offers a robust framework for assembling and annotating the TCR and BCR regions using long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). We designed this tool to uncover both novel and known V(D)J gene segments within T-cell receptors (TCR) or B-cell receptors (BCR). This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
+
+---
 
 ## Installation
 
-VDJ insights requires a specific environment to run. You can install all necessary dependencies by setting up a Conda environment using the provided pipeline.yaml file. 
+VDJ-Insights is currently supported only on Linux systems. The Python environment required to run the pipeline is automatically configured using PIO, eliminating the need for manual Conda environment setup. Please ensure that Python and Conda are installed on your system before running the pipeline.
+To install VDJ-Insights, you can choose one of the following methods:
 
-clone the VDJ insights repository:
-``` bash
-git clone https://github.com/BPRC-CGR/TCR_macaque
-```
+### Option 1: Clone the repository
+1. Clone the VDJ-Insights repository:
+   ```bash
+   git clone https://github.com/BPRC-CGR/VDJ-insights
+   ```
 
-Open the terminal and run the following command to create the Conda environment:
-``` bash
-conda env create -f pipeline.yaml --name pipeline
-```
+2. Navigate to the repository directory and run PIO to install dependencies:
+   ```bash
+   cd vdj_insights
+   ```
 
-Activate the Conda environment you created earlier by running:
-``` bash
-conda activate pipeline
-```
+3. Run the pipeline using Python's -m option:
+   ```bash
+   python -m vdj_insights.<pipeline|annotation|html> [arguments]
+   ```
+**Note:** When cloning the repository, the pipeline must always be executed using the python -m option. This ensures that Python correctly recognizes the package structure and runs the pipeline without additional installation steps.
+### Option 2: Install via pip
+1. Use pip to install VDJ-Insights directly:
+   ```bash
+   pip install vdj_insights
+   ```
 
-## Overview VDJ insights
+After installation, the environment is ready to use, and you can proceed with running the pipeline.
 
-Within VDJ insights, you have the option to assemble and analyze the VDJ segments. You only need to specify the reference genome, either as a NCBI genome code or as a an input fasta file. Specify the type of receptor `TR` or `IG` and the species name of the animal you want to analyze.
+## Overview VDJ-Insights
+
+Within VDJ-Insights, you have the option to assemble and analyze the V(D)J gene segments. You only need to specify the reference genome, either as a NCBI genome code or as a an input fasta file. Specify the type of receptor `TR` or `IG` and the species name of the animal you want to analyze.
 
 ## Assembly
 The complete pipeline can be executed using the following command:
@@ -48,12 +60,12 @@ python vdj-insights pipeline -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fast
 ---
 
 ### **Optional Arguments**
-| **Argument**         | **Description**                                                                                                    | **Example**                |
-|----------------------|--------------------------------------------------------------------------------------------------------------------|---------------------------|
-| `-f, --flanking-genes` | Comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. The genes should be added as pairs.                 | `-f MGAM2,EPHB6`           |
-| `-c, --chromosomes`  | List of chromosomes where `TR` or `IG` is located. Values must be integers between 1-22 or `X`, `Y`.               | `-c 14,22`                 |
-| `-t, --threads`      |  Number of threads for parallel processing (default: `8`).                                 | `-t 16`                    |
-| `--default`          | Uses default settings for the analysis. Cannot be used with `-f/--flanking-genes` or `-c/--chromosomes`.           | `--default`                |
+| **Argument**         | **Description**                                                                                          | **Example**                |
+|----------------------|----------------------------------------------------------------------------------------------------------|---------------------------|
+| `-f, --flanking-genes` | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is available, use `"-"` as a placeholder. | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'`           |
+| `-c, --chromosomes`  | List of chromosomes where `TR` or `IG` is located. Values must be integers between 1-22 or `X`, `Y`.     | `-c 14,22`                 |
+| `-t, --threads`      | Number of threads for parallel processing (default: `8`).                                                | `-t 16`                    |
+| `--default`          | Uses default settings for the analysis. Cannot be used with `-f/--flanking-genes` or `-c/--chromosomes`. | `--default`                |
 
 ---
 
@@ -67,17 +79,17 @@ python vdj-insights pipeline -ont <nanopore_data.fastq.gz> -pb <pacbio_data.fast
 It is possible to analyse already assemble genomes using the FASTA file as input. You can use the following command to run the script:
 
 ```bash
-python vdj-insights annotation -a <assembly_directory> | -i <input_directory> -l <library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads> -m <mappingtool, mapping_tool> -M <metadata_directory> -o <output_directory> --default
+python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -l <library_directory/library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads> -m <mappingtool, mapping_tool> -M <metadata_directory> -o <output_directory> --default
 ```
 
 ### **Required Arguments:**
-| **Argument**        | **Description**                                                                                   | **Example**              |
-|---------------------|---------------------------------------------------------------------------------------------------|-------------------------|
-| `-r, --receptor-type` | Type of receptor to analyze. Choices are `TR` (T-cell receptor), `IG` (immunoglobulin), or `KIR-LILR`. **(Required when using `--default`)**| `-r TR`                 |
-| `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`). | `-a /path/to/assembly.fasta` or `-i /path/to/region.fasta` |
-| `-l, --library`     | Path to the library FASTA file containing V(D)J segment sequences. **(Required when using -i)** | `-l /path/to/library.fasta`|
-| `-f, --flanking-genes` | Comma-separated list of flanking genes, e.g., `MGAM2,EPHB6`. **(Required when using `-a`)** | `-f MGAM2,EPHB6` |
-| `-s, --species`     | Species name, e.g., `Homo sapiens`. **(Required when using `-a`)** | `-s "Homo sapiens"` |
+| **Argument**        | **Description**                                                                                                                                        | **Example**              |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
+| `-r, --receptor-type` | Type of receptor to analyze. Choices are `TR` (T-cell receptor) or `IG` (immunoglobulin). **(Required when using `--default`)**                        | `-r TR`                 |
+| `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`).                                        | `-a /path/to/assembly` or `-i /path/to/region` |
+| `-l, --library`     | Path to the library FASTA file containing V(D)J segment sequences. **(Required when using -i)**                                                        | `-l /path/to/library.fasta`|
+| `-f, --flanking-genes` | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is available, use `"-"` as a placeholder. | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'`           |
+| `-s, --species`     | Species name, e.g., `Homo sapiens`.                                                                                                                    | `-s "Homo sapiens"` |
 
 ---
 
@@ -88,13 +100,12 @@ python vdj-insights annotation -a <assembly_directory> | -i <input_directory> -l
 | `-o, --output`      | Output directory for the results (default: `annotation_results` in the current directory).          | `-o /path/to/output`     |
 | `-m, --mapping-tool` | Available mapping tools: `minimap2`, `bowtie`, `bowtie2`. (Default: all).              | `-m minimap2`            |
 | `-t, --threads`     | Number of threads for parallel processing (default: `8`).                                           | `-t 16`                  |
-| `--no-split`        | Prevents output of separate Excel files for each individual sample.                                | `--no-split`             |
 | `--default`         | Use default settings (cannot be used with `--flanking-genes`).                                     | `--default`              |
 
 
 ### Important notes
 
-- If using the `-i/--input` flag, do not specify `-f/--flanking-genes` or `-s/--species` as they are only needed when using `-a/--assembly`.
+- If using the `-i/--input` flag, do not specify `-f/--flanking-genes` as they are only needed when using `-a/--assembly`.
 - If using the `--default` flag, do not specify `-f/--flanking-genes` as they are mutually exclusive with `--default`.
 
 ### Example
@@ -116,7 +127,7 @@ When using the `--default` flag, the annotation tool will automatically download
 The results of the V(D)J gene segment identification, generated by the annotation tool, are stored in the **`annotation`** folder. This folder contains the following Excel files: 
 - `annotation_report_known.xlsx` and `annotation_report_known_rss.xlsx` contain information about known V(D)J gene segments, including recombination signal sequences. 
 - `annotation_report_novel.xlsx` and `annotation_report_novel_rss.xlsx` contain information about novel V(D)J gene segments, including recombination signal sequences.
-- `annotation_report_long.xlsx` includes extended reports covering additional segment details.  
+- `annotation_report_all.xlsx` contain known and novel information about known V(D)J gene segments, including recombination signal sequences. 
 - `blast_results.xlsx` contains BLAST search results used for validation.  
 - `report.xlsx` provides a summary of the overall findings from the alignment tools.
   
@@ -131,12 +142,12 @@ Each annotation report (known | novel) contains the following columns with detai
 | **Start coord**                 | The start coordinate on the contig. | `12345`|
 | **End coord**                   | The end coordinate on the contig. |`12789`|
 | **Strand**                      | The orientation of the segment: `+` for 5' to 3' and `-` for 3' to 5'. | `+`|
-| **Reference**                   | The name of the closest reference gene segment for the identified segment. | `IGHV3-23*01`|
-| **Old name-like**               | The name assigned to the new segment, derived from the closest reference, with "like" appended to indicate similarity. | `IGHV3-23-like` |
+| **Library name**                   | The name of the closest reference gene segment for the identified segment. | `IGHV3-23*01`|
+| **Target name**               | The name assigned to the new segment, derived from the closest reference, with "like" appended to indicate similarity. | `IGHV3-23-like` |
 | **Short name**                  | The gene name (IMGT gene name nomenclature). | `IGHV3*01` |
 | **Similar references**          | Other reference gene segments with the same start and end coordinates; the best match is chosen based on the mutation count and reference name.                                                                                               | `IGHV3-33*02`                 |
-| **Old name-like seq**           | The DNA sequence of the identified "Old name-like" segment. | `ATGGTGCAAGC...` |
-| **Reference seq**               | The DNA sequence of the closest reference gene segment. | `ATGGTGCAAAC...` |
+| **Target sequence**           | The DNA sequence of the identified "Old name-like" segment. | `ATGGTGCAAGC...` |
+| **Library sequence**               | The DNA sequence of the closest reference gene segment. | `ATGGTGCAAAC...` |
 | **Mismatches**                  | The total number of mismatches between the identified segment and the reference.                                                                                                                                                               | `3`                           |
 | **% Mismatches of total alignment** | The percentage of mismatches relative to the total length of the alignment between the identified segment and the reference.                                                                                                                   | `1.5%`                        |
 | **% identity**                  | The percentage of identical bases between the identified segment and the reference across the entire alignment.  | `98.5%` |
@@ -144,8 +155,7 @@ Each annotation report (known | novel) contains the following columns with detai
 | **SNPs**                        | The number of single nucleotide polymorphisms (SNPs) detected in the alignment. | `2` |
 | **Insertions**                  | The number of insertions in the identified segment relative to the reference. | `1` |
 | **Deletions**                   | The number of deletions in the identified segment relative to the reference. | `0` |
-| **Mapping accuracy**            | A measure of how accurately the segment was mapped compared to the reference. | `99.2%` |
-| **Tool**                        | The name of the mapping tool used for the annotation. | `Minimap2` |
+| **Mapping tool**                        | The name of the mapping tool used for the annotation. | `Minimap2` |
 | **Function**                    | The functional classification of the segment: "F/ORF" for functional/open reading frame, "P" for potentially functional/open reading frame, or "pseudogene" if an early stop codon is detected.                                               | `F/ORF`                       |
 | **Status**                      | Indicates whether the segment is classified as **Known** or **Novel**. | `Novel`|
 | **Message**                     | A generated message for the segment if stop codons are detected in critical positions. | `the STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement`  |
@@ -158,8 +168,8 @@ The pipeline provides an interactive web interface for visualizing and exploring
 python vdj_insights html -i /path/to/output --show
 ```
 
-## Citing VDJ insights
-If you use VDJ insights in your work, please cite:
+## Citing VDJ-Insights
+If you use VDJ-Insights in your work, please cite:
 <cite>
 
 ## Acknowledgements
@@ -168,5 +178,6 @@ This tool was developed by the department of Comparative genetics & Refinement o
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Sayed Jamiel Mohammadi](https://github.com/sayedjm)
 - [@Giang Le](https://github.com/GiangLeN)
+- [@SusanOtt](https://github.com/SusanOtt)
 - [@Jesse Bruijnesteijn](https://github.com/JesseBNL)
 

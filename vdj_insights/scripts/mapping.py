@@ -63,30 +63,7 @@ def get_sequence(line, fasta):
     return str(specific_sequence[int(start): int(stop)])
 
 
-def get_region_and_segment(name, cell_type):
-    """
-    Determines the region and segment from a potential segment name.
-
-    This function identifies the region and segment in the provided name
-    by checking for a part that starts with the specified cell type.
-
-    Args:
-        name (str): The name of a potential segment.
-        cell_type (str): The type of cell (e.g., TR, IG) to look for in the name.
-
-    Returns:
-        str, str: The region and segment names, or "other" and "-" if not found.
-    """
-    prefix = [i for i in name.split("_") if i.startswith(cell_type)]
-    if prefix:
-        prefix = re.sub(r"[0-9]", "", prefix[0])
-        if prefix.startswith(cell_type):
-            return prefix[0:3], prefix[3]
-    else:
-        return "other", "-"
-
-
-def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
+def parse_bed(file_path, fasta, mapping_type, cell_type):
     """
     Parses a BED file and extracts relevant information for each entry.
 
@@ -95,7 +72,6 @@ def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
     The function returns a list of all the entries found in the BED file.
 
     Args:
-        file_path (str): Path to the BED file.
         accuracy (int): Accuracy score between 1 and 100.
         fasta (str): Path to the reference FASTA file.
         mapping_type (str): The type of mapping tool used (`bowtie`, `bowtie2`, or `minimap2`).
@@ -108,13 +84,12 @@ def parse_bed(file_path, accuracy, fasta, mapping_type, cell_type):
     with open(file_path, "r") as file:
         for line in file:
             line = line.strip().split("\t")
-            region, segment = get_region_and_segment(line[3], cell_type)
-            line.extend([get_sequence(line, fasta), accuracy, str(file_path), mapping_type, region, segment, fasta])
+            line.extend([get_sequence(line, fasta), mapping_type, fasta])
             entries.append(line)
     return entries
 
 
-def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
+def make_bowtie2_command(bowtie_db, rfasta, sam_file, threads):
     """
     Configures the Bowtie2 command for mapping sequences.
 
@@ -126,7 +101,6 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     The constructed command includes these parameters along with the Bowtie2 database, reference FASTA file, and the output SAM file paths.
 
     Args:
-        acc (int): Accuracy score between 1 and 100.
         bowtie_db (str): Path to the Bowtie2 database index.
         rfasta (Path): Path to the reference FASTA file.
         sam_file (str): Path to the output SAM file.
@@ -135,25 +109,13 @@ def make_bowtie2_command(acc, bowtie_db, rfasta, sam_file, threads):
     Returns:
         str: A fully configured Bowtie2 command string.
     """
-    N = 1 if acc < 50 else 0
-    L = int(15 + (acc / 100) * 5)
-    score_min_base = -0.1 + (acc / 100) * 0.08
-    score_min = f"L,0,{score_min_base:.2f}"
-    command = f"bowtie2 -p {threads} -N {N} -L {L} --score-min {score_min} -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    command = f"bowtie2 --end-to-end --very-sensitive -p {threads} --score-min L,0,-0.5 -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
-def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
+def make_bowtie_command(bowtie_db, rfasta, sam_file, threads):
     """
     Configures the Bowtie command for mapping sequences.
-
-    This function adjusts the following Bowtie parameters based on the provided accuracy score (`acc`):
-    - `v`: The number of allowed mismatches. It is set based on the accuracy score as follows:
-        - 3 mismatches if `acc` <= 33
-        - 2 mismatches if `acc` <= 66
-        - 1 mismatch if `acc` < 100
-        - 0 mismatches if `acc` = 100
-
     The constructed command includes these parameters along with the Bowtie database, reference FASTA file, and the output SAM file paths.
 
     Args:
@@ -166,12 +128,15 @@ def make_bowtie_command(acc, bowtie_db, rfasta, sam_file, threads):
     Returns:
         str: A fully configured Bowtie command string.
     """
-    mismatches = 3 if acc <= 33 else (2 if acc <= 66 else 1 if acc < 100 else 0)
-    command = f"bowtie -p {threads} -v {mismatches} -m 1 -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    #command = f"bowtie -a -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -k 2 -n 2 -p {threads} -M 3 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+
+    #command = f"bowtie --best -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
+
     return command
 
 
-def make_minimap2_command(acc, ffile, rfasta, sam_file, threads):
+def make_minimap2_command(ffile, rfasta, sam_file, threads):
     """
     Configures the Minimap2 command for mapping sequences.
 
@@ -192,11 +157,11 @@ def make_minimap2_command(acc, ffile, rfasta, sam_file, threads):
     Returns:
         str: A fully configured Minimap2 command string.
     """
-    command = f"minimap2 -a -m {acc} -t {threads} {ffile} {rfasta} > {sam_file}"
+    command = f"minimap2 -a -m 70 -t {threads} {ffile} {rfasta} > {sam_file}"
     return command
 
 
-def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, threads):
+def all_commands(files: MappingFiles, fasta_file, rfasta, mapping_type, threads):
     """
     Generates all the necessary commands to run a sequence mapping process using the specified tool.
 
@@ -217,11 +182,11 @@ def all_commands(files: MappingFiles, fasta_file, rfasta, acc, mapping_type, thr
         list: A list of shell command strings to execute the mapping process.
     """
     if mapping_type == "bowtie2":
-        bowtie_command = make_bowtie2_command(acc, files.bowtie_db, rfasta, files.sam, threads)
+        bowtie_command = make_bowtie2_command(files.bowtie_db, rfasta, files.sam, threads)
     elif mapping_type == "minimap2":
-        bowtie_command = make_minimap2_command(acc, fasta_file, rfasta, files.sam, threads)
+        bowtie_command = make_minimap2_command(fasta_file, rfasta, files.sam, threads)
     else:
-        bowtie_command = make_bowtie_command(acc, files.bowtie_db, rfasta, files.sam, threads)
+        bowtie_command = make_bowtie_command(files.bowtie_db, rfasta, files.sam, threads)
 
     commands = [
         f"{mapping_type}-build {fasta_file} {files.bowtie_db}",
@@ -259,18 +224,14 @@ def make_df(all_entries):
         "score",
         "strand",
         "sequence",
-        "accuracy",
-        "file",
         "tool",
-        "region",
-        "segment",
         "fasta-file"
     ]
     df = pd.DataFrame(all_entries, columns=headers)
     return df.reset_index(drop=True)
 
 
-def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, threads_per_process):
+def run_single_task(fasta, outdir, rfasta, mapping_type, cell_type, threads_per_process):
     """
     Runs the mapping process for each FASTA file in the input directory.
 
@@ -280,7 +241,6 @@ def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 
     file entries.
 
     Args:
-        indir (Path): Path to the input directory containing FASTA files.
         outdir (Path): Path to the output directory where indices are stored.
         rfasta (Path): Path to the reference FASTA file.
         beddir (Path): Path to the directory where BED files are stored.
@@ -293,7 +253,7 @@ def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 
         list[list]: A nested list containing parsed entries for each FASTA file.
     """
     try:
-        beddir = outdir.parent / mapping_type / f"{acc}%acc"
+        beddir = outdir.parent / mapping_type
         make_dir(beddir)
         prefix = fasta.stem
         index = outdir / prefix
@@ -301,21 +261,21 @@ def run_single_task(fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 
             make_dir(index)
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
-            for command in all_commands(files, fasta, rfasta, acc, mapping_type, threads_per_process):
+            for command in all_commands(files, fasta, rfasta, mapping_type, threads_per_process):
                 subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if files.bed.exists():
-            entries = parse_bed(files.bed, acc, fasta, mapping_type, cell_type)
+            entries = parse_bed(files.bed, fasta, mapping_type, cell_type)
             file_log.info(f"Parsed {len(entries)} entries from {files.bed}")
             return entries
         else:
             file_log.warning(f"Required file missing: {files.bed}")
             return []
     except Exception as e:
-        file_log.error(f"Error in run_single_task for {fasta} at {acc}%: {e}")
+        file_log.error(f"Error in run_single_task for {fasta}: {e}")
         return []
 
 
-def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100, stop=70):
+def mapping_main(mapping_type, cell_type, input_dir, library, threads):
     """
     Main function to run the mapping process for a specified tool.
 
@@ -340,13 +300,14 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads, start=100
     indir = cwd / input_dir
     rfasta = library
     all_entries = []
-    fasta_files = list(indir.glob("*.fasta"))
-    accuracy_levels = range(start, stop - 1, -1)
-    tasks = [(fasta, acc) for acc in accuracy_levels for fasta in fasta_files]
+    tasks = list(indir.glob("*.fasta"))
+    #    assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / assembly_dir).glob(ext)]
+
     total_tasks = len(tasks)
+
     max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
     with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [executor.submit(run_single_task, fasta, acc, indir, outdir, rfasta, mapping_type, cell_type, 2) for fasta, acc in tasks]
+        futures = [executor.submit(run_single_task, fasta, outdir, rfasta, mapping_type, cell_type, 2) for fasta in tasks]
         with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:
             for future in as_completed(futures):
                 try:

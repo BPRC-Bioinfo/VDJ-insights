@@ -135,6 +135,9 @@ def fetch_sequence(segment: str, directory: Union[str, Path], species: str, fram
     """
     for attempt in range(retry_limit):
         url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}"
+        if frame == "8.1":
+            url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}&IMGTlabel=L-PART1+L-PART2"
+        #print(url)
         response = requests.get(url)
         sleep_time = 2
         if response.status_code == 200:
@@ -179,31 +182,41 @@ def scrape_IMGT(species: str, immune_type: str, directory: Union[str, Path], fra
         frame (str): the chosen frame, which is choses from the argparse
         list for regarding frame.
     """
-    segments = {
-        "TR": [
-            "TRBV", "TRBJ", "TRBD", "TRAV", "TRAJ",
-            "TRDD", "TRDJ", "TRDV", "TRGV", "TRGJ"
-        ],
-        "IG": [
-            'IGHV', 'IGHD', 'IGHJ', 'IGKV',
-            'IGKJ', 'IGLV', 'IGLJ'
-        ]
-    }
-    """
-    segments = {
-        "TR": [
-            "TRBV", "TRBJ", "TRBD", "TRBC",
-            "TRAV", "TRAJ", "TRAC",
-            "TRDD", "TRDJ", "TRDC", "TRDV",
-            "TRGV", "TRGJ"
-        ],
-        "IG": [
-            "IGHV", "IGHD", "IGHJ", "IGHC",
-            "IGKV", "IGKJ", "IGKC",
-            "IGLV", "IGLJ", "IGLC"
-        ]
-    }
-    """
+    if frame != "8.1":
+        segments = {
+            "TR": [
+                "TRBV", "TRBJ", "TRBD", "TRAV", "TRAJ",
+                "TRDD", "TRDJ", "TRDV", "TRGV", "TRGJ"
+            ],
+            "IG": [
+                'IGHV', 'IGHD', 'IGHJ', 'IGKV',
+                'IGKJ', 'IGLV', 'IGLJ'
+            ]
+        }
+        """
+        segments = {
+            "TR": [
+                "TRBV", "TRBJ", "TRBD", "TRBC",
+                "TRAV", "TRAJ", "TRAC",
+                "TRDD", "TRDJ", "TRDC", "TRDV",
+                "TRGV", "TRGJ"
+            ],
+            "IG": [
+                "IGHV", "IGHD", "IGHJ", "IGHC",
+                "IGKV", "IGKJ", "IGKC",
+                "IGLV", "IGLJ", "IGLC"
+            ]
+        }
+        """
+    else:
+        segments = {
+            "TR": [
+                "TRBV", "TRAV", "TRDV", "TRGV"
+            ],
+            "IG": [
+                'IGHV', 'IGKV', 'IGLV'
+            ]
+        }
     make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
@@ -232,7 +245,7 @@ def convert_frame(frame: Union[str, None]):
         str: decimal number indicating the which type of frame is needed.
     """
     options = {
-        "all": "7.2", "in-frame": "7.5", "in-frame-gaps": "7.1"
+        "all": "7.2", "in-frame": "7.5", "in-frame-gaps": "7.1", "L-PART1+L-PART2": "8.1"
     }
     return options[frame or "all"]
 
@@ -306,22 +319,22 @@ def main(species: str,
         cleanup(imgt_dir)
 
     file_log.info("Scrape completed successfully.")
-    json_file = library_dir / "library_info.json"
-
-    save_json(
-        release=set_release(),
-        fasta_files_info=fasta_files_info,
-        fasta_files_url=fasta_file_urls,
-        file_path=json_file,
-        species=species,
-        immune_type=immune_type,
-        output_dir=path,
-        frame_selection=frame_selection,
-        create_library_bool=create_library_bool,
-        cleanup_bool=cleanup_bool,
-        simple_headers_bool=simple_headers_bool
-    )
+    if create_library_bool:
+        json_file = library_dir / "library_info.json"
+        save_json(
+            release=set_release(),
+            fasta_files_info=fasta_files_info,
+            fasta_files_url=fasta_file_urls,
+            file_path=json_file,
+            species=species,
+            immune_type=immune_type,
+            output_dir=path,
+            frame_selection=frame_selection,
+            create_library_bool=create_library_bool,
+            cleanup_bool=cleanup_bool,
+            simple_headers_bool=simple_headers_bool
+        )
 
 
 if __name__ == '__main__':
-    main("Homo sapiens", "IG" )
+    main("Homo sapiens", "IG", "L-PART1+L-PART2","L-PART1+L-PART2")

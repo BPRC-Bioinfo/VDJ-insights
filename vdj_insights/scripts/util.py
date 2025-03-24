@@ -108,6 +108,7 @@ def validate_input(path: str) -> str:
         )
     return str(input_path)
 
+
 @log_error()
 def validate_metadata_coverage(input_dir: str, metadata_dir: str) -> bool:
     input_files = []
@@ -176,22 +177,6 @@ def unzip_file(file_path: Union[str, Path], unzip_path: Union[str, Path]) -> Non
         file_log.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
         file_log.error(f"Failed to extract {file_path} to {extract_to_path}: {e}")
         raise
-
-
-def seperate_annotation(sample_df: pd.DataFrame, annotation_folder: Path, filename: str):
-    """
-    Creates separate annotation files for individual samples.
-
-    Args:
-        sample_df (pd.DataFrame): Data for a single sample.
-        annotation_folder (Path): The directory where the individual report will be saved.
-        filename (str): The base file name for saving the report.
-    """
-    sample = sample_df.iloc[0]['Sample']
-    path = annotation_folder / "individual" / sample
-    make_dir(path)
-    new_file = path / filename
-    sample_df.to_excel(new_file, index=False)
 
 
 def calculate_available_resources(max_cores: int, threads: int, memory_per_process: int = 12,

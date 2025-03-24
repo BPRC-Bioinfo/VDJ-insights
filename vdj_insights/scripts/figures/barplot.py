@@ -14,7 +14,7 @@ def open_files(data_path: str) -> pd.DataFrame:
 
 def make_pivot_table(data: pd.DataFrame) -> pd.DataFrame:
     pivot_df = data.pivot_table(
-        index=['Population','Sample', 'Haplotype', 'Status', 'Region'],
+        index=['Population','Sample', 'Status', 'Region'],
         columns='Short name',
         aggfunc='size',
         fill_value=0,
