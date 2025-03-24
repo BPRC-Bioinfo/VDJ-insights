@@ -170,7 +170,6 @@ def main(args=None):
 
         start = time.time()
         region_main(flanking_genes_dict, args.assembly, args.threads)
-        exit()
         end = time.time()
         timing_results.append(["Region of intrest extraction", round(end - start, 2)])
 
