@@ -19,7 +19,7 @@ warnings.simplefilter('ignore', BiopythonWarning)
 
 
 def open_files(cwd: Path) -> (pd.DataFrame, pd.DataFrame):
-    data = cwd / "annotation" / "annotation_report_known.xlsx"
+    data = cwd / "annotation" / "annotation_report_all.xlsx"
 
     data = pd.read_excel(data)
 
@@ -147,14 +147,14 @@ def extraxt_region_from_genome(locus_fasta_path, region, group_locus, extract_co
                 DONOR_SPLICE = sequence[(length_sequence - L_PART1_end + 1):(length_sequence - L_PART1_end + 3)]
                 ACCEPTOR_SPLICE = sequence[(length_sequence - L_PART2_start - 2):(length_sequence - L_PART2_start)]
 
-                target_sequence = Seq(group_locus.loc[index_segment, "Target sequence"]).reverse_complement()
+                target_sequence = Seq(group_locus.loc[index_segment, "Target sequence"].replace("-", "")).reverse_complement()
             else:
                 L_PART1_seq = sequence[(L_PART1_start - 1):L_PART1_end]
                 L_PART2_seq = sequence[(L_PART2_start + off_set - 1):(L_PART2_end + off_set)]
                 DONOR_SPLICE = sequence[L_PART1_end:(L_PART1_end + 2)]
                 ACCEPTOR_SPLICE = sequence[(L_PART2_start + off_set - 3):(L_PART2_start + off_set - 1)]
 
-                target_sequence = group_locus.loc[index_segment, "Target sequence"]
+                target_sequence = group_locus.loc[index_segment, "Target sequence"].replace("-", "")
 
             group_locus.loc[index_segment, "L-PART1"] = str(L_PART1_seq)
             group_locus.loc[index_segment, "L-PART2"] = str(L_PART2_seq)
@@ -165,20 +165,6 @@ def extraxt_region_from_genome(locus_fasta_path, region, group_locus, extract_co
 
             group_locus.loc[index_segment, "L-PART+V-EXON"] = str(L_PART1_seq + L_PART2_seq + target_sequence)
             group_locus.loc[index_segment, "Protein"] = str(Seq(L_PART1_seq + L_PART2_seq + target_sequence).translate(to_stop=False).upper())
-
-            if seq_id == "":
-                print(group_locus.loc[index_segment])
-                print(sequence)
-                print("l-part1: " + group_locus.loc[index_segment, "L-PART1"])
-                print("l-part2: " + group_locus.loc[index_segment, "L-PART2"])
-                print("donor: " + group_locus.loc[index_segment, "DONOR-SPLICE"])
-                print("accep: " + group_locus.loc[index_segment, "ACCEPTOR-SPLICE"])
-                print("target: " + target_sequence)
-
-                print("L-PART+V-Eon: " + group_locus.loc[index_segment, "L-PART+V-EXON"])
-                print("Protein: " + group_locus.loc[index_segment, "Protein"])
-
-
 
     return group_locus
 
@@ -208,14 +194,14 @@ def check_functional_protein(segment, l_region, target_sequence, strand, protein
         if  acceptor_splice.upper() != "AG":
             return ["ORF", f"Incorrect acceptor splice site {acceptor_splice}"]
 
-        if Seq(target_sequence).translate(to_stop=False).upper().count("C") < 2:
+        if Seq(target_sequence.replace("-", "")).translate(to_stop=False).upper().count("C") < 2:
             return ["ORF", "Missing Cysteine in protein"]
 
         return base_status
 
     elif segment == "J":
         if strand == "-":
-            target_sequence = Seq(target_sequence).reverse_complement()
+            target_sequence = Seq(target_sequence.replace("-", "")).reverse_complement()
         J_target_sequence = Seq(target_sequence)
         motief_count = 0
         for frame in range(3):
@@ -252,7 +238,7 @@ def save_results(combined_results, cwd):
 def main_functionality(immune_type, species, threads: int = 12) -> None:
 
     cwd = Path.cwd()
-    output_base = cwd / "functionality"
+    output_base = cwd / "tmp/functionality"
     output_base.mkdir(parents=True, exist_ok=True)
 
     library_path = output_base / "library"
@@ -300,10 +286,9 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
 
         combined_results = pd.concat([combined_results, group_locus])
 
-    #Funconality
     combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["pseudo", ""], axis=1, result_type="expand")
     mask = combined_results["Segment"].isin(["D"])
     combined_results.loc[mask, ["Function", "Function_messenger"]] = ["functional", ""]
-
     save_results(combined_results, cwd)
+
 

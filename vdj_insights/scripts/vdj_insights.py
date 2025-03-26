@@ -34,7 +34,7 @@ def cwd_setup(output_dir):
     settings_dir = Path(__file__).resolve().parent.parent
     output_dir = Path(output_dir).resolve()
     make_dir(output_dir)
-    copy_flask(output_dir / 'flask', settings_dir)
+    copy_flask(output_dir / 'tmp/flask', settings_dir)
     os.chdir(str(output_dir))
     return settings_dir, output_dir
 
@@ -990,7 +990,7 @@ def create_config(output_dir, settings_dir, args):
     initialize_config(args, species_config, settings_dir, config)
     rss_config = load_config(settings_dir / '_config' / 'rss.yaml')
     deep_merge(config, rss_config.get(args.receptor_type, {}))
-    config_file = output_dir / 'config' / 'config.yaml'
+    config_file = output_dir / 'tmp/config' / 'config.yaml'
     make_dir(config_file.parent)
     save_config_to_file(config_file, config)
 

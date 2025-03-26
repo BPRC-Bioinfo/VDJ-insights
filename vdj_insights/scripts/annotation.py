@@ -10,14 +10,14 @@ from .mapping import mapping_main
 from .report import report_main
 from .functionality import main_functionality
 from .RSS import main_rss
-from .CDR import main_cdr
+from .CDR2 import main_cdr
 
 from pathlib import Path
 import pandas as pd
 import argparse
 from .blast import blast_main
 from .map_genes import map_main
-from .extract_region import region_main
+from .extract_region import region_main #test
 
 from .figures.barplot import main as barplot_main
 from .figures.boxplot import main as boxplot_main
@@ -151,7 +151,7 @@ def main(args=None):
     #if args.input and args.flanking_genes:
      #   update_args.error('-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
 
-    region_dir = "region"
+    region_dir = "tmp/region"
     if args.input:
         region_dir = args.input
 
@@ -174,7 +174,7 @@ def main(args=None):
         timing_results.append(["Region of intrest extraction", round(end - start, 2)])
 
     #mapping library and creating report
-    report = annotation_folder / "report.csv"
+    report = annotation_folder / "tmp/report.csv"
     if not report.exists():
         report_df = pd.DataFrame()
         start = time.time()
@@ -183,6 +183,7 @@ def main(args=None):
             mapping_df = mapping_main(tool, args.receptor_type, region_dir, args.library, args.threads)
             report_df = pd.concat([report_df, mapping_df])
         report_df = report_df.drop_duplicates(subset=["reference", "start", "stop", "name"]).reset_index(drop=True)
+        make_dir(annotation_folder / "tmp/")
         report_df.to_csv(report, index=False)
         end = time.time()
         timing_results.append([f"Mapping library", round(end - start, 2)])
@@ -190,15 +191,13 @@ def main(args=None):
     else:
         report_df = pd.read_csv(report)
 
-
     #reevaluate mapping genes of library with blast
-    blast_file = annotation_folder / "blast_results.csv"
+    blast_file = annotation_folder / "tmp/blast_results.csv"
     if not blast_file.exists():
         start = time.time()
         blast_main(report_df, blast_file, args.library, args.threads)
         end = time.time()
         timing_results.append(["BLAST revaluation", round(end - start, 2)])
-
 
 
     #create report and rss
@@ -218,7 +217,7 @@ def main(args=None):
     timing_results.append(["RSS extraction and validation", round(end - start, 2)])
 
     start = time.time()
-    main_cdr(args.species, args.threads)
+    main_cdr(args.species, args.receptor_type, args.threads)
     end = time.time()
     timing_results.append(["CDR identification", round(end - start, 2)])
 
@@ -239,7 +238,8 @@ def main(args=None):
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
- #end
+
+
 
 def main_old(args=None):
     """
@@ -294,7 +294,7 @@ def main_old(args=None):
     #if args.input and args.flanking_genes:
      #   update_args.error('-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
 
-    region_dir = "region"
+    region_dir = "tmp/region"
     if args.input:
         region_dir = args.input
 
@@ -323,15 +323,16 @@ def main_old(args=None):
 
 
     #reevaluate mapping genes of library with blast
-    blast_file = annotation_folder / "blast_results.csv"
+    blast_file = annotation_folder / "tmp/blast_results.csv"
     if not blast_file.exists():
         blast_main(report_df, blast_file, args.library, args.threads)
 
 
-    #create report and rss
+    #create report, predict functionality and rss
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
+    main_functionality(args.receptor_type, args.species, args.threads)
     main_rss(args.threads)
-    main_cdr(args.species, args.threads)
+    main_cdr(args.species, args.receptor_type, args.threads)
 
     #create figures
     if args.metadata:

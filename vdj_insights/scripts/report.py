@@ -79,8 +79,8 @@ def add_region_segment(row, cell_type):
     prefix = fetch_prefix(query, cell_type)
     short_name = prefix
     prefix = re.sub(r"[0-9-]", "", prefix)
-    region, segment = prefix[0:3], prefix[3]
-    row["Region"], row["Segment"], row["Short name"] = region, segment, short_name
+    segment =  prefix[3]
+    row["Segment"], row["Short name"] = segment, short_name
     return row
 
 
@@ -282,6 +282,17 @@ def extract_sample(path):
         return filename.split("_")[0]
 
 
+def extract_contig(path):
+    filename = path.split("/")[-1]
+    contig = filename.split("_")[-2]
+    return contig
+
+def extract_region(path):
+    filename = path.split("/")[-1]
+    region = filename.split("_")[-1].strip(".fasta")
+    return region
+
+
 def run_like_and_length(df, record, cell_type):
     """
     Adds 'Target name', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
@@ -300,6 +311,10 @@ def run_like_and_length(df, record, cell_type):
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
     df["Sample"] = df["Path"].apply(extract_sample)
+    df["Contig"] = df["Path"].apply(extract_contig)
+    df["Region"] = df["Path"].apply(extract_region)
+
+
     return df
 
 
@@ -378,7 +393,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Status", "Path"]]
+    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Contig", "Status", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)

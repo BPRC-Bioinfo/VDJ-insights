@@ -296,18 +296,18 @@ def mapping_main(mapping_type, cell_type, input_dir, library, threads):
         pd.DataFrame: A DataFrame containing all entries from the mapping process.
     """
     cwd = Path.cwd()
-    outdir = cwd / "mapping" / f"{mapping_type}_db"
+    outdir = cwd / "tmp/mapping" / f"{mapping_type}_db"
     indir = cwd / input_dir
     rfasta = library
     all_entries = []
-    tasks = list(indir.glob("*.fasta"))
-    #    assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / assembly_dir).glob(ext)]
+    #tasks = list(indir.glob("*.fasta"))
+    assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (indir).glob(ext)]
 
-    total_tasks = len(tasks)
+    total_tasks = len(assembly_files)
 
     max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
     with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [executor.submit(run_single_task, fasta, outdir, rfasta, mapping_type, cell_type, 2) for fasta in tasks]
+        futures = [executor.submit(run_single_task, fasta, outdir, rfasta, mapping_type, cell_type, 2) for fasta in assembly_files]
         with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:
             for future in as_completed(futures):
                 try:

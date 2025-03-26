@@ -45,7 +45,7 @@ def make_blast_db(cwd: Path, library: str) -> Path:
         subprocess.CalledProcessError: If the `makeblastdb` command fails.
         OSError: If the directory cannot be created or accessed.
     """
-    blast_db_path = cwd / "mapping" / "blast_db"
+    blast_db_path = cwd / "tmp/mapping" / "blast_db"
     if not blast_db_path.exists():
         reference = library
         make_dir(blast_db_path)

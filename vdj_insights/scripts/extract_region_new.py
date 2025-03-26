@@ -40,67 +40,35 @@ def filter_best_mapq(df: pd.DataFrame) -> pd.DataFrame:
 def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tuple[list[tuple[str, int, int]], str, str]:
 
     sam_file = pd.read_csv(sam, sep="\t", header=None, comment='@', dtype=str, usecols=[0, 1, 2, 3, 4], names=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
-    if sam_file.empty:
-        return [], first, second
     sam_file["MAPQ"] = sam_file["MAPQ"].astype(int)
 
-    filtered_first = sam_file[sam_file["QNAME"].str.contains(first, na=False)] if first != "-" else pd.DataFrame(columns=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
-    filtered_second = sam_file[sam_file["QNAME"].str.contains(second, na=False)] if second != "-" else pd.DataFrame(columns=["QNAME", "FLAG", "RNAME", "POS", "MAPQ"])
-
-    if filtered_first.empty and first != "-":
-        file_log.warning(f"Flanking gene {first} not found in SAM file.")
-        first = None
-    if filtered_second.empty and second != "-":
-        file_log.warning(f"Flanking gene {second} not found in SAM file.")
-        second = None
-
-    if not filtered_first.empty:
-        filtered_first["POS"] = filtered_first["POS"].astype(int)
-    if not filtered_second.empty:
-        filtered_second["POS"] = filtered_second["POS"].astype(int)
+    df = sam_file[sam_file["QNAME"].str.contains(first, na=False) | sam_file["QNAME"].str.contains(second, na=False)]
 
     extraction_regions = []
-    if not filtered_first.empty:
-        for rname in filtered_first["RNAME"].unique():
-            first_subset = filtered_first[filtered_first["RNAME"] == rname]
+    if not df.empty:
+        for rname, group in df.groupby("RNAME"):
+            first_subset = group[group["QNAME"].str.contains(first, na=False)]
             first_subset = filter_best_mapq(first_subset)
 
-            first_start = first_subset["POS"].min()
-            first_end = first_subset["POS"].max()
-
-            if filtered_second is not None and rname in filtered_second["RNAME"].values:
-                second_subset = filtered_second[filtered_second["RNAME"] == rname]
-                second_subset = filter_best_mapq(second_subset)
-
-                second_start = second_subset["POS"].min()
-                second_end = second_subset["POS"].max()
-
-                start = min(first_start, second_start)
-                end = max(first_end, second_end)
-            elif second == "-" or filtered_second is not None:
-                end = get_length_contig(sam, rname)
-                start = first_start
-                flag = int(first_subset["FLAG"].values[0])
-                if flag == 16:
-                    extraction_regions.append((rname, 0, start))
-                else:
-                    second = "-"
-                    extraction_regions.append((rname, start, end))
-
-                return extraction_regions, first, second
-            else:
-                continue
-            extraction_regions.append((rname, start, end))
-
-
-    elif not filtered_second.empty:
-        for rname in filtered_second["RNAME"].unique():
-            second_subset = filtered_second[filtered_second["RNAME"] == rname]
+            second_subset = group[group["QNAME"].str.contains(second, na=False)]
             second_subset = filter_best_mapq(second_subset)
 
-            second_end = second_subset["POS"].max()
-            extraction_regions.append((rname, 0, second_end))
-    return extraction_regions, first, second
+            if not first_subset.empty and not second_subset.empty:
+                first_start = first_subset["POS"].min()
+                first_end = first_subset["POS"].max()
+                second_start = second_subset["POS"].min()
+                second_end = second_subset["POS"].max()
+                start = min(first_start, second_start)
+                end = max(first_end, second_end)
+                extraction_regions.append((rname, start, end, first, second))
+            if not first_subset.empty and second_subset.empty:
+                start = first_subset["POS"].min()
+                end = get_length_contig(sam, rname)
+                extraction_regions.append((rname, start, end, first,  "-"))
+            if first_subset.empty and not second_subset.empty:
+                end = second_subset["POS"].min()
+                extraction_regions.append((rname, 0, end, "-", second))
+    return extraction_regions
 
 
 def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory : Union[str, Path], first: str, second: str, sample: str, immuno_region: str):
@@ -111,49 +79,30 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
     if second == "":
         second = "-"
     log_data = {}
-    sam = cwd / "tmp/mapped_genes" / assembly_fasta.with_suffix(".sam").name
+    sam = cwd / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
 
-    coords, first, second = get_positions_and_name(sam, first, second)
-
-    if len(coords) > 1:
-        coords = [coords[0]]
-    if coords:
-        contig_name = coords[0][0]
-        start = coords[0][1]
-        end = coords[0][2]
-
-        output_path = directory / f"{sample}_{first}_{second}_{contig_name}_{immuno_region}.fasta"
-
-        if len(coords) == 1:
-            if not output_path.is_file():
-                file_log.info(f"Extracting region: {first}, {second}, {contig_name}, {min(coords)}, {max(coords)}")
-
-                cmd = f"samtools faidx {assembly_fasta} {contig_name}:{start}-{end}"
-                result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
-                with open(output_path, 'w') as file:
-                    file.write(f">{output_path.stem}\n{str(Seq(concatenated_sequence))}")
+    extraction_regions = get_positions_and_name(sam, first, second)
+    print(extraction_regions)
+    for contig, start, end, flanking_gene_one, flanking_gene_second in extraction_regions:
+        print(contig, start, end, flanking_gene_one, flanking_gene_second)
+        output_file = directory / f"{sample}_{flanking_gene_one}_{flanking_gene_second}_{immuno_region}.fasta"
+        if not output_file.is_file():
+            file_log.info(f"Extracting region: {flanking_gene_one}, {flanking_gene_second}, {contig}, {min(start)}, {max(end)}")
+            cmd = f"samtools faidx {assembly_fasta} {contig}:{start}-{end}"
+            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
+            with open(output_file, 'w') as file:
+                file.write(f">{output_file.stem}\n{str(Seq(concatenated_sequence))}")
 
             log_data = {
                 "Region": immuno_region,
-                "Contig": contig_name,
-                "5'-contig": contig_name,
-                "3'-contig": contig_name,
-                "5_flanking_gene": first,
-                "3_flanking_gene": second,
+                "Contig": contig,
+                "5_flanking_gene": flanking_gene_one,
+                "3_flanking_gene": flanking_gene_second,
                 "5_coords": int(start),
                 "3_coords": int(end),
             }
-        else:
-            log_data = {
-                "Region": immuno_region,
-                "5'-contig": contig_name,
-                "3'-contig": contig_name,
-                "5_flanking_gene": first,
-                "3_flanking_gene": second,
-            }
-    else:
-        file_log.warning(f"No coordinates found for {first} and {second}. Region could not be extracted. {assembly_fasta.name}")
+
     return log_data if log_data else None
 
 @log_error()
@@ -163,7 +112,7 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
     based on flanking genes specified in the configuration.
     """
     cwd = Path.cwd()
-    directory = cwd / "tmp/region"
+    directory = cwd / "region"
     make_dir(directory)
 
     assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in Path(assembly_dir).glob(ext)]
@@ -180,6 +129,9 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
             for future in as_completed(futures):
                 log_data = future.result()
+                print(log_data)
+                """
+
                 if log_data:
                     assembly_name = futures[future][1].name
                     immuno_region = log_data["Region"]
@@ -193,9 +145,10 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
                     output_json[assembly_name][immuno_region]["3'-flanking_gene"] = log_data.get("3_flanking_gene",None)
                     output_json[assembly_name][immuno_region]["5'-Coords"] = log_data.get("5_coords", None)
                     output_json[assembly_name][immuno_region]["3'-Coords"] = log_data.get("3_coords", None)
-                    output_json[assembly_name][immuno_region]["Extraction status"] = "Complete" if log_data.get("Contig") else "Fragmented"
+                    output_json[assembly_name][immuno_region]["Extraction status"] = "Complete" if log_data.get("5_flanking_gene", None) == log_data.get("3_flanking_gene",None) else "Fragmented"
                 pbar.update(1)
-    log_file = cwd / "annotation/broken_regions.json"
+                """
+    log_file = cwd / "broken_regions.json"
     with open(log_file, 'w') as f:
         json.dump(output_json, f, indent=4)
 
@@ -204,3 +157,5 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
     else:
         file_log.error("No regions were extracted")
         raise Exception("No regions extracted.")
+
+    exit()

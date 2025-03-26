@@ -14,15 +14,8 @@ from tqdm import tqdm
 
 
 def open_files(cwd: Path) -> (pd.DataFrame, pd.core.groupby.generic.DataFrameGroupBy):
-    file_known = cwd / "annotation" / "annotation_report_known_rss.xlsx"
-    file_novel = cwd / "annotation" / "annotation_report_novel_rss.xlsx"
-
-    dataframes = []
-    if file_known.exists():
-        dataframes.append(pd.read_excel(file_known))
-    if file_novel.exists():
-        dataframes.append(pd.read_excel(file_novel))
-    data = pd.concat(dataframes, ignore_index=True)
+    data = cwd / "annotation" / "annotation_report_all_rss.xlsx"
+    data = pd.read_excel(data)
 
     data_other = data[~data["Segment"].isin(["V"])]
     data_v = data[data["Segment"].isin(["V"])].copy()
@@ -194,6 +187,7 @@ def main_cdr(species: str, threads: int = 12) -> None:
         known = combined_df[combined_df["Status"] == "Known"]
         novel = combined_df[combined_df["Status"] == "Novel"]
 
+        print(f"cdr: {combined_df['Status'].value_counts()}")
         if not combined_df.empty:
             combined_df = combined_df.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
             combined_df.to_excel(cwd / "annotation" / "annotation_report_all_rss_cdr.xlsx", index=False)

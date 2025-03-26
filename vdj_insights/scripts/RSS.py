@@ -29,15 +29,8 @@ def open_files(cwd: Path) -> pd.DataFrame:
             - pd.DataFrame: DataFrame with non-VDJ segments.
             - pd.DataFrameGroupBy: Grouped DataFrame by 'Region' and 'Segment' for VDJ segments.
     """
-    file_known = cwd / "annotation" / "annotation_report_known.xlsx"
-    file_novel = cwd / "annotation" / "annotation_report_novel.xlsx"
-
-    dataframes = []
-    if file_known.exists():
-        dataframes.append(pd.read_excel(file_known))
-    if file_novel.exists():
-        dataframes.append(pd.read_excel(file_novel))
-    data = pd.concat(dataframes, ignore_index=True)
+    data = cwd / "annotation" / "annotation_report_all.xlsx"
+    data = pd.read_excel(data)
 
     data_c = data[~data["Segment"].isin(["V", "D", "J"])]
     data_vdj = data[data["Segment"].isin(["V", "D", "J"])]
@@ -142,16 +135,13 @@ def check_conserved(seq_l:str , seq_r: str, mer1: int, mer2: int, rss_layout: st
     if mer1 == 7 and mer2 == 9:
         heptamer_matcher = difflib.SequenceMatcher(None, heptamer, seq_l).ratio() * 100
         nonamer_matcher = difflib.SequenceMatcher(None, nonamer, seq_r).ratio() * 100
-        #if "IGHD" in row:
-            #print(f"{mer1} {mer2} {heptamer} {seq_l} {round(heptamer_matcher)}| {nonamer}  {seq_r} {round(nonamer_matcher)} {rss_layout}")
     elif mer1 == 9 and mer2 == 7:
         heptamer_matcher = difflib.SequenceMatcher(None, heptamer, seq_r).ratio() * 100
         nonamer_matcher = difflib.SequenceMatcher(None, nonamer, seq_l).ratio() * 100
-        #if "IGHD" in row:
-            #print(f"{mer1} {mer2} {heptamer} {seq_r} {round(heptamer_matcher)} | {nonamer}  {seq_l} {round(nonamer_matcher)} {rss_layout}")
 
     if heptamer_matcher < threshold or nonamer_matcher < threshold:
         return False
+
     return True
 
 
@@ -214,15 +204,17 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
 
                     locus_fasta_file.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
-                    if check and row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
+                    #if check and row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
+                    if row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
                         spacer = len(spacer) * "N"
                         locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
+                        sum_lenght_seq += len(rss)
                     elif check and row["Status"] == "Known" and row["Segment"] in ["D"]:
                         spacer = len(spacer) * "N"
                         locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
-                    sum_lenght_seq += len(rss)
+                        sum_lenght_seq += len(rss)
 
         if sum_seq > 1:
             meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
@@ -247,9 +239,9 @@ def main_rss(threads: int = 8) -> None:
         threads (int, optional): Number of threads to use for parallel processing. Defaults to 8.
     """
     cwd = Path.cwd()
-    config = load_config(cwd / "config" / "config.yaml")
+    config = load_config(cwd / "tmp/config" / "config.yaml")
 
-    output_base = cwd / "RSS"
+    output_base = cwd / "tmp/RSS"
     data_c, vdj_grouped = open_files(cwd)
 
     combined_df = data_c
@@ -269,12 +261,13 @@ def main_rss(threads: int = 8) -> None:
     known = combined_df[combined_df["Status"] == "Known"]
     novel = combined_df[combined_df["Status"] == "Novel"]
 
+
     if not combined_df.empty:
         combined_df = combined_df.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-        combined_df.to_excel(cwd / "annotation" / "annotation_report_all_rss.xlsx", index=False)
+        combined_df.to_excel(cwd / "annotation" / "annotation_report_all.xlsx", index=False)
     if not known.empty:
         known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-        known.to_excel(cwd / "annotation" / "annotation_report_known_rss.xlsx", index=False)
+        known.to_excel(cwd / "annotation" / "annotation_report_known.xlsx", index=False)
     if not novel.empty:
         novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-        novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss.xlsx", index=False)
+        novel.to_excel(cwd / "annotation" / "annotation_report_novel.xlsx", index=False)

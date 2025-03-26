@@ -134,8 +134,8 @@ def map_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], sp
         Exception: If the main mapping process fails, logs the error and raises an exception.
     """
     cwd = Path.cwd()
-    flanking_genes_dir = cwd / "flanking_genes"
-    map_flanking_genes_dir = cwd / "mapped_genes"
+    flanking_genes_dir = cwd / "tmp/flanking_genes"
+    map_flanking_genes_dir = cwd / "tmp/mapped_genes"
     make_dir(flanking_genes_dir)
     make_dir(map_flanking_genes_dir)
 

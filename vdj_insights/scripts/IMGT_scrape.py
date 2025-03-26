@@ -137,7 +137,6 @@ def fetch_sequence(segment: str, directory: Union[str, Path], species: str, fram
         url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}"
         if frame == "8.1":
             url = f"https://www.imgt.org/genedb/GENElect?{urlencode({'query': f'{frame} {segment}', 'species': species})}&IMGTlabel=L-PART1+L-PART2"
-        print(url)
         response = requests.get(url)
         sleep_time = 2
         if response.status_code == 200:
