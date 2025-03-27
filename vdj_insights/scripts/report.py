@@ -434,6 +434,65 @@ def add_suffix_to_short_name(group):
     return group
 
 
+def make_bed(data: pd.DataFrame, output: str | Path) -> None:
+    make_dir(output)
+    for index, df in data.groupby(["Sample", "Path", "Region"]):
+        file_name = f"{index[0]}_{Path(index[1]).stem}_{index[2]}"
+        df["Contig"] = Path(index[1]).stem
+        bed_df = df[["Contig", "Start coord", "End coord", "Short name", "Strand"]]
+        bed_df.to_csv(Path(output) / f"{file_name}.bed", sep="\t", index=False, header=False)
+
+def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
+    make_dir(output)
+    for index, df in data.groupby(["Sample", "Path", "Region"]):
+        file_name = f"{index[0]}_{Path(index[1]).stem}_{index[2]}"
+        df["Contig"] = Path(index[1]).stem
+
+        gtf_lines = []
+
+        for _, row in df.iterrows():
+            contig = row["Contig"]
+            source = "genomic_annotation"
+            feature = "gene"
+            start = row["Start coord"]
+            end = row["End coord"]
+            score = "."
+            strand = row["Strand"]
+            frame = "."
+            attributes = f'gene_id "{row["Short name"]}"; region "{row["Region"]}"; function "{row["Function"]}";'
+
+            gtf_line = f"{contig}\t{source}\t{feature}\t{start}\t{end}\t{score}\t{strand}\t{frame}\t{attributes}"
+            gtf_lines.append(gtf_line)
+
+        with open(f"{output}/{file_name}.gtf", "w") as f:
+            f.write("\n".join(gtf_lines))
+
+
+def get_gtf(data: pd.DataFrame) -> None:
+    for index, df in data.groupby(["Sample", "Contig", "Region"]):
+        file_name = "_".join(index)
+        output_path = f"annotation/GTF/{file_name}.gtf"
+
+        gtf_lines = []
+
+        for _, row in df.iterrows():
+            contig = row["Contig"]
+            source = "genomic_annotation"
+            feature = "gene"
+            start = row["Start coord"]
+            end = row["End coord"]
+            score = "."
+            strand = row["Strand"]
+            frame = "."
+            attributes = f'gene_id "{row["Short name"]}"; region "{row["Region"]}"; function "{row["Function"]}";'
+
+            gtf_line = f"{contig}\t{source}\t{feature}\t{start}\t{end}\t{score}\t{strand}\t{frame}\t{attributes}"
+            gtf_lines.append(gtf_line)
+
+        with open(output_path, "w") as f:
+            f.write("\n".join(gtf_lines))
+
+
 @log_error()
 def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], metadata_folder: Union[str, Path]):
     """

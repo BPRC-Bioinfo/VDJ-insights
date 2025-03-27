@@ -78,6 +78,12 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
     return extraction_regions
 
 
+def count_contigs(sam_file: Union[str, Path]) -> int:
+    cmd = f'grep "^@SQ" "{sam_file}" | wc -l'
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return int(result.stdout.strip())
+
+
 def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory : Union[str, Path], first: str, second: str, sample: str, immuno_region: str):
     """
     Extracts a sequence from an assembly FASTA file based on flanking genes,
@@ -107,7 +113,10 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
                 "3_flanking_gene": flanking_gene_second,
                 "5_coords": int(start),
                 "3_coords": int(end),
-                "Extraction status": "Complete" if first == flanking_gene_one and second == flanking_gene_second else "Fragmented"
+                "Extraction status": "Complete" if first == flanking_gene_one and second == flanking_gene_second else "Fragmented",
+                "Assembly": str(assembly_fasta),
+                "Output": str(output_file),
+                "Count_contigs": count_contigs(sam)
             }
             all_log_data.append(log_data)
 
@@ -149,8 +158,9 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
                 pbar.update(1)
 
     log_file = cwd / "broken_regions.json"
-    with open(log_file, 'w') as f:
-        json.dump(output_json, f, indent=4)
+    if not log_file.is_file():
+        with open(log_file, 'w') as f:
+            json.dump(output_json, f, indent=4)
 
     if any(directory.iterdir()):
         file_log.info("Region extraction completed successfully")

@@ -17,7 +17,10 @@ import pandas as pd
 import argparse
 from .blast import blast_main
 from .map_genes import map_main
-from .extract_region import region_main
+#from .extract_region import region_main
+from .extract_region_new import region_main
+
+from .report import make_bed, make_gtf
 
 from .figures.barplot import main as barplot_main
 from .figures.boxplot import main as boxplot_main
@@ -169,8 +172,6 @@ def main(args=None):
         timing_results.append(["Mapping flanking genes", round(end - start, 2)])
 
         start = time.time()
-        from .extract_region_new import region_main  # test
-
         region_main(flanking_genes_dict, args.assembly, args.threads)
         end = time.time()
         timing_results.append(["Region of intrest extraction", round(end - start, 2)])
@@ -222,6 +223,11 @@ def main(args=None):
     end = time.time()
     timing_results.append(["CDR identification", round(end - start, 2)])
 
+    #create BED and GTF files
+    data = pd.read_excel(annotation_folder / "annotation_report_all.xlsx")
+    make_bed(data, annotation_folder / "BED")
+    make_gtf(data, annotation_folder / "GTF")
+
     #create figures
     if args.metadata:
         functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main, heatmap_main]
@@ -239,112 +245,4 @@ def main(args=None):
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
-
-
-
-def main_old(args=None):
-    """
-    Main function for the annotation tool. Performs the following steps:
-
-        1. Parses command-line arguments and sets up paths for input and output files.
-        2. Validates input parameters and configures the environment based on the selected options.
-        3. Creates necessary directories and initializes the annotation process.
-        4. Executes the mapping and region extraction processes if assembly mode is selected:
-           - Calls `map_main` to map flanking genes against the assembly.
-           - Calls `region_main` to extract regions based on mapped genes.
-        5. Retrieves or creates a DataFrame from existing or new mapping results:
-           - Uses `get_or_create` to check for existing reports or generate new ones.
-           - Calls `combine_df` to merge mapping results and remove duplicates.
-        6. Runs BLAST operations to align sequences and generate results:
-           - Calls `blast_main` to perform BLAST alignment on the combined DataFrame.
-        7. Generates the final annotation report and RSS file:
-           - Calls `report_main` to generate an Excel report summarizing the findings.
-           - Calls `RSS_main` to produce an RSS feed if required.
-
-    Args:
-        args (list or None): Command-line arguments to parse. Defaults to None.
-
-    Returns:
-        None
-
-    Raises:
-        ValueError: If invalid arguments are passed to the main function.
-        OSError: If any file or directory operation fails.
-        subprocess.CalledProcessError: If a BLAST command or database creation fails.
-    """
-    cwd = Path.cwd()
-
-    console_log.info(f"Initialise pipeline")
-    update_args = argparser_setup()
-
-    if args.assembly and args.metadata:
-        if not validate_metadata_coverage(args.assembly, args.metadata):
-            console_log.error("Shutting down script. Metadata does not cover all assembly files.")
-            exit()
-
-    if args is None:
-        args = update_args.parse_args()
-    elif isinstance(args, list):
-        args = update_args.parse_args(args)
-    elif not isinstance(args, argparse.Namespace):
-        raise ValueError("Invalid arguments passed to the main function")
-    if args.assembly:
-        if not args.flanking_genes or not args.species:
-            update_args.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
-        args.species = args.species.capitalize() if args.species else None
-    #if args.input and args.flanking_genes:
-     #   update_args.error('-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
-
-    region_dir = "tmp/region"
-    if args.input:
-        region_dir = args.input
-
-    annotation_folder = cwd / 'annotation'
-    make_dir(annotation_folder)
-
-
-    #mapping flanking genes and region extraction
-    flanking_genes_dict = ast.literal_eval(str(args.flanking_genes))
-    if args.assembly:
-        map_main(flanking_genes_dict, args.assembly, args.species, args.threads)
-        region_main(flanking_genes_dict, args.assembly, args.threads)
-
-    #mapping library and creating report
-    report = annotation_folder / "report.csv"
-    if not report.exists():
-        report_df = pd.DataFrame()
-        for tool in args.mapping_tool:
-            file_log.info(f"Processing tool: {tool}")
-            mapping_df = mapping_main(tool, args.receptor_type, region_dir, args.library, args.threads)
-            report_df = pd.concat([report_df, mapping_df])
-        report_df = report_df.drop_duplicates(subset=["reference", "start", "stop", "name"]).reset_index(drop=True)
-        report_df.to_csv(report, index=False)
-    else:
-        report_df = pd.read_csv(report)
-
-
-    #reevaluate mapping genes of library with blast
-    blast_file = annotation_folder / "tmp/blast_results.csv"
-    if not blast_file.exists():
-        blast_main(report_df, blast_file, args.library, args.threads)
-
-
-    #create report, predict functionality and rss
-    report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
-    main_functionality(args.receptor_type, args.species, args.threads)
-    main_rss(args.threads)
-    main_cdr(args.species, args.receptor_type, args.threads)
-
-    #create figures
-    if args.metadata:
-        functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main, heatmap_main]
-        args_list = [(annotation_folder,), (annotation_folder,), (cwd,), (annotation_folder,), (annotation_folder, args.receptor_type), (annotation_folder,)]
-        with tqdm(total=len(functions), desc="Creating plots", unit="Plot") as pbar:
-            for func, args in zip(functions, args_list):
-                func(*args)
-                pbar.update(1)
-
-    file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
-    console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
-
 
