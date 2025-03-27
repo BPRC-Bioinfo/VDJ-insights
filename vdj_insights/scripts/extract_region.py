@@ -180,6 +180,7 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
             for future in as_completed(futures):
                 log_data = future.result()
+                print(log_data)
                 if log_data:
                     assembly_name = futures[future][1].name
                     immuno_region = log_data["Region"]

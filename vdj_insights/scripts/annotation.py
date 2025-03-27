@@ -17,7 +17,7 @@ import pandas as pd
 import argparse
 from .blast import blast_main
 from .map_genes import map_main
-from .extract_region import region_main #test
+from .extract_region import region_main
 
 from .figures.barplot import main as barplot_main
 from .figures.boxplot import main as boxplot_main
@@ -169,6 +169,8 @@ def main(args=None):
         timing_results.append(["Mapping flanking genes", round(end - start, 2)])
 
         start = time.time()
+        from .extract_region_new import region_main  # test
+
         region_main(flanking_genes_dict, args.assembly, args.threads)
         end = time.time()
         timing_results.append(["Region of intrest extraction", round(end - start, 2)])
@@ -198,7 +200,6 @@ def main(args=None):
         blast_main(report_df, blast_file, args.library, args.threads)
         end = time.time()
         timing_results.append(["BLAST revaluation", round(end - start, 2)])
-
 
     #create report and rss
     start = time.time()
