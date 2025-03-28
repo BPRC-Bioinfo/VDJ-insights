@@ -1,27 +1,9 @@
-<!-- templates/404.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/404.css') }}">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" as="style" onload="this.rel='stylesheet'">
-</head>
-<body>
-    <div class="error-wrapper">
-        <div class="error-content">
-            <h1 class="error-code">404</h1>
-            <h2 class="error-message">Page Not Found</h2>
-            <p class="error-description">Sorry, the page you're looking for doesn't exist. Let's get you back on track.</p>
-            <a href="/" class="home-button">Go Back to Home</a>
-        </div>
-        <!-- Decorative floating elements -->
-        <div class="floating-element circle one"></div>
-        <div class="floating-element circle two"></div>
-        <div class="floating-element circle three"></div>
-        <div class="floating-element square four"></div>
-        <div class="floating-element square five"></div>
-    </div>
-</body>
-</html>
+{% extends "sharedTemplates/base.html" %}
+{% block title %}Page Not Found{% endblock %}
+{% block body %}
+<div class="container text-center">
+    <h1 class="mt-5">404 - Page Not Found</h1>
+    <p class="lead">The page you are looking for does not exist.</p>
+    <a href="{{ url_for('home') }}" class="btn btn-primary">Return to Home</a>
+</div>
+{% endblock %}

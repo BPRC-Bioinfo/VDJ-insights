@@ -1,0 +1,93 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}Nieuwe reparatie{% endblock %}
+{% block body %}
+    <div class="container">
+        <form action="/get_compare" method="POST" id="form">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <h2 class="mt-5">Compare samples</h2>
+            <div class="card card-body mb-4">
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="sample_one" class="form-label">First sample:</label>
+                        <select name="sample_one" id="sample_one" class="form-select">
+                            <option value="">-- Select sample --</option>
+                            {% for sample in samples %}
+                                <option value="{{ sample }}" {% if sample== selected_sample_one %}selected{% endif %}>
+                                    {{ sample }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="sample_two" class="form-label">Second sample:</label>
+                        <select name="sample_two" id="sample_two" class="form-select">
+                            <option value="">-- Select sample --</option>
+                            {% for sample in samples %}
+                                <option value="{{ sample }}"
+                                        {% if sample== selected_sample_two %}selected{% endif %}>{{ sample }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="region" class="form-label">Select regio:</label>
+                        <select name="region" id="region" class="form-select">
+                            <option value="">-- Select region --</option>
+                            {% for region in regions %}
+                                <option value="{{ region }}"
+                                        {% if region== selected_region %}selected{% endif %}>{{ region }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-success" type="submit" id="toggleButton">Compare</button>
+            </div>
+        </form>
+
+        {% if venn_svg %}
+            <h2>Venn diagram</h2>
+            <div class="card card-body mb-4">
+                <div class="row d-flex align-items-center g-3">
+                    <div class="col">
+                        <img src="{{ venn_svg["venn_svg_dict_Known"] }}" alt="Venn Diagram">
+                    </div>
+                    <div class="col">
+                        <img src="{{ venn_svg["venn_svg_dict_Novel"] }}" alt="Venn Diagram">
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if not data_table.empty %}
+            <h2>Annotation data</h2>
+            <div class="card card-body mb-4">
+                <div class="row d-flex align-items-center g-3">
+                    <div class="col">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search in report...">
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#columnModal">Toggle
+                            columns
+                        </button>
+                        </button>
+                        <button class="btn btn-warning" type="button" id="amountTable"></button>
+                    </div>
+                </div>
+                {% include 'sharedTables/annotation_table.html' %}
+                {% include 'sharedTemplates/column_modal.html' %}
+
+            </div>
+        {% endif %}
+        </div>
+{% endblock %}

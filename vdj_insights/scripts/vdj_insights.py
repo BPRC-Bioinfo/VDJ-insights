@@ -34,7 +34,7 @@ def cwd_setup(output_dir):
     settings_dir = Path(__file__).resolve().parent.parent
     output_dir = Path(output_dir).resolve()
     make_dir(output_dir)
-    copy_flask(output_dir / 'tmp/flask', settings_dir)
+    copy_flask(output_dir / 'flask', settings_dir)
     os.chdir(str(output_dir))
     return settings_dir, output_dir
 
@@ -392,69 +392,6 @@ def run_annotation(args):
         deactivate_env()
 
 
-def generate_fasta_library():
-    fasta_library = Path.cwd() / ".tool" / "library"
-    ref_fasta = Path.cwd() / "library" / "library.fasta"
-    make_dir(fasta_library)
-    if not (fasta_library / 'library.fasta').is_file():
-        shutil.copy(str(ref_fasta), str(fasta_library / 'library.fasta'))
-
-
-def load_library_from_json(json_file_path):
-    if json_file_path.is_file():
-        with open(json_file_path, 'r') as json_file:
-            return json.load(json_file)
-    return {}
-
-
-def load_annotation_data(cwd):
-    file_known = cwd / "annotation" / "annotation_report_known.xlsx"
-    file_novel = cwd / "annotation" / "annotation_report_novel.xlsx"
-
-    dataframes = []
-    if file_known.exists():
-        dataframes.append(pd.read_excel(file_known))
-    if file_novel.exists():
-        dataframes.append(pd.read_excel(file_novel))
-    data = pd.concat(dataframes, ignore_index=True)
-    return data[["Start coord", "End coord", "Reference", "Old name-like", "Status",
-                                      "Sample", "Haplotype", "Old name-like seq"]].apply(lambda col: col.str.strip() if col.dtype == "object" else col)
-
-
-def update_library_with_row(library, row, status_filter):
-    if status_filter != "Both" and row["Status"] != status_filter:
-        return
-
-    ref = row["Reference"]
-    if ref not in library:
-        library[ref] = {"Number": 0}  # Initialize the reference with a count
-
-    unique_key = f"{row['Old name-like']}_{row['Start coord']}_{row['End coord']}_{row['Sample']}"
-    if unique_key not in library[ref]:  # Check to avoid double-counting
-        library[ref][unique_key] = {
-            "Start coord": row["Start coord"],
-            "End coord": row["End coord"],
-            "Reference": row["Reference"],
-            "Old name-like": row["Old name-like"],
-            "Status": row["Status"],
-            "Sample": row["Sample"],
-            "Haplotype": row["Haplotype"],
-            "Sequence": row["Old name-like seq"]
-        }
-        # Increment count only when a new unique entry is added
-        library[ref]["Number"] += 1
-
-
-def generate_json_library(status_filter="Novel"):
-    cwd = Path.cwd()
-    json_file_path = cwd / '.tool' / 'library' / 'library.json'
-    library = load_library_from_json(json_file_path)
-    df = load_annotation_data(cwd)
-    df.apply(lambda row: update_library_with_row(library, row, status_filter), axis=1)
-
-    with open(json_file_path, 'w') as json_file:
-        json.dump(library, json_file, indent=4)
-
 
 def open_browser():
     webbrowser.open_new('http://127.0.0.1:5000/')
@@ -492,8 +429,6 @@ def run_html(args):
     output_dir = args.input
     copy_flask(output_dir, args.reset_flask)
     os.chdir(output_dir.parent)
-    generate_fasta_library()
-    generate_json_library(status_filter="Both")
     try:
         if not args.dev_mode:
             threading.Timer(1, open_browser).start()
@@ -1120,7 +1055,6 @@ def main():
     setup_pipeline_args(subparsers)
     setup_annotation_args(subparsers)
     setup_html(subparsers)
-
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)

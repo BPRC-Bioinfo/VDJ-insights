@@ -8,8 +8,14 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import warnings
 from Bio import BiopythonWarning
+from tqdm import tqdm
+
 
 from .IMGT_scrape import main as imgt_main
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+from .util import load_config, calculate_available_resources, log_error
+
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -170,7 +176,6 @@ def extraxt_region_from_genome(locus_fasta_path, region, group_locus, extract_co
 
 
 def check_functional_protein(segment, l_region, target_sequence, strand, protein, donor_splice, acceptor_splice):
-
     if segment == "V":
         if len(l_region) % 3 != 0:
             return ["pseudo", "Frameshift in L-part region"]
@@ -200,9 +205,9 @@ def check_functional_protein(segment, l_region, target_sequence, strand, protein
         return base_status
 
     elif segment == "J":
+        J_target_sequence = Seq(target_sequence.replace("-", ""))
         if strand == "-":
-            target_sequence = Seq(target_sequence.replace("-", "")).reverse_complement()
-        J_target_sequence = Seq(target_sequence)
+            J_target_sequence = Seq(target_sequence.replace("-", "")).reverse_complement()
         motief_count = 0
         for frame in range(3):
             J_protein = str(J_target_sequence[frame:].translate())
@@ -234,6 +239,38 @@ def save_results(combined_results, cwd):
         novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
         novel.to_excel(cwd / "annotation" / "annotation_report_novel.xlsx", index=False)
 
+def proces_v_segment(locus_gene_type, group_locus, output_base, library_path, locus_fasta_path):
+    extract_coords = {}
+    off_set = 500 - 50
+    for l_part, length in zip(["L_PART1", "L_PART2"], [500, 50]):
+        locus_fasta_file_name = write_extract_region_from_genome(locus_fasta_path, locus_gene_type, l_part, length, group_locus)
+        extract_coords = get_blast_results(output_base, l_part, locus_gene_type, locus_fasta_file_name, library_path, extract_coords)
+    group_locus = extraxt_region_from_genome(locus_fasta_path, locus_gene_type, group_locus, extract_coords, off_set)
+    return group_locus
+
+
+def process_j_group(region, group_locus):
+    for index_segment, row in group_locus.iterrows():
+        start_coord_segment = row["Start coord"]
+        end_coord_segment = row["End coord"]
+        strand = row["Strand"]
+        fasta_path = row["Path"]
+
+        with open(fasta_path, 'r') as fasta_file:
+            sequence_region = SeqIO.read(fasta_file, 'fasta')
+
+        if strand == "+":
+            j_downstream_region = sequence_region.seq[end_coord_segment:(end_coord_segment + 2)]
+        elif strand == "-":
+            j_downstream_region = Seq(sequence_region.seq[(start_coord_segment - 2):start_coord_segment]).reverse_complement()
+        else:
+            j_downstream_region = ""
+
+        group_locus.loc[index_segment, "DONOR-SPLICE"] = str(j_downstream_region)
+        group_locus.loc[index_segment, "Protein"] = ""
+
+    return group_locus
+
 
 def main_functionality(immune_type, species, threads: int = 12) -> None:
 
@@ -245,6 +282,10 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
     library_path.mkdir(parents=True, exist_ok=True)
     library_file = library_path / "library.fasta"
 
+    locus_fasta_path = output_base / "fasta"
+    locus_fasta_path.mkdir(exist_ok=True, parents=True)
+
+
     if not Path(library_file).is_file():
         imgt_main(species=species, immune_type=immune_type, output_dir=output_base, frame_selection="L-PART1+L-PART2", simple_headers_bool=False)
 
@@ -253,7 +294,37 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
     data_V, data_D, data_J = open_files(cwd)
     combined_results = data_D
 
+    # V-REGION
+    v_grouped = data_V.groupby("Region")
+    max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
+    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+        futures = [
+            executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path)
+            for locus_gene_type, group_locus in v_grouped
+        ]
+
+        with tqdm(total=v_grouped.ngroups, desc="Processing functionality V segments", unit='task') as pbar:
+            for future in as_completed(futures):
+                result = future.result()
+                combined_results = pd.concat([combined_results, result])
+                pbar.update(1)
+
+    #J-REGION
+    j_grouped = data_J.groupby("Region")
+    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+        futures = [
+            executor.submit(process_j_group, region, group_locus)
+            for region, group_locus in j_grouped
+        ]
+        with tqdm(total=j_grouped.ngroups, desc="Processing functionality J segments", unit='task') as pbar:
+            for future in as_completed(futures):
+                group_result = future.result()
+                combined_results = pd.concat([combined_results, group_result])
+                pbar.update(1)
+
+    """
     #V-REGION
+  
     for region, group_locus in data_V.groupby("Region"):
         locus_fasta_path = output_base / "fasta"
         locus_fasta_path.mkdir(exist_ok=True, parents=True)
@@ -265,6 +336,7 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
             extract_coords = get_blast_results(output_base, l_part, region, locus_fasta_file_name, library_path, extract_coords)
         group_locus = extraxt_region_from_genome(locus_fasta_path, region, group_locus, extract_coords, off_set)
         combined_results = pd.concat([combined_results, group_locus])
+ 
 
     #J-REGION
     for region, group_locus in data_J.groupby("Region"):
@@ -285,8 +357,10 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
             group_locus.loc[index_segment, "Protein"] = ""
 
         combined_results = pd.concat([combined_results, group_locus])
+    """
 
     combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["pseudo", ""], axis=1, result_type="expand")
+
     mask = combined_results["Segment"].isin(["D"])
     combined_results.loc[mask, ["Function", "Function_messenger"]] = ["functional", ""]
     save_results(combined_results, cwd)

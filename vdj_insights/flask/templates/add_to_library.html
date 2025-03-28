@@ -1,0 +1,134 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}Add novel sequences{% endblock %}
+{% block body %}
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form action="/add_novel" method="POST" id="addNovelForm">
+            <h2 class="mt-5">Add new sequences</h2>
+
+            {% if plot_count_distribution %}
+                {{ plot_count_distribution|safe }}
+            {% endif %}
+
+            <div class="row d-flex align-items-center g-3 mb-4">
+                <div class="col">
+                    <div class="form-group">
+                        <label>Filter on count found</label>
+                        <input type="number" class="form-control" id="filter_amount" name="filter_amount" min="0"
+                               step="1" value="{{ selected_filter_amount }}">
+                        <small class="form-text text-muted">All novel segments filtered based on this number</small>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+            </div>
+
+            <div class="card card-body mb-4">
+                <div class="row d-flex align-items-center g-3">
+                    <div class="col">
+                        <input type="text" id="searchInput" class="form-control"
+                               placeholder="Search in reference data...">
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-warning" type="button" id="amountTable"></button>
+                    </div>
+                    <div class="d-flex gap-2 mb-4">
+                        <button class="btn btn-success flex-grow-1" type="button" id="toggleButton">Select</button>
+                        <button class="btn btn-primary flex-grow-1" id="addToLibraryButton" name="add_to_library"
+                                value="add_to_library" type="submit">
+                            <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner" role="status"
+                                  aria-hidden="true"></span>
+                            <span id="buttonText">Add to library (0)</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive" style="height: 1000px;">
+                    {% if pivot_data %}
+
+                        <table class="table table-hover" id="DataTable">
+                            <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th class="column-header sortable" data-column="Reference">Reference</th>
+                                <th class="column-header sortable" data-column="% identity">% identity</th>
+                                <th class="column-header sortable" data-column="SNPs">SNPs</th>
+                                <th class="column-header sortable" data-column="Insertions">Insertions</th>
+                                <th class="column-header sortable" data-column="Deletions">Deletions</th>
+                                <th class="column-header sortable" data-column="Amount">Sample occurrence</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for row in pivot_data %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="selected_sequences"
+                                               value="{{ row['Short name'] }}">
+                                    </td>
+                                    <td>{{ row["Short name"] }}</td>
+                                    <td>{{ row["% identity"] }}</td>
+                                    <td>{{ row["SNPs"] }}</td>
+                                    <td>{{ row["Insertions"] }}</td>
+                                    <td>{{ row["Deletions"] }}</td>
+                                    <td>{{ row["Count"] }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                </div>
+            </div>
+        </form>
+    </div>
+    <script>
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const addButton = document.getElementById("addToLibraryButton");
+            const toggleButton = document.getElementById("toggleButton");
+            const checkboxes = document.querySelectorAll("#DataTable tbody input[type='checkbox']");
+            const form = document.getElementById("addNovelForm");
+            const spinner = document.getElementById("loadingSpinner");
+
+            function updateAddButtonText() {
+                const selectedCount = document.querySelectorAll("#DataTable tbody input[type='checkbox']:checked").length;
+                addButton.querySelector("#buttonText").textContent = `Add to library (${selectedCount})`; // ✅ Alleen tekst updaten
+            }
+
+            toggleButton.addEventListener("click", function () {
+                const rows = document.querySelectorAll("#DataTable tbody tr");
+                const visibleRows = Array.from(rows).filter(row => row.style.display !== "none");
+
+                const allChecked = visibleRows.every(row => row.querySelector("input[type='checkbox']").checked);
+
+                visibleRows.forEach(row => {
+                    row.querySelector("input[type='checkbox']").checked = !allChecked;
+                });
+
+                toggleButton.textContent = allChecked ? "Select" : "Deselect";
+                updateAddButtonText();
+            });
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener("change", updateAddButtonText);
+            });
+
+            form.addEventListener("submit", function () {
+                addButton.disabled = true;
+                spinner.classList.remove("d-none"); // ✅ Laat spinner zien
+            });
+
+            updateAddButtonText(); // ✅ Zorgt ervoor dat de knop de juiste waarde heeft bij het laden
+        });
+    </script>
+{% endblock %}

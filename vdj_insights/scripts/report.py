@@ -292,8 +292,31 @@ def extract_region(path):
     region = filename.split("_")[-1].strip(".fasta")
     return region
 
+def extract_region_2(row, cell_type):
+    """
+    Determines the region and segment of a sequence based on its name.
+    The sequence name is broken into parts using underscores, and the part
+    starting with the specified cell type is identified. Numeric values
+    are removed from the prefix, and the resulting string is split into the
+    region and segment. These values are added as new columns in the DataFrame row.
 
-def run_like_and_length(df, record, cell_type):
+    Args:
+        row (pd.Series): Current row of the DataFrame.
+        cell_type (str): The cell type to fetch the prefix.
+
+    Returns:
+        pd.Series: The updated row with 'Region', 'Segment', and 'Short name' columns added.
+    """
+    query = row['Target name']
+    prefix = fetch_prefix(query, cell_type)
+    short_name = prefix
+    prefix = re.sub(r"[0-9-]", "", prefix)
+    region, segment = prefix[0:3], prefix[3]
+    row["Region"], row["Segment"], row["Short name"] = region, segment, short_name
+    return row
+
+
+def run_like_and_length(df, record, cell_type, assembly):
     """
     Adds 'Target name', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
     Filters the DataFrame to retain only rows where the reference length, Target name length, and library length are equal.
@@ -311,9 +334,12 @@ def run_like_and_length(df, record, cell_type):
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
     df["Sample"] = df["Path"].apply(extract_sample)
-    df["Contig"] = df["Path"].apply(extract_contig)
-    df["Region"] = df["Path"].apply(extract_region)
-
+    if assembly:
+        df["Contig"] = ""
+        df["Region"] = df["Path"].apply(extract_region)
+    else:
+        df["Contig"] = ""
+        df = df.apply(extract_region_2, axis=1, cell_type=cell_type)
 
     return df
 
@@ -442,6 +468,7 @@ def make_bed(data: pd.DataFrame, output: str | Path) -> None:
         bed_df = df[["Contig", "Start coord", "End coord", "Short name", "Strand"]]
         bed_df.to_csv(Path(output) / f"{file_name}.bed", sep="\t", index=False, header=False)
 
+
 def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
     make_dir(output)
     for index, df in data.groupby(["Sample", "Path", "Region"]):
@@ -468,33 +495,8 @@ def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
             f.write("\n".join(gtf_lines))
 
 
-def get_gtf(data: pd.DataFrame) -> None:
-    for index, df in data.groupby(["Sample", "Contig", "Region"]):
-        file_name = "_".join(index)
-        output_path = f"annotation/GTF/{file_name}.gtf"
-
-        gtf_lines = []
-
-        for _, row in df.iterrows():
-            contig = row["Contig"]
-            source = "genomic_annotation"
-            feature = "gene"
-            start = row["Start coord"]
-            end = row["End coord"]
-            score = "."
-            strand = row["Strand"]
-            frame = "."
-            attributes = f'gene_id "{row["Short name"]}"; region "{row["Region"]}"; function "{row["Function"]}";'
-
-            gtf_line = f"{contig}\t{source}\t{feature}\t{start}\t{end}\t{score}\t{strand}\t{frame}\t{attributes}"
-            gtf_lines.append(gtf_line)
-
-        with open(output_path, "w") as f:
-            f.write("\n".join(gtf_lines))
-
-
 @log_error()
-def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], metadata_folder: Union[str, Path]):
+def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], assembly: Union[str, Path], metadata_folder: Union[str, Path]):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
@@ -506,10 +508,10 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     novel_df, known_df = split_df(df)
 
     if not novel_df.empty:
-        novel_df = run_like_and_length(novel_df, segments_library, cell_type)
+        novel_df = run_like_and_length(novel_df, segments_library, cell_type, assembly)
         novel_df["Status"] = "Novel"
     if not known_df.empty:
-        known_df = run_like_and_length(known_df, segments_library, cell_type)
+        known_df = run_like_and_length(known_df, segments_library, cell_type, assembly)
         known_df["Status"] = "Known"
 
     combined_df = pd.concat([novel_df, known_df], ignore_index=True)
@@ -532,19 +534,3 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
 
     console_log.info(f"Known segments detected: {known_df.shape[0]}")
     console_log.info(f"Novel segments detected: {novel_df.shape[0]}")
-
-
-    #pivot_table_sheet1 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Function', 'Segment'], aggfunc='size', fill_value=0)
-    pivot_table_sheet2 = combined_df.pivot_table(index='Sample', columns=['Region', 'Segment'], aggfunc='size', fill_value=0)
-    #pivot_table_sheet3 = combined_df.pivot_table(index='Sample', columns=['Region', 'Function', 'Segment'], aggfunc='size', fill_value=0)
-    pivot_table_sheet4 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status', 'Segment'], aggfunc='size', fill_value=0)
-    pivot_table_sheet5 = combined_df.pivot_table(index='Sample', columns=['Region'], aggfunc='size', fill_value=0)
-    pivot_table_sheet6 = combined_df.pivot_table(index='Sample', columns=['Region', 'Status'], aggfunc='size', fill_value=0)
-
-    with pd.ExcelWriter(f"{annotation_folder}/pivot_tables.xlsx") as writer:
-        #pivot_table_sheet1.to_excel(writer, sheet_name="Total")
-        pivot_table_sheet2.to_excel(writer, sheet_name="Segment")
-        #pivot_table_sheet3.to_excel(writer, sheet_name="Function")
-        pivot_table_sheet4.to_excel(writer, sheet_name="Status")
-        pivot_table_sheet5.to_excel(writer, sheet_name="Region_total")
-        pivot_table_sheet6.to_excel(writer, sheet_name="Function_total")

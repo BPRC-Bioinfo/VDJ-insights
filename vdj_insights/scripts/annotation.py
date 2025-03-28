@@ -204,7 +204,7 @@ def main(args=None):
 
     #create report and rss
     start = time.time()
-    report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.metadata)
+    report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.assembly, args.metadata)
     end = time.time()
     timing_results.append(["Report and filtering", round(end - start, 2)])
 

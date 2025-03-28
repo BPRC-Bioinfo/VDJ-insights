@@ -1,0 +1,273 @@
+   <svg width="100%" height="100%">
+        <text id="title-text" x="50%" y="30" text-anchor="middle" font-size="20" fill="black"></text>
+    </svg>
+
+<script>
+    var data = {{ data | tojson }};
+
+    var x_step = data.x_step;
+    var x_offset = data.x_offset;
+    var y_positions = data.y_positions;
+
+    var node_radius = data.node_radius;
+
+    var nodes = data.nodes;
+    var links = data.links;
+    var segment_color = data.segment_color;
+
+    var svg = d3.select("svg");
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+
+    var g = svg.append("g");
+
+    var legendData = [
+        {color: segment_color['P'], label: 'P', type: 'circle'},
+        {color: segment_color['F/ORF'], label: 'F/ORF', type: 'circle'},
+        {color: segment_color['PF/ORF'], label: 'PF/ORF', type: 'circle'},
+        {color: 'white', label: 'Known', type: 'circle'},
+        {color: 'white', label: 'Novel', type: 'rect'}
+    ];
+
+    var legend = g.append("g")
+        .attr("class", "legend")
+        .attr("transform", "translate(-60, 50)");
+
+    // Voeg items toe aan de legenda
+    legend.selectAll("circle, rect")
+        .data(legendData)
+        .enter()
+        .append(function (d) {
+            return d.type === 'circle' ? document.createElementNS(d3.namespaces.svg, 'circle') : document.createElementNS(d3.namespaces.svg, 'rect');
+        })
+        .attr("x", function (d, i) {
+            return d.type === 'rect' ? i * 100 : null;
+        })  // Plaats vierkant
+        .attr("y", 0)
+        .attr("width", function (d) {
+            return d.type === 'rect' ? 18 : null;
+        })  // Breedte voor vierkant
+        .attr("height", function (d) {
+            return d.type === 'rect' ? 18 : null;
+        }) // Hoogte voor vierkant
+        .attr("cx", function (d, i) {
+            return d.type === 'circle' ? i * 100 + 9 : null;
+        })  // Plaats cirkel
+        .attr("cy", 9)  // Uitlijning cirkel op dezelfde hoogte als vierkant
+        .attr("r", function (d) {
+            return d.type === 'circle' ? 9 : null;
+        }) // Radius cirkel
+        .attr("fill", function (d) {
+            return d.color;
+        })
+        .attr("class", "legend-item");
+
+    legend.selectAll("text")
+        .data(legendData)
+        .enter()
+        .append("text")
+        .attr("x", function (d, i) {
+            return i * 100 + 25;
+        })
+        .attr("y", 13)
+        .text(function (d) {
+            return d.label;
+        });
+
+
+    var nodeByIndex = {};
+    nodes.forEach(function (node) {
+        nodeByIndex[node.index] = node;
+    });
+
+    links.forEach(function (link) {
+        link.source = nodeByIndex[link.source];
+        link.target = nodeByIndex[link.target];
+    });
+
+
+    var link = g.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("stroke-width", 2)
+        .attr("stroke", "black");
+
+    var tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    var node = g.append("g")
+        .attr("class", "nodes")
+        .selectAll("g")
+        .data(nodes)
+        .enter().append("g")
+        .on("mouseover", function (event, d) {
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html(
+                "<strong>Function:</strong> " + d['full_name'] + "<br>" +
+                "<strong>SNPs:</strong> " + d['SNPs'] + "<br>" +
+                "<strong>Insertions:</strong> " + d['Insertions'] + "<br>" +
+                "<strong>Deletions:</strong> " + d['Deletions'] + "<br>" +
+                "<strong>5'-RSS:</strong> " + d['5_RSS_seq'] + "<br>" +
+                "<strong>3'-RSS:</strong> " + d['3_RSS_seq']
+            )
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function (d) {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
+
+
+    node.each(function (d) {
+        if (d.status === 'Novel') {
+            // Noval
+            d3.select(this).append("rect")
+                .attr("width", d.radius * 2)
+                .attr("height", d.radius * 2)
+                .attr("x", -d.radius)
+                .attr("y", -d.radius)
+                .attr("fill", d.color)
+                .attr("stroke", "black")
+                .attr("stroke-width", 2);
+        } else {
+            // Known
+            d3.select(this).append("circle")
+                .attr("r", d.radius)
+                .attr("fill", d.color)
+                .attr("stroke", "black")
+                .attr("stroke", "black")
+                .attr("stroke-width", 2);
+        }
+        // voor in het rondje of vierkantje
+        d3.select(this).append("text")
+            .attr("x", 0)
+            .attr("y", 4)
+            .attr("text-anchor", "middle")
+            .attr("fill", "black")
+            .style("font-size", "12px")
+            .text(function (d) {
+                return d.found_rss_count;
+            })
+
+        // voor de eerste texten bij de eerste flaking gene
+        if (d.index === 0) {
+            d3.select(this).append("text")
+                .attr("class", 'label_start')
+                .attr("x", -d.radius - 10)
+                .attr("y", 0)
+                .text("Common");
+            d3.select(this).append("text")
+                .attr("class", 'label_start')
+                .attr("x", -d.radius - 10)
+                .attr("y", -50)
+                .text("Haplotype 1");
+            d3.select(this).append("text")
+                .attr("class", 'label_start')
+                .attr("x", -d.radius - 10)
+                .attr("y", 50)
+                .text("Haplotype 2");
+        }
+    });
+
+
+    node.append("text")
+        .attr("class", function (d) {
+            return d.y === y_positions['common'] ? 'label_under' : d.y === y_positions['haplotype1'] ? 'label_above' : d.y === y_positions['haplotype2'] ? 'label_under' : 'label_start';
+        })
+        .text(function (d) {
+            return d.id.replace(/-like.*$/, "");
+        })
+        .attr("y", 7)
+        .attr("x", function (d) {
+            return d.y === y_positions['common'] ? -75 : d.y === y_positions['haplotype1'] ? 25 : d.y === y_positions['haplotype2'] ? -25 : 0;
+        })
+        .attr("transform", function (d) {
+            return "rotate(270) translate(0, 0)";
+        });
+
+
+    node.attr("transform", function (d) {
+        return "translate(" + d.x + "," + d.y + ")";
+    });
+
+    link.attr("x1", function (d) {
+        return d.source.x;
+    })
+        .attr("y1", function (d) {
+            return d.source.y;
+        })
+        .attr("x2", function (d) {
+            return d.target.x;
+        })
+        .attr("y2", function (d) {
+            return d.target.y;
+        });
+
+    var zoom = d3.zoom()
+        .scaleExtent([0.2, 7])
+        .on("zoom", zoomed);
+
+    svg.call(zoom);
+
+    function zoomed(event) {
+        currentTransform = event.transform;
+        g.attr("transform", currentTransform);
+    }
+
+
+    // highlight nodes
+    let currentHighlight = null;
+
+    function highlightPaths(yPositions) {
+        node.transition().duration(500)
+            .style("opacity", function (d) {
+                return yPositions.includes(d.y) ? 1 : 0.2;
+            });
+
+        link.transition().duration(500)
+            .attr("stroke", function (d) {
+                return (yPositions.includes(d.source.y) && yPositions.includes(d.target.y)) ? "black" : "#ddd";
+            })
+            .attr("stroke-width", function (d) {
+                return (yPositions.includes(d.source.y) && yPositions.includes(d.target.y)) ? 4 : 1;
+            });
+    }
+
+    function resetHighlight() {
+        node.transition().duration(500)
+            .style("opacity", 1);
+
+        link.transition().duration(500)
+            .attr("stroke", "black")
+            .attr("stroke-width", 2);
+    }
+
+    d3.selectAll(".label_start").on("click", function () {
+        var labelText = d3.select(this).text();
+        let yPositions;
+
+        if (labelText === "Haplotype 1") {
+            yPositions = [y_positions['haplotype1'], y_positions['common']];
+        } else if (labelText === "Common") {
+            yPositions = [y_positions['common']];
+        } else if (labelText === "Haplotype 2") {
+            yPositions = [y_positions['haplotype2'], y_positions['common']];
+        }
+
+        if (currentHighlight === labelText) {
+            resetHighlight();
+            currentHighlight = null;
+        } else {
+            highlightPaths(yPositions);
+            currentHighlight = labelText;
+        }
+    });
+
+</script>

@@ -1,0 +1,40 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}Nieuwe reparatie{% endblock %}
+{% block body %}
+<style>
+    .alignment-output pre {
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .insertion { color: green; font-weight: bold; }
+    .deletion  { color: red; font-weight: bold; }
+    .snp       { color: blue; font-weight: bold; }
+</style>
+
+
+    <div class="container mt-5">
+        <h2>Multiple Sequence Alignment</h2>
+
+        <div class="alignment-output">
+            {% if query_chunks and match_lines %}
+                <div class="card">
+                    <div class="card-body">
+                    <pre style="font-family: 'Courier New', Courier, monospace;">
+                        {% for q_chunk, match_line in zip(query_chunks, match_lines) %}
+{{ reference }}{{ q_chunk }}
+{{ allele }}{{ match_line }}
+                        {% endfor %}
+                    </pre>
+                    </div>
+                </div>
+
+            {% else %}
+                <p>No alignment data available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+
+{% endblock %}

@@ -1,0 +1,22 @@
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+        <tr>
+            {% for column in region_data.columns %}
+                <th>{{ column }}</th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in region_data.iterrows() %}
+            <tr>
+                {% for value in row[1] %}
+                    <td>{{ value }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+

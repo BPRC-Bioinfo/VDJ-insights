@@ -1,483 +1,800 @@
-import re
-from flask import Flask, render_template, request, jsonify
-from pathlib import Path
 import datetime
-import yaml
-import shutil
-import pandas as pd
-from Bio import SeqIO
+import os
 import json
-import sys
+import shutil
+import base64
+from pathlib import Path
+from datetime import datetime
+import io
 
-# Initialize the Flask application
+import jsonify
+import pandas as pd
+import numpy as np
+from flask import Flask, render_template, request, make_response, flash, redirect, url_for, send_file, Response, session
+
+from celery import Celery
+from flask_caching import Cache
+import base64
+
+from task import merge_sequences
+
+#from import_data import get_annotation_data
+from import_data import open_json
+from import_data import get_sequences
+from import_data import get_region_data
+
+from figures.figures import get_known_novel_plot
+from figures.figures import get_vdj_plot
+from figures.figures import get_shared_shortname_heatmap_plotly_simple
+from figures.figures import get_sample_rss_plot
+from figures.figures import get_rss_plot
+from figures.figures import get_library_violin_plot
+from figures.figures import get_library_plot
+from figures.figures import plot_count_distribution_bar_chart
+from figures.figures import get_dna_vieuwer_plot
+from figures.figures import get_pi_plot
+from figures.figures import get_venn_diagram
+
+from HaplotypeAligner import HaplotypeAligner
+from NetworkBuilder import  NetworkBuilder
+
+
 app = Flask(__name__)
+app.secret_key = os.urandom(12)
 
-# Global CONFIG
-CONFIG = None
-IMAGE_DIR = Path('flask/static/images')
-MODE = None
+app.config["CACHE_TYPE"] = "SimpleCache"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 3600
+app.config["CELERY_BROKER_URL"] = "redis://localhost:6379/0"
+app.config["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/0"
+
+celery = Celery(app.name, broker=app.config["CELERY_BROKER_URL"])
+celery.conf.update(app.config)
+
+cache = Cache(app)
+
+BASE_PATH = Path("")
+LIBRARY_PATH =  BASE_PATH / "library"
+RSS_PATH = BASE_PATH / "tmp/RSS"
 
 
-def load_config(cwd: Path):
-    global CONFIG
-    config_file = cwd / 'config' / 'config.yaml'
-    if config_file.exists():
-        with open(config_file, 'r') as file:
-            CONFIG = yaml.safe_load(file)
+@app.route('/', methods=['POST', 'GET'])
+def home():
+    return render_template("home.html")
+
+
+@app.route('/get_compare', methods=['POST', 'GET'])
+def get_compare():
+    df = get_annotation_data()
+
+    samples = df["Sample"].unique()
+    regions = df["Region"].unique()
+
+    selected_sample_one = session.get("selected_sample_one", None)
+    selected_sample_two = session.get("selected_sample_two", None)
+    selected_region = session.get("selected_region", None)
+
+    data_table = pd.DataFrame()
+    venn_svg_dict = {}
+
+    if request.method == "POST":
+        selected_sample_one = request.form.get("sample_one", None)
+        selected_sample_two = request.form.get("sample_two", None)
+        selected_region = request.form.get("region", None)
+
+        session["selected_sample_one"] = selected_sample_one
+        session["selected_sample_two"] = selected_sample_two
+        session["selected_region"] = selected_region
+
+        data_table = df[(df["Sample"].isin([selected_sample_one, selected_sample_two])) & (df["Region"] == selected_region)].copy()
+        presence_list = []
+
+        for status in data_table["Status"].unique():
+            short_names_sample_one = set(data_table[(data_table["Sample"] == selected_sample_one) & (data_table["Status"] == status)]["Short name"].unique())
+            short_names_sample_two = set(data_table[(data_table["Sample"] == selected_sample_two) & (data_table["Status"] == status)]["Short name"].unique())
+
+            if not short_names_sample_one or not short_names_sample_two:
+                flash("One of the samples has no data1 in this region.", "warning")
+                return redirect(url_for("get_compare"))
+
+            venn_svg = get_venn_diagram(short_names_sample_one, short_names_sample_two, selected_sample_one, selected_sample_two, status)
+            venn_svg_dict[f"venn_svg_dict_{status}"] = venn_svg
+
+            for short_name in short_names_sample_one | short_names_sample_two:
+                if short_name in short_names_sample_one and short_name in short_names_sample_two:
+                    presence = "Shared"
+                elif short_name in short_names_sample_one:
+                    presence = f"Only in {selected_sample_one}"
+                elif short_name in short_names_sample_two:
+                    presence = f"Only in {selected_sample_two}"
+                else:
+                    presence = "Unknown"
+
+                presence_list.append({"Short name": short_name, "Status": status, "Presence": presence})
+        if len(presence_list) > 0:
+            presence_df = pd.DataFrame(presence_list)
+            data_table = data_table.merge(presence_df, on=["Short name", "Status"], how="left")
+
+        return render_template("sample_compare.html",
+                                   samples=samples,
+                                   regions=regions,
+                                   selected_sample_one=selected_sample_one,
+                                   selected_sample_two=selected_sample_two,
+                                   selected_region=selected_region,
+                                   venn_svg=venn_svg_dict,
+                                   data_table=data_table
+                                   )
+
+    return render_template("sample_compare.html",
+                           samples=samples,
+                           regions=regions,
+                           data_table=data_table,
+                           selected_sample_one=selected_sample_one,
+                           selected_sample_two=selected_sample_two,
+                           selected_region=selected_region,
+                           )
+
+
+@app.route('/run_mafft', methods=['POST', 'GET'])
+def run_mafft():
+    df = get_annotation_data()
+
+    samples = df["Sample"].unique()
+    regions = df["Region"].unique()
+
+    selected_sample_one = None
+    selected_sample_two = None
+    selected_region = None
+
+    if request.method == "POST":
+        selected_sample_one = request.form.get("sample_one", None)
+        selected_sample_two = request.form.get("sample_two", None)
+        selected_region = request.form.get("region", None)
+
+        if selected_sample_one == selected_sample_two:
+            flash("Same sample given! Please choose two different samples.", "warning")
+            return redirect(url_for("run_mafft"))
+
+        selected_files = ["data1/region/sample_1.fa", "data1/region/sample_2.fa"]
+        output_dir = BASE_PATH / "region/"
+        task = merge_sequences.delay(selected_files, output_dir)
+        return jsonify({"task_id": task.id, "status": "Task started"}), 202
+
+
+    return render_template("mafft.html",
+                           samples=samples,
+                           regions=regions,
+                           selected_sample_one=selected_sample_one,
+                           selected_sample_two=selected_sample_two,
+                           selected_region=selected_region)
+
+
+def load_tooltip_data(data: pd.DataFrame, accessions: list, region: str, set_segments: list) -> dict:
+    tooltip_data = {}
+
+    filtered_df = data[(data["Sample"].isin(accessions)) & (data["Short name"].isin(set_segments)) & (data["Region"] == region)].copy()
+
+    filtered_df["rss_sum"] = filtered_df[["5'-RSS", "3'-RSS"]].sum(axis=1)
+    conditions_rss = [
+        (filtered_df["Segment"] == "D") & (filtered_df["rss_sum"] == 2),
+        (filtered_df["Segment"] == "D") & (filtered_df["rss_sum"] == 1),
+        (filtered_df["Segment"].isin(["V", "J"])) & (filtered_df["rss_sum"] == 1),
+    ]
+    rss_choices = ["", "", ""]
+    filtered_df["found_rss_count"] = np.select(conditions_rss, rss_choices, default="/")
+    filtered_df.drop(columns=["rss_sum"], inplace=True)
+
+    for _, row in filtered_df.iterrows():
+        gene = row["Short name"]
+        sample = row["Sample"]
+        tooltip_data[(sample, gene)] = {
+            "full_name": row.get("Short name", ""),
+            "function_segment": row.get("Function", ""),
+            "region": row.get("Region", ""),
+            "segment": row.get("Segment", ""),
+            "strand": row.get("Strand", ""),
+            "status": row.get("Status", ""),
+            "SNPs": row.get("SNPs", ""),
+            "Insertions": row.get("Insertions", ""),
+            "Deletions": row.get("Deletions", ""),
+            "found_rss_count": row.get("found_rss_count", ""),
+            "5_RSS_seq": row.get("5'-RSS seq", ""),
+            "3_RSS_seq": row.get("3'-RSS seq", ""),
+        }
+
+    return tooltip_data
+
+
+def haplo_network_main(accessions: list, region: str, segment_types: list, data: pd.DataFrame, color_theme) -> dict:
+    #filtered_df = data1[(data1["Sample"].isin(accessions)) & (data1["Region"] == region) & (data1["Segment"].isin(segment_types))].copy()
+    filtered_df = data[(data["Sample"].isin(accessions)) & (data["Region"] == region)].copy()
+
+    if not filtered_df.empty:
+        hap1 = tuple(filtered_df[filtered_df["Sample"] == accessions[0]].sort_values(by="Start coord")[["Short name", "Start coord", "End coord"]].itertuples(index=False, name=None))
+        hap2 = tuple(filtered_df[filtered_df["Sample"] == accessions[1]].sort_values(by="Start coord")[["Short name", "Start coord", "End coord"]].itertuples(index=False, name=None))
+
+        set_segments = list({item[0] for item in hap1}.union({item[0] for item in hap2}))
+        tooltip_data = load_tooltip_data(data=data, accessions=accessions, region=region, set_segments=set_segments)
+
+        aligner = HaplotypeAligner(hap1, hap2)
+        alignment = aligner.align()
+
+        left_flanking_gene = "5'- flaking gene"
+        right_flanking_gene = "3'- flaking gene"
+        network_builder = NetworkBuilder(alignment, tooltip_data, left_flanking_gene, right_flanking_gene, accessions, color_theme)
+        data_dict = network_builder.build_network()
+        return data_dict
+
+
+@app.route('/get_haplotype_alignment', methods=['POST', 'GET'])
+def get_haplotype_alignment():
+    accessions = []
+    selected_accession_one = None
+    selected_accession_two = None
+    region = None
+    color_theme = None
+
+    accessions = ["GCA_018466835.1", "GCA_009914755.4"]
+
+    selected_accession_one = "GCA_018466835.1"
+    selected_accession_two = "GCA_009914755.4"
+    region = "IGH"
+    color_theme = "default"
+    segment_types = ["V", "D", "J"]
+
+    if request.method == "POST":
+        region = request.form.get("region")
+        selected_accession_one = request.form.get("accession_one")
+        selected_accession_two = request.form.get("accession_two")
+        accessions = [selected_accession_one, selected_accession_two]
+        color_theme = request.form.get("color_theme", "default")
+        segment_types = request.form.getlist("segment_type", None)
+
+    data = get_annotation_data()
+    data_dict = haplo_network_main(accessions, region, segment_types, data, color_theme)
+    print(data_dict)
+    return render_template(template_name_or_list="graph.html",
+                           data=data_dict,
+                           selected_accession_one=selected_accession_one,
+                           selected_accession_two=selected_accession_two,
+                           selected_region=region,
+                           selected_color_theme=color_theme,
+                           selected_segment_types=segment_types,
+                           all_regions=data["Region"].unique(),
+                           all_accession_groups=data["Sample"].unique())
+
+
+
+def get_unique_sequences(reference):
+    df = get_annotation_data()
+
+    data = {}
+    unique_shortname_rows = []
+
+    for sample_naam in df['Sample'].unique():
+        data[sample_naam] = {"Total_known": 0, "Total_novel": 0, "Total": 0}
+
+        for status in ["Known", "Novel"]:
+            df_status = df[(df["Sample"] == sample_naam) & (df["Status"] == status)]
+
+            if not df_status.empty:
+                short_names = df_status['Short name'].tolist()
+                alle_short_names_lijst = df['Short name'].tolist()
+
+                exclusieve_short_names = []
+                for short_name in short_names:
+                    if alle_short_names_lijst.count(short_name) == 1:
+                        exclusieve_short_names.append(short_name)
+                        if sample_naam == reference:
+                            unique_shortname_rows.append(df_status[df_status["Short name"] == short_name])
+
+                data[sample_naam][f"Total_{status.lower()}"] = len(exclusieve_short_names)
+                data[sample_naam]["Total"] += len(exclusieve_short_names)
+
+    df = pd.DataFrame.from_dict(data, orient="index").reset_index()
+
+    data_table = df[["index", "Total_known", "Total_novel", "Total"]]
+    data_table.rename(columns={"index": "Sample", "Total_known": "Known", "Total_novel": "Novel"}, inplace=True)
+    data_table.sort_values(by=["Total"], ascending=False, inplace=True)
+
+    if unique_shortname_rows:
+        df_unique_shortnames = pd.concat(unique_shortname_rows, ignore_index=True)
     else:
-        sys.exit("No configuration file provided, closing application!")
+        df_unique_shortnames = pd.DataFrame(columns=df.columns)
+    print(data_table[data_table['Known'] != 0])
+    return data_table, df_unique_shortnames
 
 
-def make_dir(directory: Path):
-    directory.mkdir(parents=True, exist_ok=True)
+@app.route('/unique_sequences', methods=['POST', 'GET'])
+def unique_sequences():
+    selected_accession = request.form.get('reference_id')
+    data_table, df_unieke_shortnames = get_unique_sequences(selected_accession)
+    if selected_accession:
+        region_data = get_region_data(BASE_PATH)
+        if not region_data.empty:
+            region_data = region_data[region_data["File"].str.contains(selected_accession)]
+
+        return render_template("uniqeue.html",
+                               data_table=df_unieke_shortnames,
+                               selected_accession=selected_accession,
+                               region_data=region_data)
+    plot = get_known_novel_plot(data_table)
+    return render_template("unique_sequences.html",
+                           data_table=data_table,
+                           plot=plot)
 
 
-def move_dir(src: Path, dst: Path):
-    if not dst.exists():
-        shutil.copytree(src, dst)
+@app.route('/sequence_list', methods=['POST', 'GET'])
+def sequence_list():
+    df = get_annotation_data()
+    regions = df["Region"].unique()
+    selected_region = request.form.get("region", regions[0])
+
+    filterd_df = df[(df["Region"] == selected_region) & (df["Segment"].isin(["V", "D", "J"]))]
+    segments = filterd_df["Segment"].unique()
+    selected_segment = request.form.get("segment", segments[0])
+    filterd_df = df[(df["Region"] == selected_region) & (df["Segment"] == selected_segment)]
+
+    grouped_data = filterd_df.groupby(["Target name", "Status"]).size().reset_index(name="Count")
+    pivot_data = grouped_data.pivot_table(
+        index="Target name",
+        columns="Status",
+        values="Count",
+        fill_value=0
+    ).reset_index()
+    pivot_data = pivot_data.astype(int, errors="ignore")
+
+    pivot_data["Known"] = pivot_data.get("Known", 0)
+    pivot_data["Novel"] = pivot_data.get("Novel", 0)
+    pivot_data["Total"] = pivot_data["Known"] + pivot_data["Novel"]
+    pivot_data = pivot_data.sort_values(by="Total", ascending=False)
+    print(pivot_data)
+    return render_template("sequence.html",
+                           regions=regions,
+                           selected_region=selected_region,
+                           segments=segments,
+                           selected_segment=selected_segment,
+                           pivot_data=pivot_data.to_dict('records')
+                           )
 
 
-def parse_qc_files(qc_dir: Path) -> dict:
-    data = {}
-    if qc_dir.is_dir():
-        for subfolder in qc_dir.iterdir():
-            if subfolder.is_dir():
-                subfolder_data = []
-                for file in subfolder.glob("*.stats"):
-                    with open(file, 'r') as f:
-                        lines = f.readlines()
-                        header = lines[0].strip().split()
-                        values = lines[1].strip().split()
-                        file_data = dict(zip(header, values))
-                        file_data['file'] = str(file.relative_to(qc_dir))
-                        subfolder_data.append(file_data)
-                data[subfolder.name] = subfolder_data
-    return data
+@app.route('/get_sequence_table', methods=['POST', 'GET'])
+def get_sequence_table():
+    reference = request.form.get('reference_id')
+    df = get_annotation_data()
+
+    filtered_df = df[df["Target name"] == reference][
+        ["Sample", "Short name", "Start coord", "End coord", "Status", "SNPs", "Insertions", "Deletions", "Library sequence", "Target sequence", "Library name"]
+    ].copy()
+    return render_template("sequence_list.html",reference=reference, data_table=filtered_df, zip=zip)
 
 
-def parse_quast_data(quast_dir: Path) -> dict:
-    data = {}
-    if quast_dir.is_dir():
-        for subfolder in sorted(quast_dir.iterdir(), reverse=True):
-            if subfolder.is_dir():
-                subfolder_data = {'reports': [],
-                                  'pdfs': [], 'transposed_report': None}
-                for report in subfolder.glob("**/report.*"):
-                    subfolder_data['reports'].append(
-                        str(report.relative_to(quast_dir.parent)))
-                basic_stats_dir = subfolder / 'basic_stats'
-                moved_location = IMAGE_DIR / subfolder.name
-                if basic_stats_dir.exists():
-                    move_dir(basic_stats_dir, moved_location)
-                    for pdf in moved_location.glob("*.pdf"):
-                        subfolder_data['pdfs'].append(
-                            str(Path('..', *pdf.parts[1:])))
-                transposed_report_file = subfolder / 'transposed_report.tsv'
-                if transposed_report_file.exists():
-                    subfolder_data['transposed_report'] = parse_transposed_report(
-                        transposed_report_file)
-                data[subfolder.name.split("_")[0]] = subfolder_data
-    return data
+def chunk_sequence(sequence, chunk_size=100):
+    return [sequence[i:i + chunk_size] for i in range(0, len(sequence), chunk_size)]
 
 
-def extract_sample(path):
-    filename = path.split("/")[-1]
-    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
-    match = sample_pattern.search(filename)
-    if match:
-        return match.group(0)
-    else:
-        return filename.split("_")[0]
+def format_fixed_width(text, width=100):
+    return text.ljust(width)[:width]
 
 
-def parse_transposed_report(report_path: Path) -> list:
-    df = pd.read_csv(report_path, sep='\t')
-    return df.to_dict(orient='records')
+@app.route('/msa_sequence', methods=['POST'])
+def msa_sequence():
+    reference =request.form.get('reference')
+    allele =request.form.get('allele')
+
+    width  = max(len(reference), len(allele)) + 5
+    reference = format_fixed_width(reference, width)
+    allele = format_fixed_width(allele, width)
+
+    query = request.form.get('query')
+    subject = request.form.get('subject')
+
+    query_chunks = chunk_sequence(query, 80)
+    subject_chunks = chunk_sequence(subject, 80)
+
+    formatted_query_lines = []
+    match_lines = []
+    class_chunks = []
+    for q_chunk, s_chunk in zip(query_chunks, subject_chunks):
+        formatted_q_chunk = ""
+        match_line = ""
+        class_chunk = []
+        for index, (q, s) in enumerate(zip(q_chunk, s_chunk)):
+            if ((index % 10) == 0) and (index != 0):
+                formatted_q_chunk += " "
+                match_line += " "
+                class_chunk.append(" ")
+            if q == s:
+                match_line += "-"
+                class_chunk.append("")
+            elif q == "-":
+                match_line += s
+                class_chunk.append("deletion")
+            elif s == "-":
+                match_line += "*"
+                class_chunk.append("insertion")
+            else:
+                match_line += s
+                class_chunk.append("snp")
+
+            formatted_q_chunk += q
+
+        formatted_query_lines.append(formatted_q_chunk)
+        match_lines.append(match_line)
+        class_chunks.append(class_chunk)
+
+    query_chunks = [query_chunk for query_chunk in query_chunks]
+    return render_template(
+            "msa.html",
+            reference=reference,
+            allele=allele,
+            query_chunks=formatted_query_lines,
+            match_lines=match_lines,
+            class_chunks=class_chunks,
+            zip=zip
+        )
 
 
-def parse_region_files(region_dir: Path) -> list:
-    data = []
-    if region_dir.is_dir():
-        for fasta_file in region_dir.glob("*.fasta"):
-
-            file_info = {}
-            sample = extract_sample(str(fasta_file))
-            file_info['sample_name'] = sample
-            parts = fasta_file.stem
-            parts = parts.removeprefix(f"{sample}_").split('_')
-            file_info['region_name'] = "/".join(parts[0:2])
-            file_info['haplotype'] = parts[-1]
-            length = sum(len(record.seq)
-                         for record in SeqIO.parse(fasta_file, "fasta"))
-            file_info['length'] = length
-            file_info['file'] = str(fasta_file.relative_to(region_dir))
-            data.append(file_info)
-    return data
+def get_pivot_table(df: pd.DataFrame) -> pd.DataFrame:
+    pivot_table = df.pivot_table(
+        index="Sample",
+        columns="Region",
+        aggfunc="size",
+        fill_value=0
+    )
+    return pivot_table
 
 
-def parse_rss_meme_data(rss_dir: Path) -> dict:
-    data = {}
-    if rss_dir.is_dir():
-        for main_folder in rss_dir.glob('*_meme'):
-            if main_folder.is_dir():
-                data[main_folder.name] = {}
-                for subfolder in sorted(main_folder.iterdir()):
-                    if subfolder.is_dir():
-                        type_key = subfolder.name[:3]
-                        if type_key not in data[main_folder.name]:
-                            data[main_folder.name][type_key] = []
-                        logo_file = subfolder / 'logo1.png'
-                        if logo_file.exists():
-                            destination = IMAGE_DIR / main_folder.name / subfolder.name
-                            if not destination.is_file():
-                                make_dir(destination)
-                                shutil.copy(
-                                    logo_file, destination / 'logo1.png')
-                            data[main_folder.name][type_key].append({
-                                'folder': subfolder.name,
-                                'logo': str(Path('..', *destination.parts[1:]) / 'logo1.png')
-                            })
-    return data
+@app.route('/get_report', methods=['POST', 'GET'])
+def get_report():
+    df = get_annotation_data()
+    pivot_table_known = get_pivot_table(df[df["Status"] == "Known"])
+    vdj_plot_known = get_vdj_plot(pivot_table_known)
+
+    pivot_table_novel = get_pivot_table(df[df["Status"] == "Novel"])
+    heatmap = get_shared_shortname_heatmap_plotly_simple(df[(df['Sample'].isin(['GCA_009914755.4', 'GCA_018466845.1']))])
+    vdj_plot_novel = get_vdj_plot(pivot_table_novel)
+
+    vdj_plot = get_vdj_plot(df.pivot_table(
+        index="Sample",
+        columns=["Segment"],
+        aggfunc="size",
+        fill_value=0
+    ))
+    return render_template("report.html",heatmap=heatmap, vdj_plot_known=vdj_plot_known, vdj_plot_novel=vdj_plot_novel, vdj_plot=vdj_plot)
 
 
-def summarize_annotation_data(file_path: Path) -> tuple:
-    if file_path.is_file():
-        df = pd.read_excel(file_path)
-        summary = df.groupby(
-            ['Region', 'Haplotype', 'Function', 'Segment']).size().reset_index(name='Count')
-        annotation = df.to_dict(orient='records')
-        annotation_summary = summary.to_dict(orient='records')
-    else:
-        annotation, annotation_summary = [], []
-    return annotation_summary, annotation
+@app.route('/get_sample_table', methods=['POST', 'GET'])
+def get_sample_table():
+    selected_sample = request.form.get('selected_sample')
+
+    df = get_annotation_data()
+
+    if selected_sample:
+        df_filtered = df[df["Sample"] == selected_sample].copy()
+        regions = df_filtered["Region"].unique().tolist()
+        selected_region = request.form.get('region', regions[0])
+        if selected_region:
+            df_filtered = df_filtered[df_filtered["Region"] == selected_region].copy()
+        region_data = get_region_data(BASE_PATH)
+        if not region_data.empty:
+            region_data = region_data[region_data["File"].str.contains(selected_sample)]
+
+            region_data["5_coords"] = pd.to_numeric(region_data["5_coords"], errors="coerce").fillna(0).astype(int)
+            region_data["3_coords"] = pd.to_numeric(region_data["3_coords"], errors="coerce").fillna(0).astype(int)
+            region_data = region_data.iloc[:, 2:]
+            region_data.columns = [col.replace("_", " ").title() for col in region_data.columns]
+
+        segments_plot = get_pi_plot(df_filtered, "Segment", "Segment")
+        known_novel_plot = get_pi_plot(df_filtered, "Status", "Status")
+        function_plot = get_pi_plot(df_filtered, "Function", "Function")
+        function_messenger_plot = get_pi_plot(df_filtered[df_filtered["Function"] == "ORF"], "Function_messenger", "ORF reason")
+        function_messenger_plot2 = get_pi_plot(df_filtered[df_filtered["Function"] == "pseudo"], "Function_messenger", "Pseudo reason")
 
 
-def load_BUSCO_files(busco_dir: Path) -> dict:
-    data = {}
-    if busco_dir.is_dir():
-        for subdir in busco_dir.glob('*'):
-            for chromosome in subdir.glob('*'):
-                file_structure = chromosome.stem.split("_")
-                number = file_structure[0]
-                haplotype = file_structure[2] if len(
-                    file_structure) > 2 and file_structure[2] else "reference"
-                busco_file = next(chromosome.glob("*.json"))
-                with open(busco_file, 'r') as js:
-                    content = json.load(js)
-                    results = content.get('results', {})
-                    metrics = {
-                        'Single BUSCOs': results.get('Single copy BUSCOs', 'N/A'),
-                        'Fragmented BUSCOs': results.get('Fragmented BUSCOs', 'N/A'),
-                        'Missing BUSCOs': results.get('Missing BUSCOs', 'N/A'),
-                        'Duplicates BUSCOs': results.get('Multi copy BUSCOs', 'N/A')
+        region_viewer = get_dna_vieuwer_plot(df_filtered)
+
+        return render_template("uniqeue.html",
+                               data_table=df_filtered,
+                               region_data=region_data,
+                               selected_sample=selected_sample,
+                               regions=regions,
+                               selected_region=selected_region,
+                               segments_plot=segments_plot,
+                               known_novel_plot=known_novel_plot,
+                               function_plot=function_plot,
+                               function_messenger_plot=function_messenger_plot,
+                               function_messenger_plot2=function_messenger_plot2,
+                               region_viewer=region_viewer
+                               )
+
+    grouped_data = df.groupby(["Sample", "Status"]).size().reset_index(name="Count")
+
+    pivot_data = grouped_data.pivot_table(
+        index="Sample",
+        columns="Status",
+        values="Count",
+        fill_value=0
+    ).reset_index()
+    pivot_data = pivot_data.astype(int, errors="ignore")
+
+    pivot_data["Known"] = pivot_data.get("Known", 0)
+    pivot_data["Novel"] = pivot_data.get("Novel", 0)
+    pivot_data["Total"] = pivot_data["Known"] + pivot_data["Novel"]
+    pivot_data = pivot_data.sort_values(by="Total", ascending=False)
+
+    return render_template("samples.html", pivot_data=pivot_data.to_dict('records'))
+
+
+
+@app.route('/get_rss', methods=['POST', 'GET'])
+def get_rss():
+    df = get_annotation_data()
+
+    regions = df["Region"].unique()
+    selected_region = request.form.get("region", regions[0])
+
+    filterd_df = df[(df["Region"] == selected_region) & (df["Segment"].isin(["V", "D", "J"]))]
+    segments = filterd_df["Segment"].unique()
+    selected_segment = request.form.get("segment", segments[0])
+
+    count_df = filterd_df[filterd_df["Segment"] == selected_segment]
+    rss_plot = get_rss_plot(count_df)
+
+    rss_data = {}
+    if RSS_PATH.is_dir():
+        meme_pattern = f"meme_output/{selected_region}{selected_segment}_*"
+        fimo_pattern = f"fimo_output/{selected_region}{selected_segment}_*"
+
+        meme_submappen = list(RSS_PATH.glob(meme_pattern))
+        fimo_submappen = list(RSS_PATH.glob(fimo_pattern))
+
+        for meme_submap in meme_submappen:
+            meme_logo = meme_submap / "logo1.png"
+            if meme_logo.exists():
+                with open(meme_logo, "rb") as img_file:
+                    encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
+                rss_data[meme_submap.name] = {
+                    'meme_logo': encoded_image
+                }
+
+        for fimo_submap in fimo_submappen:
+            fimo_txt = fimo_submap / "fimo.txt"
+            if fimo_txt.exists():
+                fimo_data = []
+                with open(fimo_txt, "r", encoding="utf-8") as txt_file:
+                    headers = txt_file.readline().strip().split("\t")
+                    selected_headers = [headers[i] for i in [1, 5, 6, 7]]
+
+                    for line in txt_file:
+                        lines = line.strip().split("\t")
+                        selected_lines = [lines[i] for i in [1, 5, 6, 7]]
+
+                        fimo_data.append({
+                            header: value for header, value in zip(selected_headers, selected_lines)
+                        })
+
+                if fimo_submap.name in rss_data:
+                    rss_data[fimo_submap.name]['fimo_data'] = fimo_data
+                else:
+                    rss_data[fimo_submap.name] = {
+                        'fimo_data': fimo_data
                     }
-                    data.setdefault(number, {}).setdefault(haplotype, metrics)
-    return data
+    return render_template("rss.html",
+                           segments=segments,
+                           selected_segment=selected_segment,
+                           regions=regions,
+                           selected_region=selected_region,
+                           rss_plot=rss_plot,
+                           rss_data=rss_data
+                           )
+
+@app.route("/download_xlsx")
+def download_xlsx():
+    df = get_annotation_data()
+    selected_sample = request.args.get("reference_id", "").strip()
+    region = request.args.get("region", "").strip()
+
+    if selected_sample and region:
+        df = df[(df["Sample"] == selected_sample) & (df["Region"] == region)]
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Sample Data")
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="sample_data.xlsx"
+    )
+
+
+@app.route("/download_bed")
+def download_bed():
+    df = get_annotation_data()
+    selected_sample = request.args.get("reference_id", "").strip()
+    region = request.args.get("region", "").strip()
+
+    if selected_sample and region:
+        df = df[(df["Sample"] == selected_sample) & (df["Region"] == region)]
+
+    bed_columns = ["Contig", "Start coord", "End coord", "Short name", "Strand"]
+
+    output = io.BytesIO()
+    df[bed_columns].to_csv(output, sep="\t", index=False, header=False)
+    output.seek(0)
+
+
+    return send_file(
+            output,
+            mimetype="text/plain",
+            as_attachment=True,
+            download_name=f"{selected_sample}_{region}.bed"
+            )
+
+
+
+@app.route('/download_sequences', methods=['POST'])
+def download_sequences(selected_ids):
+    sequences = get_sequences(LIBRARY_PATH / 'library.fasta')
+
+    selected_sequences = [seq for seq in sequences if seq['id'] in selected_ids]
+
+    fasta_content = ""
+    for seq in selected_sequences:
+        fasta_content += f">{seq['id']}\n{seq['sequence']}\n"
+
+    response = make_response(fasta_content)
+    response.headers["Content-Disposition"] = "attachment; filename=selected_sequences.fasta"
+    response.headers["Content-Type"] = "text/plain"
+    return response
+
+
+@app.route('/remove_sequences', methods=['POST'])
+def remove_sequences(selected_ids):
+    sequences = get_sequences(LIBRARY_PATH / 'library.fasta')
+    selected_sequences = [seq for seq in sequences if seq['id'] not in selected_ids]
+
+    library_file = Path(LIBRARY_PATH / "library.fasta")
+
+    old_library_dir = Path(LIBRARY_PATH / "old")
+    old_library_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    archived_file = old_library_dir / f"library_{timestamp}.fasta"
+    shutil.copy(library_file, archived_file)
+
+    with open(library_file, "w") as file:
+        for seq in selected_sequences:
+            file.write(f">{seq['id']}\n{seq['sequence']}\n")
+
+    flash("Sequences removed from library.", "info")
+    clear_cache()
+    return redirect(request.referrer)
+
+
+def add_to_library(selected_ids: list):
+    df = get_annotation_data()
+    mask = df["Short name"].isin(selected_ids) & (df["Status"] == "Novel")
+    df.loc[mask, "Status"] = "Known"
+
+    df_known = df[df["Status"] == "Known"]
+    df_novel = df[df["Status"] == "Novel"]
+
+    file_known = Path(BASE_PATH / "annotation/annotation_report_known_rss.xlsx")
+    file_novel = Path(BASE_PATH / "annotation/annotation_report_novel_rss.xlsx")
+
+    df_known.to_excel(file_known, index=False)
+    df_novel.to_excel(file_novel, index=False)
+
+    selected_sequences = df[df["Short name"].isin(selected_ids)][["Short name", "Target sequence"]].drop_duplicates(subset=["Short name"])
+    selected_sequences["Target sequence"] = selected_sequences["Target sequence"].str.replace("_", "", regex=False)
+
+    library_file = Path(LIBRARY_PATH / "library.fasta")
+
+    old_library_dir = Path(LIBRARY_PATH / "old")
+    old_library_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    archived_file = old_library_dir / f"library_{timestamp}.fasta"
+    shutil.copy(library_file, archived_file)
+
+    with open(library_file, "a") as f:
+        for _, row in selected_sequences.iterrows():
+            f.write(f">{row['Short name']}\n{row['Target sequence']}\n")
+
+
+@app.route('/add_novel', methods=['POST', 'GET'])
+def add_novel():
+    selected_ids = request.form.getlist('selected_sequences')
+    if len(selected_ids) >= 1:
+        add_to_library(selected_ids)
+        clear_cache()
+        flash(f"Successfully added {len(selected_ids)} segments to the library!", "success")
+
+    selected_filter_amount = request.form.get("filter_amount", type=int)
+
+    df = get_annotation_data()
+    df = df[df["Status"] == "Novel"]
+    if not df.empty:
+        df_unique = df.drop_duplicates(subset=["Sample", "Short name"])
+
+        grouped_data = df_unique.groupby(["Short name"]).size().reset_index(name="Count")
+        extra_columns = ["% identity", "SNPs", "Insertions", "Deletions"]
+        grouped_extra = df_unique.groupby("Short name")[extra_columns].mean().reset_index()
+        grouped_extra[["SNPs", "Insertions", "Deletions"]] = grouped_extra[["SNPs", "Insertions", "Deletions"]].astype(int)
+        grouped_extra["% identity"] = grouped_extra["% identity"].round(2)
+
+        pivot_data = pd.merge(grouped_data, grouped_extra, on="Short name")
+        pivot_data = pivot_data.sort_values(by="Count", ascending=False)
+
+        if selected_filter_amount:
+                pivot_data = pivot_data[pivot_data["Count"] >= selected_filter_amount]
+
+        plot_count_distribution = plot_count_distribution_bar_chart(pivot_data)
+        return render_template("add_to_library.html",
+                               plot_count_distribution=plot_count_distribution,
+                               pivot_data=pivot_data.to_dict('records'),
+                               selected_filter_amount=selected_filter_amount
+                               )
+    return render_template("add_to_library.html")
+
+
+@cache.cached(timeout=600, key_prefix="data1")
+@app.route('/get_library', methods=['POST', 'GET'])
+def get_library():
+    action = request.form.get("action")
+    selected_ids = request.form.getlist("selected_sequences")
+
+    if action == "remove":
+        return remove_sequences(selected_ids)
+    elif action == "download":
+        return download_sequences(selected_ids)
+
+    sequences = get_sequences(LIBRARY_PATH / 'library.fasta')
+    library_info = open_json(LIBRARY_PATH / 'library_info.json')
+
+    if library_info:
+        tilte = f"""Library {library_info["type"]} {library_info["species"]} ({library_info["set_release"]})"""
+    else:
+        tilte = f"""Own library"""
+
+    regions = ["IGHV", "IGHD", "IGHJ", "IGKV", "IGKJ", "IGLV", "IGLJ", "TRAV", "TRAJ", "TRBV", "TRBD", "TRBJ", "TRGV", "TRGJ", "TRDV", "TRDD", "TRDJ"]
+    result = [{"name": region, "entries": count} for region in regions if (count := sum(region in seq["id"] for seq in sequences)) > 0]
+
+    names = [item["name"] for item in result]
+    entries = [item["entries"] for item in result]
+
+    library_plot = get_library_plot(names, entries, tilte)
+    library_violin = get_library_violin_plot(sequences)
+
+    return render_template("library.html",
+                           sequences=sequences,
+                           library_plot=library_plot,
+                           library_violin=library_violin
+                           )
+
+
+@app.route('/get_about', methods=['POST', 'GET'])
+def get_about():
+    return render_template("about.html")
 
 
 @app.errorhandler(404)
 def page_not_found(e):
-    # You can return a custom template or plain text response
-    return render_template('404.html'), 404
-
-# Route for the home page
+    return render_template("404.html")
 
 
-@app.route('/')
-def home():
-    context = {'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-    return render_template('index.html', **context)
+def clear_cache():
+    cache.delete("data1")
 
 
-# Route for the report page
-@app.route('/report')
-def report():
-    cwd = Path.cwd()
-    load_config(cwd)
-    make_dir(cwd / IMAGE_DIR)
-
-    # Loading different types of data
-    busco_data = load_BUSCO_files(cwd / 'BUSCO')
-    qc_data = parse_qc_files(cwd / 'QC')
-    quast_data = parse_quast_data(cwd / 'quast' / 'hifiasm')
-    region_data = parse_region_files(cwd / 'region')
-    rss_meme_data = parse_rss_meme_data(cwd / 'RSS')
-
-    # Parsing annotation data
-    annotation_summary_100_plus, annotation_data_100_plus = summarize_annotation_data(
-        cwd / 'annotation' / 'annotation_report_known_rss.xlsx')
-    annotation_summary_plus, annotation_data_plus = summarize_annotation_data(
-        cwd / 'annotation' / 'annotation_report_novel_rss.xlsx')
-
-    data = {
-        'config': CONFIG,
-        'busco_data': busco_data,
-        'qc_data': qc_data,
-        'quast_data': quast_data,
-        'region_data': region_data,
-        'rss_meme_data': rss_meme_data,
-        'annotation_summary_100_plus': annotation_summary_100_plus,
-        'annotation_summary_plus': annotation_summary_plus,
-        'annotation_data_100_plus': annotation_data_100_plus,
-        'annotation_data_plus': annotation_data_plus,
-        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        'mode': 'Pipeline' if qc_data else 'Annotation'
-    }
-
-    return render_template('report.html', **data)
-
-def filter_dict(broken: dict, partial_key: str) -> dict:
-    return {key: value for key, value in broken.items() if partial_key in key}
+#moet nog naar import_data maar geeft foutmerling met betrekking tot cache
+@cache.cached(timeout=600, key_prefix="data1")
+def get_annotation_data() -> pd.DataFrame:
+    df = pd.read_excel(BASE_PATH / "annotation/annotation_report_all.xlsx")
+    return df
 
 
-@app.route('/<string:sample_id>')
-def sample_details(sample_id):
-    cwd = Path.cwd()
-    individual_path = cwd / 'annotation' / 'individual' / sample_id
 
-    if not individual_path.exists():
-        return render_template('404.html'), 404
-
-    region_data = parse_region_files(cwd / 'region')
-    
-    sample_region_data = [item for item in region_data if item['sample_name'] == sample_id]
-    with open(cwd / "broken_regions.json", "r") as f:
-        broken = list(filter_dict(json.load(f), sample_id).values())[0]
-    region_data_dict = {
-        element["region_name"].replace("/", "-"): {
-            "haplotype": element["haplotype"],
-            "length": element["length"],
-            "file": element["file"],
-            "broken": broken.get(element["region_name"].replace("/", "-")),
-        }
-        for element in sample_region_data
-    }
-
-
-    known_report_file = individual_path / 'annotation_report_known_rss.xlsx'
-    novel_report_file = individual_path / 'annotation_report_novel_rss.xlsx'
-
-    known_annotation_summary = {}
-    novel_annotation_summary = {}
-
-    if known_report_file.exists():
-        known_df = pd.read_excel(known_report_file)
-
-        known_annotation_summary = {
-            'total_annotations': len(known_df),
-            'unique_segments': known_df['Segment'].nunique(),
-            'segments': known_df['Segment'].value_counts().to_dict(),
-            'functions': known_df['Function'].value_counts().to_dict(),
-            'regions': known_df['Region'].value_counts().to_dict(),
-            'haplotypes': known_df['Haplotype'].value_counts().to_dict(),
-            'average_mismatches': known_df['Mismatches'].mean(),
-            'max_mismatches': known_df['Mismatches'].max(),
-        }
-    else:
-        known_annotation_summary = None
-
-    if novel_report_file.exists():
-        novel_df = pd.read_excel(novel_report_file)
-
-        # Compute statistics
-        novel_annotation_summary = {
-            'total_annotations': len(novel_df),
-            'unique_segments': novel_df['Segment'].nunique(),
-            'segments': novel_df['Segment'].value_counts().to_dict(),
-            'functions': novel_df['Function'].value_counts().to_dict(),
-            'regions': novel_df['Region'].value_counts().to_dict(),
-            'haplotypes': novel_df['Haplotype'].value_counts().to_dict(),
-            'average_mismatches': novel_df['Mismatches'].mean(),
-            'max_mismatches': novel_df['Mismatches'].max(),
-        }
-    else:
-        novel_annotation_summary = None
-
-    # Sample metadata (replace with actual data retrieval)
-    sample_metadata = {
-        'source': 'Blood',
-        'collection_date': '2023-10-01',
-        'description': 'Sample collected from patient XYZ.'
-    }
-
-    context = {
-        'sample_id': sample_id,
-        'regions': region_data_dict,
-        'known_annotation_summary': known_annotation_summary,
-        'novel_annotation_summary': novel_annotation_summary,
-        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        'sample_metadata': sample_metadata
-    }
-
-    return render_template('sample_details.html', **context)
-
-
-@app.route('/annotation/<string:annotation_type>', defaults={'sample_id': 'all'})
-@app.route('/annotation/<string:annotation_type>/<string:sample_id>')
-def annotation(annotation_type, sample_id):
-    cwd = Path.cwd()
-    individual_path = cwd / 'annotation' / 'individual'
-    if sample_id == "all" or sample_id == None:
-        report_path = cwd / 'annotation'
-    elif sample_id:
-        report_path = individual_path / sample_id
-
-    if annotation_type == 'known':
-        report_file = report_path / 'annotation_report_known_rss.xlsx'
-        show_known = True
-    else:
-        report_file = report_path / 'annotation_report_novel_rss.xlsx'
-        show_known = False
-
-    annotation_summary, annotation_data = summarize_annotation_data(report_file)
-    all_samples = [i.name for i in individual_path.glob(
-        "*") if not i.name.startswith(".")]
-    data = {
-        'annotation_summary': annotation_summary,
-        'annotation_data_100_plus': annotation_data if show_known else None,
-        'annotation_data_plus': None if show_known else annotation_data,
-        'show_known': show_known,
-        'date_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        'sample_ids': all_samples,
-        'current_sample': sample_id
-    }
-
-    return render_template('annotation.html', **data)
-
-
-def read_fasta(file_path):
-    sequences = {}
-    header = None
-    sequence = []
-
-    with open(file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if line.startswith('>'):
-                if header:
-                    sequences[header] = ''.join(sequence)
-                header = line
-                sequence = []
-            else:
-                sequence.append(line)
-        if header:
-            sequences[header] = ''.join(sequence)  # Add the last sequence
-
-    return sequences
-
-# Function to append new sequences to FASTA file
-
-
-def append_to_fasta(file_path, new_sequences):
-    existing_sequences = read_fasta(file_path)
-    total_new = 0
-    with open(file_path, 'a') as file:
-        for header, sequence in new_sequences.items():
-            if header not in existing_sequences and sequence not in existing_sequences.values():
-                total_new += 1
-                file.write(f"{header}\n{sequence}\n")
-    return total_new
-
-
-@app.route('/save_sequences', methods=['POST'])
-def save_sequences():
-    new_sequences = request.json.get('sequences', {})
-    base_dir = Path.cwd()
-    fasta_file_path = base_dir / ".tool/library/library.fasta"
-
-    if not new_sequences:
-        return jsonify({"error": "No sequences provided"}), 400
-
-    total_new = append_to_fasta(fasta_file_path, new_sequences)
-    if total_new > 0:
-        message = f"Added a total of {total_new} new sequences to the library"
-    else:
-        message = "No new sequences found to add"
-    return jsonify({"message": message}), 200
-
-
-@app.route('/remove_sequences', methods=['POST'])
-def remove_sequences():
-    sequences_to_remove = request.json.get('sequences', [])
-    base_dir = Path.cwd()
-    fasta_file_path = base_dir / ".tool/library/library.fasta"
-
-    if not sequences_to_remove:
-        return jsonify({"error": "No sequences provided"}), 400
-
-    # Read existing sequences
-    existing_sequences = read_fasta(fasta_file_path)
-
-    # Filter out the sequences to remove
-    remaining_sequences = {header: seq for header, seq in existing_sequences.items(
-    ) if header not in sequences_to_remove}
-
-    # Overwrite the FASTA file with the remaining sequences
-    with open(fasta_file_path, 'w') as fasta_file:
-        for header, sequence in remaining_sequences.items():
-            fasta_file.write(f"{header}\n{sequence}\n")
-
-    return jsonify({"message": f"Removed {len(sequences_to_remove)} sequences from the library"}), 200
-
-
-@app.route('/download_fasta', methods=['GET'])
-def download_fasta():
-    base_dir = Path.cwd()
-    fasta_file_path = base_dir / ".tool/library/library.fasta"
-
-    if not fasta_file_path.exists():
-        return jsonify({"error": "FASTA file not found"}), 404
-
-    with open(fasta_file_path, 'r') as file:
-        fasta_content = file.read()
-
-    # Set the response headers to trigger a download
-    response = app.response_class(
-        fasta_content,
-        mimetype='text/plain',
-        headers={"Content-Disposition": "attachment;filename=library.fasta"}
-    )
-
-    return response
-
-
-@app.route('/imgt_report')
-def imgt_report():
-    base_dir = Path.cwd()
-    context = json.load(open(base_dir / "library" / "library_info.json"))
-    context["date_time"] = datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S")
-    return render_template('imgt_report.html', **context)
-
-
-@app.route('/library')
-def view_library():
-    base_dir = Path.cwd()
-    fasta_file_path = base_dir / ".tool/library/library.fasta"
-    sequences = read_fasta(fasta_file_path)
-    date_time = datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S")  # Get current date and time
-    context = {
-        'sequences': sequences,
-        'date_time': date_time
-    }
-    return render_template('library.html', **context)
-
-
-@app.route('/sequence_library')
-def sequence_library():
-    base_dir = Path.cwd()
-    sequence_json = base_dir / ".tool/library/library.json"
-    with open(sequence_json) as f:
-        data = json.load(f)
-    return render_template('sequence_library.html', data=data)
-
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-
-# Run the application
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(host="0.0.0.0", port=5002, debug=True)

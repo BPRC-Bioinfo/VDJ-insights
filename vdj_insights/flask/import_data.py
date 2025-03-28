@@ -1,0 +1,39 @@
+import json
+import os
+from pathlib import Path
+
+import pandas as pd
+from Bio import SeqIO
+
+
+def open_json(file_name: str) -> dict:
+    if os.path.exists(file_name):
+        with open(file_name) as file:
+            data = json.load(file)
+        return data
+
+
+def get_sequences(file_name: str) -> list:
+    sequences = []
+    for record in SeqIO.parse(file_name, "fasta"):
+        sequences.append({
+            "id": record.id,
+            "sequence_length": len(record.seq),
+            "sequence": str(record.seq)
+        })
+    return sequences
+
+
+def get_region_data(path: Path):
+    try:
+        region_json = open_json(path / "broken_regions.json")
+        records = []
+        if region_json:
+            for file, segments in region_json.items():
+                for segment, details in segments.items():
+                    for region in details:
+                        record = {"File": file, "Segment": segment, **region}
+                        records.append(record)
+        return pd.DataFrame(records)
+    except FileNotFoundError:
+        return pd.DataFrame()
