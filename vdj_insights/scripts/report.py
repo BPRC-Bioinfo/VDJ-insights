@@ -273,6 +273,15 @@ def add_reference_length(row, record):
 
 
 def extract_sample(path):
+    """
+    Extracts the sample identifier from a given file path.
+
+    Args:
+        path (str): The file path from which to extract the sample identifier.
+
+    Returns:
+        str: The extracted sample identifier. If no match is found, returns the first part of the filename.
+    """
     filename = path.split("/")[-1]
     sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
     match = sample_pattern.search(filename)
@@ -283,37 +292,37 @@ def extract_sample(path):
 
 
 def extract_contig(path):
+    """
+    Extracts the contig identifier from a given file path.
+
+    Args:
+        path (str): The file path from which to extract the contig identifier.
+
+    Returns:
+        str: The extracted contig identifier.
+    """
     filename = path.split("/")[-1]
     contig = filename.split("_")[-2]
     return contig
 
-def extract_region(path):
-    filename = path.split("/")[-1]
-    region = filename.split("_")[-1].strip(".fasta")
-    return region
 
-def extract_region_2(row, cell_type):
+def extract_region(path):
     """
-    Determines the region and segment of a sequence based on its name.
-    The sequence name is broken into parts using underscores, and the part
-    starting with the specified cell type is identified. Numeric values
-    are removed from the prefix, and the resulting string is split into the
-    region and segment. These values are added as new columns in the DataFrame row.
+    Extracts the region identifier from a given file path.
 
     Args:
-        row (pd.Series): Current row of the DataFrame.
-        cell_type (str): The cell type to fetch the prefix.
+        path (str): The file path from which to extract the region identifier.
 
     Returns:
-        pd.Series: The updated row with 'Region', 'Segment', and 'Short name' columns added.
+        str: The extracted region identifier. If no match is found, returns the last part of the filename without the file extension.
     """
-    query = row['Target name']
-    prefix = fetch_prefix(query, cell_type)
-    short_name = prefix
-    prefix = re.sub(r"[0-9-]", "", prefix)
-    region, segment = prefix[0:3], prefix[3]
-    row["Region"], row["Segment"], row["Short name"] = region, segment, short_name
-    return row
+    filename = path.split("/")[-1]
+    region_pattern = re.compile(r'IGK|IGL|IGH|TRA|TRB|TRD|TRG', re.IGNORECASE)
+    match = region_pattern.search(filename)
+    if match:
+        return match.group(0)
+    else:
+        return filename.split("_")[-1].strip(".fasta")
 
 
 def run_like_and_length(df, record, cell_type, assembly):
@@ -334,12 +343,13 @@ def run_like_and_length(df, record, cell_type, assembly):
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
     df["Sample"] = df["Path"].apply(extract_sample)
+
+    df["Region"] = df["Path"].apply(extract_region)
+
     if assembly:
-        df["Contig"] = ""
-        df["Region"] = df["Path"].apply(extract_region)
+        df["Contig"] = df["Path"].apply(extract_contig)
     else:
         df["Contig"] = ""
-        df = df.apply(extract_region_2, axis=1, cell_type=cell_type)
 
     return df
 
