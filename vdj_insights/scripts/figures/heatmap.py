@@ -171,8 +171,8 @@ def create_matrix(data: pd.DataFrame, function: str, region: str, output: str,  
 
 
 def main(path) -> None:
-    data_known = open_files(data_path=f"{path}/annotation_report_known_rss.xlsx")
-    data_novel = open_files(data_path=f"{path}/annotation_report_novel_rss.xlsx")
+    data_known = open_files(data_path=f"{path}/annotation_report_known.xlsx")
+    data_novel = open_files(data_path=f"{path}/annotation_report_novel.xlsx")
     data = pd.concat([data_known, data_novel])
 
     output = f"{path}/figure/heatmap"

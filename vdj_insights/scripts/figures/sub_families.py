@@ -13,7 +13,7 @@ def open_files(data_path: str) -> pd.DataFrame:
 
 
 def main(path) -> None:
-    data = open_files(data_path=f"{path}/annotation_report_known_rss.xlsx")
+    data = open_files(data_path=f"{path}/annotation_report_known.xlsx")
 
     data['Subfamily'] = data['Short name'].apply(lambda x: re.split(r'[-*]', x)[0])
 

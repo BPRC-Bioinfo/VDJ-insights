@@ -63,7 +63,7 @@ def main(path, immuno_region) -> None:
     output = f'{path}/figure/venn_diagram'
     os.makedirs( output, exist_ok=True)
     for status in ['known', 'novel']:
-        data = open_files(data_path=f"{path}/annotation_report_{status}_rss.xlsx")
+        data = open_files(data_path=f"{path}/annotation_report_{status}.xlsx")
         if data['Population'].nunique() in [2, 3, 4]:
             pivot_df = make_pivot_table(data=data)
 
