@@ -302,7 +302,7 @@ def extract_contig(path):
         str: The extracted contig identifier.
     """
     filename = path.split("/")[-1]
-    contig = filename.split("_")[-2]
+    contig = filename.split("_")[-3]
     return contig
 
 
@@ -329,6 +329,10 @@ def extract_region(data: pd.DataFrame) -> pd.DataFrame:
     updated_df = pd.concat(updated_groups)
     return updated_df
 
+def extract_extraction_status(path):
+    filename = path.split("/")[-1]
+    contig = filename.split("_")[-2]
+    return contig
 
 def run_like_and_length(df, record, cell_type, assembly):
     """
@@ -352,8 +356,10 @@ def run_like_and_length(df, record, cell_type, assembly):
     df["Sample"] = df["Path"].apply(extract_sample)
     if assembly:
         df["Contig"] = df["Path"].apply(extract_contig)
+        df["Extraction status"] = df["Path"].apply(extract_extraction_status)
     else:
         df["Contig"] = ""
+        df["Extraction status"] = ""
     return df
 
 
@@ -432,7 +438,7 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Contig", "Status", "Path"]]
+    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Contig", "Extraction status", "Status", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
@@ -555,6 +561,8 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
         novel_df["Status"] = "Novel"
     if not known_df.empty:
         known_df = run_like_and_length(known_df, segments_library, cell_type, assembly)
+        known_df = known_df[known_df['Library length'] == known_df['Library sequence'].str.len()]
+
         known_df["Status"] = "Known"
 
     combined_df = pd.concat([novel_df, known_df], ignore_index=True)
