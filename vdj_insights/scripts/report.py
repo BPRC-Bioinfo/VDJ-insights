@@ -436,13 +436,21 @@ def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
-        merge_cols = ["Accession"]
-        if "Population" in metadata_df.columns:
-            merge_cols.append("Population")
-        if "Haplotype" in metadata_df.columns:
-            merge_cols.append("Haplotype")
+        merge_cols = []
+        for column in ["Accession", "Population", "Accession name"]:
+            if column in metadata_df.columns:
+                merge_cols.append(column)
+
+        if "Accession" in metadata_df.columns and "Accession name" in metadata_df.columns:
+            haplo_map = metadata_df[["Accession name", "Accession"]].drop_duplicates()
+            haplo_map["Haplotype"] = haplo_map.groupby("Accession name").cumcount().map({0: "hap1", 1: "hap2"})
+            metadata_df = metadata_df.merge(haplo_map, on=["Accession name", "Accession"], how="left")
+
         if len(merge_cols) > 1:
-            df = df.merge(metadata_df[merge_cols], left_on="Sample", right_on="Accession", how="left")
+            if "Haplotype" in metadata_df.columns:
+                df = df.merge(metadata_df[merge_cols + ["Haplotype"]], left_on="Sample", right_on="Accession", how="left")
+            else:
+                df = df.merge(metadata_df[merge_cols], left_on="Sample", right_on="Accession", how="left")
             df = df.drop(columns=["Accession"])
 
     full_annotation_path = annotation_folder / file_name

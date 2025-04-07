@@ -10,15 +10,14 @@ from .mapping import mapping_main
 from .report import report_main
 from .functionality import main_functionality
 from .RSS import main_rss
-from .CDR2 import main_cdr
+from .CDR import main_cdr
 
 from pathlib import Path
 import pandas as pd
 import argparse
 from .blast import blast_main
 from .map_genes import map_main
-#from .extract_region import region_main
-from .extract_region_new import region_main
+from .extract_region import region_main
 
 from .report import make_bed, make_gtf
 

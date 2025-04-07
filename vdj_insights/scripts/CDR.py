@@ -1,6 +1,3 @@
-import json
-import os
-import re
 import subprocess
 from io import StringIO
 from pathlib import Path
@@ -13,191 +10,123 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 
 
-def open_files(cwd: Path) -> (pd.DataFrame, pd.core.groupby.generic.DataFrameGroupBy):
-    data = cwd / "annotation" / "annotation_report_all_rss.xlsx"
-    data = pd.read_excel(data)
-
-    data_other = data[~data["Segment"].isin(["V"])]
-    data_v = data[data["Segment"].isin(["V"])].copy()
-
-    data_v["Short name strip"] = data_v["Short name"].str.split(r'[-*]').str[0]
-    v_grouped = data_v.groupby("Short name strip")
-    return data_other, v_grouped
-
-
-def scrape_imgt(species: str, path: Path) -> dict:
+def scrape_imgt(species: str, receptor: str, library_file: Path) -> dict:
     segments = {
         "TR": ["TRBV", "TRAV", "TRDV", "TRGV"],
         "IG": ["IGHV", "IGKV", "IGLV"]
     }
-    all_sequences = {}
-    for immune_type, seg_list in segments.items():
-        for segment in seg_list:
-            species = species.replace(" ", "_")
-            url = f"https://www.imgt.org/download/V-QUEST/IMGT_V-QUEST_reference_directory/{species}/{immune_type}/{segment}.fasta"
-            response = requests.get(url)
-            if response.status_code == 200:
-                fasta_io = StringIO(response.text)
-                sequences = SeqIO.to_dict(SeqIO.parse(fasta_io, "fasta"))
-                all_sequences.update(sequences)
-            else:
-                print(f"Waarschuwing: kon {url} niet ophalen (status code {response.status_code}).")
-        combined_file = path / f"{species}_{immune_type}_combined.fasta"
-        os.makedirs(combined_file.parent, exist_ok=True)
-        with open(combined_file, 'w') as output_handle:
-            SeqIO.write(all_sequences.values(), output_handle, "fasta")
-    return all_sequences
+    for segment in segments[receptor]:
+        species = species.replace(" ", "_")
+        url = f"https://www.imgt.org/download/V-QUEST/IMGT_V-QUEST_reference_directory/{species}/{receptor}/{segment}.fasta"
+        response = requests.get(url)
+        if response.status_code == 200:
+            fasta_io = StringIO(response.text)
+            sequences = SeqIO.to_dict(SeqIO.parse(fasta_io, "fasta"))
+            with open(library_file, 'a') as output_handle:
+                SeqIO.write(sequences.values(), output_handle, "fasta")
+        else:
+            print(f"Waarschuwing: kon {url} niet ophalen (status code {response.status_code}).")
 
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 
-def create_dataframe(all_sequences: dict) -> pd.DataFrame:
-    data = []
-    for seq_id, record in all_sequences.items():
-        try:
-            gene_info = seq_id.split('|')[1]
-            gene_name = re.split(r'[*]', gene_info)[0]
-            gene_subgroup = re.split(r'[-*]', gene_info)[0]
-
-            cdr1_sequence = record.seq[78:114].upper().replace(".", "")
-            cdr2_sequence = record.seq[165:195].upper().replace(".", "")
-
-            description = record.description.split("|")
-            allele = description[1] if len(description) > 1 else ""
-
-            data.append({
-                "Gene_subgroup": gene_subgroup,
-                "Gene_name": gene_name,
-                "Allele": allele,
-                "CDR1_sequence": str(cdr1_sequence),
-                "CDR2_sequence": str(cdr2_sequence),
-            })
-        except IndexError:
-            print(f"IndexError voor sequentie: {seq_id}. Sla deze over.")
-    return pd.DataFrame(data)
-
-
-def run_meme_analysis(fasta_path: Path, output_dir: Path) -> None:
-    sequences = list(SeqIO.parse(fasta_path, "fasta"))
-    if not sequences:
-        return
-
-    lengths = [len(record.seq) for record in sequences]
-    minw, maxw = min(lengths), max(lengths)
-    multi_command = f"meme {fasta_path} -o {output_dir} -dna -mod zoops -minw {minw} -maxw {maxw}"
-
-    amount = subprocess.run(f"grep -c '^>' {fasta_path}", shell=True, capture_output=True, text=True)
-    try:
-        if int(amount.stdout.strip()) > 1 and not output_dir.exists():
-            subprocess.run(multi_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError as e:
-        print(f"{e}")
-
-
-def run_fimo_analysis(meme_output: Path, fasta_path: Path, output_dir: Path) -> None:
-    command = f"fimo --o {output_dir} {meme_output / 'meme.txt'} {fasta_path}"
-    amount = subprocess.run(f"grep -c '^>' {fasta_path}", shell=True, capture_output=True, text=True)
-    try:
-        if int(amount.stdout.strip()) > 1 and not output_dir.exists():
-            subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError as e:
-        print(f"{e}")
-
-
-def get_fimo_output(fimo_input: Path) -> pd.DataFrame:
-    if fimo_input.is_dir():
-        fimo_output_file = fimo_input / "fimo.txt"
-        if fimo_output_file.exists():
-            df_fimo = pd.read_csv(fimo_output_file, sep='\t')
-            df_fimo["index_group_df"] = df_fimo["sequence name"].str.split("_").str[-1]
-            df_fimo['index_group_df'] = df_fimo['index_group_df'].astype(int)
-            return df_fimo
-    return pd.DataFrame()
-
-
-def process_variant(gene_subgroup: str, group_df: pd.DataFrame, all_sequences_df: pd.DataFrame, output_base: Path,  cwd: Path) -> pd.DataFrame:
-    combined_results = pd.DataFrame()
-
-    f_df = all_sequences_df[all_sequences_df["Gene_subgroup"] == gene_subgroup].copy()
-    if not f_df.empty:
-        safe_gene_subgroup = gene_subgroup.replace("/", "_")
-        for cdr_region in [1, 2]:
-            cdr_fasta_path = output_base / "fasta" / "library_split" / f"{safe_gene_subgroup}_CDR{cdr_region}.fasta"
-            os.makedirs(output_base / "fasta" / "library_split", exist_ok=True)
-            with open(cdr_fasta_path, 'w') as out_handle:
-                for _, row in f_df.iterrows():
-                    out_handle.write(f">{row['Allele']}\n{row[f'CDR{cdr_region}_sequence']}\n")
-
-            cdr_meme_output = output_base / "meme_output" / f"{safe_gene_subgroup}_CDR{cdr_region}"
-            os.makedirs(output_base / "meme_output", exist_ok=True)
-            run_meme_analysis(fasta_path=cdr_fasta_path, output_dir=cdr_meme_output)
-
-            fasta_known_path = output_base / "fasta" / "samples_fasta" / f"{safe_gene_subgroup}.fasta"
-            os.makedirs(output_base / "fasta" / "samples_fasta", exist_ok=True)
-            with open(fasta_known_path, 'w') as out_handle:
-                for index_segment, row in group_df.iterrows():
-                    out_handle.write(f">{row['Target name']}_{index_segment}\n{row['Target sequence']}\n")
-
-            fimo_output = output_base / "fimo_output" / f"{safe_gene_subgroup}_CDR{cdr_region}"
-            os.makedirs(output_base / "fimo_output", exist_ok=True)
-            run_fimo_analysis(meme_output=cdr_meme_output, fasta_path=fasta_known_path, output_dir=fimo_output)
-            df_fimo = get_fimo_output(fimo_input=fimo_output)
-            if not df_fimo.empty:
-                for index_segment, row in group_df.iterrows():
-                    df_match = df_fimo[df_fimo["index_group_df"] == index_segment]
-                    if not df_match.empty and df_match["score"].values[0] > 0:
-                        group_df.loc[index_segment, f"CDR_{cdr_region}_start"] = df_match["start"].values[0]
-                        group_df.loc[index_segment, f"CDR_{cdr_region}_stop"] = df_match["stop"].values[0]
-                        matched_seq = df_match["matched sequence"].values[0].upper()
-                        aa_seq = str(Seq(matched_seq).translate())
-                        group_df.loc[index_segment, f"CDR_{cdr_region}_aa"] = aa_seq
-                        group_df.loc[index_segment, f"CDR_{cdr_region}_seq"] = matched_seq
-
-        combined_results = pd.concat([combined_results, group_df])
-    return combined_results
-
-
-def main_cdr(species: str, threads: int = 12) -> None:
+def main_cdr(species: str, receptor: str,  threads: int = 12) -> None:
     """
     Hoofdfunctie om de CDR-annotaties te verwerken.
     """
     cwd = Path.cwd()
-    output_base = cwd / "CDR"
+    output_base = cwd / "tmp/CDR"
+    output_base.mkdir(parents=True, exist_ok=True)
 
-    library_path = output_base / "fasta" / "library"
+    library_path = output_base / "library"
     library_path.mkdir(parents=True, exist_ok=True)
+    library_file = library_path / "library.fasta"
 
-    all_sequences = scrape_imgt(species=species, path=library_path)
-    if all_sequences:
-        all_sequences_df = create_dataframe(all_sequences=all_sequences)
+    if not Path(library_file).is_file():
+        scrape_imgt(species=species, receptor=receptor, library_file=library_file)
 
-        data_other, v_grouped = open_files(cwd)
-        combined_df = data_other.copy()
+    cdr1_library = library_path / "CDR1.fasta"
+    cdr2_library = library_path / "CDR2.fasta"
 
-        max_jobs = 2
-        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-            futures = [
-                executor.submit(process_variant, gene_subgroup, group_locus, all_sequences_df, output_base, cwd)
-                for gene_subgroup, group_locus in v_grouped
-            ]
-            with tqdm(total=v_grouped.ngroups, desc="Processing CDR", unit='task') as pbar:
-                for future in as_completed(futures):
-                    result = future.result()
-                    combined_df = pd.concat([combined_df, result])
-                    pbar.update(1)
+    with (open(cdr1_library, 'w') as cdr1_fasta, open(cdr2_library, 'w') as cdr2_fasta):
+        for record in SeqIO.parse(library_file, 'fasta'):
+            header = record.description
+            seq = record.seq
+            allele = header.split("|")[1]
 
-        known = combined_df[combined_df["Status"] == "Known"]
-        novel = combined_df[combined_df["Status"] == "Novel"]
+            cdr1_sequence = seq[78:114].upper().replace(".", "")
+            cdr2_sequence = seq[165:195].upper().replace(".", "")
 
-        print(f"cdr: {combined_df['Status'].value_counts()}")
-        if not combined_df.empty:
-            combined_df = combined_df.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-            combined_df.to_excel(cwd / "annotation" / "annotation_report_all_rss_cdr.xlsx", index=False)
-        if not known.empty:
-            known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-            known.to_excel(cwd / "annotation" / "annotation_report_known_rss_cdr.xlsx", index=False)
-        if not novel.empty:
-            novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
-            novel.to_excel(cwd / "annotation" / "annotation_report_novel_rss_cdr.xlsx", index=False)
+            cdr1_fasta.write(f">{allele}_cdr1\n{cdr1_sequence}\n")
+            cdr2_fasta.write(f">{allele}_cdr2\n{cdr2_sequence}\n")
 
+    output_blast_result = output_base / "blast"
+    output_blast_result.mkdir(exist_ok=True, parents=True)
 
-if __name__ == '__main__':
-    main_cdr(threads=12)
+    inpute_target = output_blast_result / "report"
+    inpute_target.mkdir(exist_ok=True, parents=True)
+
+    annotation_report_path = cwd / "annotation" / "annotation_report_all.xlsx"
+    annotation_report = pd.read_excel(annotation_report_path)
+
+    target_lengths = {}
+    target_sequence = inpute_target / "target_sequence.fasta"
+    with open(target_sequence, 'w') as target_fasta:
+        for index, row in annotation_report[["Short name", "Target sequence"]].iterrows():
+            target_fasta.write(f">{row['Short name']}_{index}\n{row['Target sequence'].replace('-', '')}\n")
+            target_lengths[index] = len(row['Target sequence'].replace('-', ''))
+
+    for library in [cdr1_library, cdr2_library]:
+        cdr = library.stem
+        output_blast_file = output_blast_result / f"{cdr}.txt"
+        blast_cmd = f'blastn -task blastn-short -query {library} -subject {target_sequence} -qcov_hsp_perc 100 -out {output_blast_file} -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"'
+        subprocess.run(blast_cmd, shell=True, check=True)
+
+        if output_blast_file.exists():
+            columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart",
+                       "send", "evalue", "bitscore", "qseq", "sseq", "qcovs"]
+            blast_results = pd.read_csv(output_blast_file, sep="\t", names=columns)
+            if not blast_results.empty:
+                grouped_blast_results = blast_results.groupby("sseqid")
+                for index, blast_group in grouped_blast_results:
+                    s_index = index.split("_")[0]
+
+                    if cdr == "CDR1":
+                        sorted_blast_group = blast_group.sort_values(by=["qstart", "qcovs", "length", "sstart"], ascending=[True, False, False, True])
+                        if s_index in sorted_blast_group['qseqid'].values:
+                            best_hit = sorted_blast_group[sorted_blast_group['qseqid'].str.contains(s_index, regex=False)].iloc[0]
+                        else:
+                            best_hit = sorted_blast_group.iloc[0]
+
+                    elif cdr == "CDR2":
+                        sorted_blast_group = blast_group.sort_values(by=["qstart", "qcovs", "length", "sstart"], ascending=[True, False, False, False])
+                        if sorted_blast_group['qseqid'].str.contains(s_index, regex=False).any():
+                            best_hit = sorted_blast_group[sorted_blast_group['qseqid'].str.contains(s_index, regex=False)].iloc[0]
+                        else:
+                            best_hit = sorted_blast_group.iloc[0]
+
+                    index_segment = int(best_hit['sseqid'].split("_")[-1])
+                    sstart = int(best_hit["sstart"])
+                    send = int(best_hit["send"])
+
+                    if sstart > send:
+                        target_length = target_lengths[index_segment]
+                        sstart = target_length - sstart + 1
+                        send = target_length - send + 1
+
+                    annotation_report.loc[index_segment, f"{cdr}_start"] = sstart - 1
+                    annotation_report.loc[index_segment, f"{cdr}_stop"] = send
+
+    known = annotation_report[annotation_report["Status"] == "Known"]
+    novel = annotation_report[annotation_report["Status"] == "Novel"]
+
+    if not annotation_report.empty:
+        combined_df = annotation_report.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        combined_df.to_excel(cwd / "annotation" / "annotation_report_all.xlsx", index=False)
+    if not known.empty:
+        known = known.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        known.to_excel(cwd / "annotation" / "annotation_report_known.xlsx", index=False)
+    if not novel.empty:
+        novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
+        novel.to_excel(cwd / "annotation" / "annotation_report_novel.xlsx", index=False)
