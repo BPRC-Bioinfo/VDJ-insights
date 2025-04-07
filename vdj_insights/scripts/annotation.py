@@ -150,9 +150,10 @@ def main(args=None):
     if args.assembly:
         if not args.flanking_genes or not args.species:
             update_args.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
-        args.species = args.species.capitalize() if args.species else None
-    #if args.input and args.flanking_genes:
-     #   update_args.error('-i/--input cannot be used with -f/--flanking-genes or -s/--species.')
+    if args.input:
+        if not args.receptor_type or not args.species:
+            update_args.error('-i/--input requires -r/--region and -s/--species.')
+    args.species = args.species.capitalize() if args.species else None
 
     region_dir = "tmp/region"
     if args.input:
@@ -175,6 +176,7 @@ def main(args=None):
         region_main(flanking_genes_dict, args.assembly, args.threads)
         end = time.time()
         timing_results.append(["Region of intrest extraction", round(end - start, 2)])
+
 
     #mapping library and creating report
     report = annotation_folder / "tmp/report.csv"

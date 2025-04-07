@@ -84,9 +84,9 @@ def write_extract_region_from_genome(locus_fasta_path, region, l_part, length, g
                 sequence_region = SeqIO.read(fasta_file, 'fasta')
 
             if strand == "+":
-                v_downstream_region = sequence_region.seq[(start_coord_segment - length):start_coord_segment]
+                v_downstream_region = sequence_region.seq[(start_coord_segment - length):start_coord_segment].replace("-", "")
             elif strand == "-":
-                v_downstream_region = sequence_region.seq[end_coord_segment:(end_coord_segment + length)]
+                v_downstream_region = sequence_region.seq[end_coord_segment:(end_coord_segment + length)].replace("-", "")
             if len(v_downstream_region) != 0:
                 l_file.write(f">{target_name}_{index_segment}\n{v_downstream_region}\n")
     return locus_fasta_file_name

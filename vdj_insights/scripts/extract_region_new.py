@@ -5,10 +5,8 @@ All rights reserved.
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-import re
 import subprocess
 from typing import Union
-from typing import Tuple
 import json
 from tqdm import tqdm
 
@@ -28,7 +26,9 @@ file_log = file_logger(__name__)
 def get_length_contig(sam_file: Union[str, Path], contig: str) -> int:
     cmd = f'grep "^@SQ" {sam_file} | awk \'$2 == "SN:{contig}" {{print $3}}\' | cut -d":" -f2'
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    return int(result.stdout.strip())
+    output = result.stdout.strip()
+    if output.isdigit():
+        return int(output)
 
 
 def filter_best_ms(df: pd.DataFrame) -> pd.DataFrame:
@@ -37,53 +37,55 @@ def filter_best_ms(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tuple[list[tuple[str, int, int]], str, str]:
     sam_file = pd.read_csv(sam, sep="\t", header=None, comment='@', dtype=str, usecols=[0, 1, 2, 3, 4, 12], names=["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "MS"])
-
-    sam_file["MS"] = sam_file["MS"].str.extract(r"ms:i:(\d+)").astype(int)
-    sam_file["MAPQ"] = sam_file["MAPQ"].astype(int)
-    sam_file["POS"] = sam_file["POS"].astype(int)
-
-    filterd_sam = sam_file[sam_file["QNAME"].str.contains(first, na=False) | (sam_file["QNAME"].str.contains(second, na=False))]
-
-    extraction_regions = []
     if second != "-":
-        for rname, group in filterd_sam.groupby("RNAME"):
-            first_subset = group[group["QNAME"].str.contains(first, na=False)]
-            first_subset = filter_best_ms(first_subset)
-
-            second_subset = group[group["QNAME"].str.contains(second, na=False)]
-            second_subset = filter_best_ms(second_subset)
-
-            if not first_subset.empty and not second_subset.empty:
-                first_start = int(first_subset["POS"].min())
-                first_end = int(first_subset["POS"].max())
-                second_start = int(second_subset["POS"].min())
-                second_end = int(second_subset["POS"].max())
-                start = min(first_start, second_start)
-                end = max(first_end, second_end)
-                extraction_regions.append((rname, start, end, first, second))
-                return extraction_regions
-
-        first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
-        first_subset = filter_best_ms(first_subset)
-        firts_contig = first_subset["RNAME"].astype(str).iloc[0]
-        start = int(first_subset["POS"].astype(int).iloc[0])
-        end = get_length_contig(sam, firts_contig)
-        extraction_regions.append((firts_contig, start, end, first, "-"))
-
-        second_subset = filterd_sam[filterd_sam["QNAME"].str.contains(second, na=False)]
-        second_subset = filter_best_ms(second_subset)
-        second_contig = second_subset["RNAME"].astype(str).iloc[0]
-        end = int(second_subset["POS"].astype(int).iloc[0])
-        extraction_regions.append((second_contig, 0, end, "-", second))
+        filterd_sam = sam_file[(sam_file["QNAME"].str.contains(first, na=False) | (sam_file["QNAME"].str.contains(second, na=False))) & (sam_file["FLAG"].astype(int) != 4)]
     else:
-        first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
-        first_subset = filter_best_ms(first_subset)
-        firts_contig = first_subset["RNAME"].astype(str).iloc[0]
-        start = int(first_subset["POS"].astype(int).iloc[0])
-        end = get_length_contig(sam, firts_contig)
-        extraction_regions.append((firts_contig, start, end, first, "-"))
+        filterd_sam = sam_file[(sam_file["QNAME"].str.contains(first, na=False)) & (sam_file["FLAG"].astype(int) != 4)]
+    extraction_regions = []
+    if not filterd_sam.empty:
+        filterd_sam["MS"] = filterd_sam["MS"].str.extract(r"ms:i:(\d+)").fillna(0).astype(int)
+        filterd_sam["MAPQ"] = filterd_sam["MAPQ"].astype(int)
+        filterd_sam["POS"] = filterd_sam["POS"].astype(int)
+        if second != "-":
+            for rname, group in filterd_sam.groupby("RNAME"):
+                first_subset = group[group["QNAME"].str.contains(first, na=False)]
+                first_subset = filter_best_ms(first_subset)
 
+                second_subset = group[group["QNAME"].str.contains(second, na=False)]
+                second_subset = filter_best_ms(second_subset)
 
+                if not first_subset.empty and not second_subset.empty:
+                    first_start = int(first_subset["POS"].min())
+                    first_end = int(first_subset["POS"].max())
+                    second_start = int(second_subset["POS"].min())
+                    second_end = int(second_subset["POS"].max())
+                    start = min(first_start, second_start)
+                    end = max(first_end, second_end)
+                    extraction_regions.append((rname, start, end, first, second))
+                    return extraction_regions
+
+            if not first_subset.empty:
+                first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
+                first_subset = filter_best_ms(first_subset)
+                firts_contig = first_subset["RNAME"].astype(str).iloc[0]
+                start = int(first_subset["POS"].astype(int).iloc[0])
+                end = get_length_contig(sam, firts_contig)
+                extraction_regions.append((firts_contig, start, end, first, "-"))
+
+            if not second_subset.empty:
+                second_subset = filterd_sam[filterd_sam["QNAME"].str.contains(second, na=False)]
+                second_subset = filter_best_ms(second_subset)
+                second_contig = second_subset["RNAME"].astype(str).iloc[0]
+                end = int(second_subset["POS"].astype(int).iloc[0])
+                extraction_regions.append((second_contig, 0, end, "-", second))
+
+        else:
+            first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
+            first_subset = filter_best_ms(first_subset)
+            firts_contig = first_subset["RNAME"].astype(str).iloc[0]
+            start = int(first_subset["POS"].astype(int).iloc[0])
+            end = get_length_contig(sam, firts_contig)
+            extraction_regions.append((firts_contig, start, end, first, "-"))
     return extraction_regions
 
 
@@ -105,7 +107,6 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
 
     sam = cwd / "tmp" / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
     extraction_regions = get_positions_and_name(sam, first, second)
-
     for contig, start, end, flanking_gene_one, flanking_gene_second in extraction_regions:
         output_file = directory / f"{sample}_{flanking_gene_one}_{flanking_gene_second}_{contig}_{immuno_region}.fasta"
         if not output_file.is_file():
@@ -133,6 +134,8 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
 
     return all_log_data
 
+
+
 @log_error()
 def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], threads: int):
     """
@@ -144,7 +147,14 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
     make_dir(directory)
 
     assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in Path(assembly_dir).glob(ext)]
-    output_json = {}
+
+    log_file = cwd / "broken_regions.json"
+    if log_file.is_file():
+        with open(log_file) as f:
+            output_json = json.load(f)
+    else:
+        output_json = {}
+
     tasks = []
 
     for region, extract_flanking_genes in flanking_genes.items():
@@ -152,6 +162,7 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
             tasks.append((cwd, assembly, directory, extract_flanking_genes[0], extract_flanking_genes[1], assembly.stem, region))
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
+
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(extract, *task): task for task in tasks}
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
@@ -165,13 +176,12 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
                             output_json[assembly_name] = {}
                         if immuno_region not in output_json[assembly_name]:
                             output_json[assembly_name][immuno_region] = []
-                        output_json[assembly_name][immuno_region].append(entry)
+                        if entry not in output_json[assembly_name][immuno_region]:
+                            output_json[assembly_name][immuno_region].append(entry)
                 pbar.update(1)
 
-    log_file = cwd / "broken_regions.json"
-    if not log_file.is_file():
-        with open(log_file, 'w') as f:
-            json.dump(output_json, f, indent=4)
+    with open(log_file, 'w') as f:
+        json.dump(output_json, f, indent=4)
 
     if any(directory.iterdir()):
         file_log.info("Region extraction completed successfully")

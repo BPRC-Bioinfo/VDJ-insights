@@ -84,21 +84,36 @@ def main_cdr(species: str, receptor: str,  threads: int = 12) -> None:
         subprocess.run(blast_cmd, shell=True, check=True)
 
         if output_blast_file.exists():
-            columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore", "qseq", "sseq", "qcovs"]
+            columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart",
+                       "send", "evalue", "bitscore", "qseq", "sseq", "qcovs"]
             blast_results = pd.read_csv(output_blast_file, sep="\t", names=columns)
             if not blast_results.empty:
                 grouped_blast_results = blast_results.groupby("sseqid")
                 for index, blast_group in grouped_blast_results:
+                    s_index = index.split("_")[0]
 
-                    best_hit = blast_group.sort_values(by=["qstart", "qcovs", "length"], ascending=[True, False, False]).iloc[0]
+                    if cdr == "CDR1":
+                        sorted_blast_group = blast_group.sort_values(by=["qstart", "qcovs", "length", "sstart"], ascending=[True, False, False, True])
+                        if s_index in sorted_blast_group['qseqid'].values:
+                            best_hit = sorted_blast_group[sorted_blast_group['qseqid'].str.contains(s_index, regex=False)].iloc[0]
+                        else:
+                            best_hit = sorted_blast_group.iloc[0]
+
+                    elif cdr == "CDR2":
+                        sorted_blast_group = blast_group.sort_values(by=["qstart", "qcovs", "length", "sstart"], ascending=[True, False, False, False])
+                        if sorted_blast_group['qseqid'].str.contains(s_index, regex=False).any():
+                            best_hit = sorted_blast_group[sorted_blast_group['qseqid'].str.contains(s_index, regex=False)].iloc[0]
+                        else:
+                            best_hit = sorted_blast_group.iloc[0]
+
                     index_segment = int(best_hit['sseqid'].split("_")[-1])
                     sstart = int(best_hit["sstart"])
                     send = int(best_hit["send"])
 
                     if sstart > send:
                         target_length = target_lengths[index_segment]
-                        sstart = target_length - sstart  #index python
-                        send = target_length - send
+                        sstart = target_length - sstart + 1
+                        send = target_length - send + 1
 
                     annotation_report.loc[index_segment, f"{cdr}_start"] = sstart - 1
                     annotation_report.loc[index_segment, f"{cdr}_stop"] = send
@@ -115,62 +130,3 @@ def main_cdr(species: str, receptor: str,  threads: int = 12) -> None:
     if not novel.empty:
         novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
         novel.to_excel(cwd / "annotation" / "annotation_report_novel.xlsx", index=False)
-
-    """
-    cdr_lib = {}
-
-    cdr1_library = library_path / "CDR1.fasta"
-    cdr2_library = library_path / "CDR2.fasta"
-    for cdr in [cdr1_library, cdr2_library]:
-        for record in SeqIO.parse(cdr, 'fasta'):
-            header = record.description
-            seq = record.seq
-            cdr_lib[header] = seq
-
-
-    cdr1_count_total = 0
-    cdr2_count_total = 0
-    cdr1_true = 0
-    cdr2_true = 0
-    for index, row in known.iterrows():
-        target_sequence = row['Target sequence']
-
-        if row['Strand'] == '-':
-            target_sequence = str(Seq(target_sequence).reverse_complement())
-
-        cdr1_start = row['CDR1_start']
-        cdr1_stop = row['CDR1_stop']
-        cdr2_start = row['CDR2_start']
-        cdr2_stop = row['CDR2_stop']
-        if pd.notna(cdr1_start) and pd.notna(cdr1_stop) and pd.notna(cdr2_start) and pd.notna(cdr2_stop):
-            cdr1 = target_sequence[int(cdr1_start):int(cdr1_stop)]
-            cdr2 = target_sequence[int(cdr2_start):int(cdr2_stop)]
-            cdr1_lib = None
-            cdr2_lib = None
-            if f"{row['Short name']}_cdr1" in cdr_lib.keys():
-                cdr1_lib = cdr_lib[f"{row['Short name']}_cdr1"]
-                #print(f"CDR1: {row['Short name']} {row['Strand']} {cdr1} {cdr1_lib}")
-
-            if f"{row['Short name']}_cdr2" in cdr_lib.keys():
-                cdr2_lib = cdr_lib[f"{row['Short name']}_cdr2"]
-            #print(f"{row['Short name']} {row['Strand']} {cdr1} {cdr1_lib} {cdr2} {cdr2_lib}")
-            if cdr1 == cdr1_lib:
-                cdr1_true += 1
-            else:
-                print(f"CDR1: {row['Sample']} {row['Short name']} {row['Strand']} {cdr1} {cdr1_lib}")
-            if cdr2 == cdr2_lib:
-                cdr2_true += 1
-            else:
-                print(f"CDR2:{row['Sample']} {row['Short name']} {row['Strand']} {cdr2} {cdr2_lib} {int(cdr2_start), int(cdr2_stop)}")
-            cdr1_count_total += 1clear
-            
-            cdr2_count_total += 1
-
-    print(f"CDR1: {cdr1_true / cdr1_count_total} ({cdr1_true}/{cdr1_count_total})")
-    print(f"CDR2: {cdr2_true / cdr2_count_total} ({cdr2_true}/{cdr2_count_total})")
-    """
-
-
-
-if __name__ == '__main__':
-    main_cdr("Homo sapiens", "TR",  12)

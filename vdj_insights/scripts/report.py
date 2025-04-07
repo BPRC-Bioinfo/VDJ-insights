@@ -306,23 +306,28 @@ def extract_contig(path):
     return contig
 
 
-def extract_region(path):
-    """
-    Extracts the region identifier from a given file path.
 
-    Args:
-        path (str): The file path from which to extract the region identifier.
-
-    Returns:
-        str: The extracted region identifier. If no match is found, returns the last part of the filename without the file extension.
-    """
-    filename = path.split("/")[-1]
+def extract_region(data: pd.DataFrame) -> pd.DataFrame:
     region_pattern = re.compile(r'IGK|IGL|IGH|TRA|TRB|TRD|TRG', re.IGNORECASE)
-    match = region_pattern.search(filename)
-    if match:
-        return match.group(0)
-    else:
-        return filename.split("_")[-1].strip(".fasta")
+
+    updated_groups = []
+
+    grouped = data.groupby('Path')
+    for name, group in grouped:
+        regions = group['Target name'].dropna().apply(lambda x: region_pattern.search(x))
+        regions = regions.dropna().apply(lambda m: m.group(0).upper())
+
+        if not regions.empty:
+            most_common_region = regions.value_counts().idxmax()
+        else:
+            most_common_region = 'UNKNOWN'
+
+        group = group.copy()
+        group['Region'] = most_common_region
+        updated_groups.append(group)
+
+    updated_df = pd.concat(updated_groups)
+    return updated_df
 
 
 def run_like_and_length(df, record, cell_type, assembly):
@@ -342,15 +347,13 @@ def run_like_and_length(df, record, cell_type, assembly):
     df = add_like_to_df(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = df.apply(add_reference_length, axis=1, record=record)
+    df = extract_region(df)
+
     df["Sample"] = df["Path"].apply(extract_sample)
-
-    df["Region"] = df["Path"].apply(extract_region)
-
     if assembly:
         df["Contig"] = df["Path"].apply(extract_contig)
     else:
         df["Contig"] = ""
-
     return df
 
 
@@ -471,6 +474,17 @@ def add_suffix_to_short_name(group):
 
 
 def make_bed(data: pd.DataFrame, output: str | Path) -> None:
+    """
+    Creates BED files from the given DataFrame, grouping by 'Sample', 'Path', and 'Region'.
+    Each group is saved as a separate BED file in the specified output directory.
+
+    Args:
+        data (pd.DataFrame): The DataFrame containing sequence data.
+        output (str or Path): The directory where the BED files will be saved.
+
+    Returns:
+        None
+    """
     make_dir(output)
     for index, df in data.groupby(["Sample", "Path", "Region"]):
         file_name = f"{index[0]}_{Path(index[1]).stem}_{index[2]}"
@@ -480,6 +494,17 @@ def make_bed(data: pd.DataFrame, output: str | Path) -> None:
 
 
 def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
+    """
+    Creates GTF files from the given DataFrame, grouping by 'Sample', 'Path', and 'Region'.
+    Each group is saved as a separate GTF file in the specified output directory.
+
+    Args:
+        data (pd.DataFrame): The DataFrame containing sequence data.
+        output (str or Path): The directory where the GTF files will be saved.
+
+    Returns:
+        None
+    """
     make_dir(output)
     for index, df in data.groupby(["Sample", "Path", "Region"]):
         file_name = f"{index[0]}_{Path(index[1]).stem}_{index[2]}"

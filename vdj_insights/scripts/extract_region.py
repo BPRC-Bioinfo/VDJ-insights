@@ -115,6 +115,8 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
 
     coords, first, second = get_positions_and_name(sam, first, second)
 
+    print(coords)
+
     if len(coords) > 1:
         coords = [coords[0]]
     if coords:
@@ -169,12 +171,14 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
     assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in Path(assembly_dir).glob(ext)]
     output_json = {}
     tasks = []
+    print(tasks)
 
     for region, extract_flanking_genes in flanking_genes.items():
         for assembly in assembly_files:
             tasks.append((cwd, assembly, directory, extract_flanking_genes[0], extract_flanking_genes[1], assembly.stem, region))
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
+    print(tasks)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(extract, *task): task for task in tasks}
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
