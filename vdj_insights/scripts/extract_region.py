@@ -193,4 +193,3 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
     else:
         file_log.error("No regions were extracted")
         raise Exception("No regions extracted.")
-
