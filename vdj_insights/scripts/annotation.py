@@ -7,7 +7,8 @@ import ast
 from tqdm import tqdm
 
 from .mapping import mapping_main
-from .report import report_main
+from .report2 import report_main
+
 from .functionality import main_functionality
 from .RSS import main_rss
 from .CDR import main_cdr

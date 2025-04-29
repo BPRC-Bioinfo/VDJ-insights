@@ -110,8 +110,8 @@ def get_blast_results(output_base, l_part, region, locus_fasta_file_name, librar
 
             length_l_part = {record.id: len(record.seq) for record in SeqIO.parse(library_file, 'fasta')}
             for index, blast_group in grouped_blast_results:
-                if index == "":
-                    print(blast_group.sort_values(by=["qstart", "qcovs", "length", "mismatch"], ascending=[True, False, False, True]).head())
+                #if index == "":
+                   # print(blast_group.sort_values(by=["qstart", "qcovs", "length", "mismatch"], ascending=[True, False, False, True]).head())
                 best_hit = blast_group.sort_values(by=["qstart", "qcovs", "length", "mismatch"], ascending=[True, False, False, True]).iloc[0]
 
                 sseqid = best_hit["sseqid"]
@@ -321,43 +321,6 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
                 group_result = future.result()
                 combined_results = pd.concat([combined_results, group_result])
                 pbar.update(1)
-
-    """
-    #V-REGION
-  
-    for region, group_locus in data_V.groupby("Region"):
-        locus_fasta_path = output_base / "fasta"
-        locus_fasta_path.mkdir(exist_ok=True, parents=True)
-
-        extract_coords = {}
-        off_set = 500 - 50
-        for l_part, length in zip(["L_PART1", "L_PART2"], [500, 50]):
-            locus_fasta_file_name = write_extract_region_from_genome(locus_fasta_path, region, l_part, length, group_locus)
-            extract_coords = get_blast_results(output_base, l_part, region, locus_fasta_file_name, library_path, extract_coords)
-        group_locus = extraxt_region_from_genome(locus_fasta_path, region, group_locus, extract_coords, off_set)
-        combined_results = pd.concat([combined_results, group_locus])
- 
-
-    #J-REGION
-    for region, group_locus in data_J.groupby("Region"):
-        for index_segment, row in group_locus.iterrows():
-            start_coord_segment = row["Start coord"]
-            end_coord_segment = row["End coord"]
-            strand = row["Strand"]
-            fasta_path = row["Path"]
-
-            with open(fasta_path, 'r') as fasta_file:
-                sequence_region = SeqIO.read(fasta_file, 'fasta')
-
-            if strand == "+":
-                j_downstream_region = sequence_region.seq[end_coord_segment:(end_coord_segment + 2)]
-            elif strand == "-":
-                j_downstream_region = Seq(sequence_region.seq[(start_coord_segment - 2):start_coord_segment]).reverse_complement()
-            group_locus.loc[index_segment, "DONOR-SPLICE"] = str(j_downstream_region)
-            group_locus.loc[index_segment, "Protein"] = ""
-
-        combined_results = pd.concat([combined_results, group_locus])
-    """
 
     combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["pseudo", ""], axis=1, result_type="expand")
 

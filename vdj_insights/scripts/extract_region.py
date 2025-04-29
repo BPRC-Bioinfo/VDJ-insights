@@ -66,16 +66,19 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
 
             first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
             first_subset = filter_best_ms(first_subset)
-            firts_contig = first_subset["RNAME"].astype(str).iloc[0]
-            start = int(first_subset["POS"].astype(int).iloc[0])
-            end = get_length_contig(sam, firts_contig)
-            extraction_regions.append((firts_contig, start, end, first, "-"))
+            if not first_subset.empty:
+                first_contig = first_subset["RNAME"].astype(str).iloc[0]
+                start = first_subset["POS"].iloc[0]
+                end = get_length_contig(sam, first_contig)
+                extraction_regions.append((first_contig, start, end, first, "-"))
+
 
             second_subset = filterd_sam[filterd_sam["QNAME"].str.contains(second, na=False)]
             second_subset = filter_best_ms(second_subset)
-            second_contig = second_subset["RNAME"].astype(str).iloc[0]
-            end = int(second_subset["POS"].astype(int).iloc[0])
-            extraction_regions.append((second_contig, 0, end, "-", second))
+            if not second_subset.empty:
+                second_contig = second_subset["RNAME"].astype(str).iloc[0]
+                end = int(second_subset["POS"].astype(int).iloc[0])
+                extraction_regions.append((second_contig, 0, end, "-", second))
 
         else:
             first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
@@ -109,9 +112,8 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
 
     sam = cwd / "tmp" / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
     extraction_regions = get_positions_and_name(sam, first, second)
-    print(extraction_regions)
     for contig, start, end, flanking_gene_one, flanking_gene_second in extraction_regions:
-        Extraction_status = "complete" if first == flanking_gene_one and second == flanking_gene_second else "fragmented"
+        Extraction_status = "extracted" if first == flanking_gene_one and second == flanking_gene_second else "fragmented"
 
         output_file = directory / f"{sample}_{flanking_gene_one}_{flanking_gene_second}_{contig}_{Extraction_status}_{immuno_region}.fasta"
         if not output_file.is_file():
@@ -167,7 +169,6 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
             tasks.append((cwd, assembly, directory, extract_flanking_genes[0], extract_flanking_genes[1], assembly.stem, region))
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
-
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = {executor.submit(extract, *task): task for task in tasks}
         with tqdm(total=total_tasks, desc='Extracting regions', unit='task') as pbar:
@@ -184,6 +185,9 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
                         if entry not in output_json[assembly_name][immuno_region]:
                             output_json[assembly_name][immuno_region].append(entry)
                 pbar.update(1)
+
+                with open(log_file, 'w') as f:
+                    json.dump(output_json, f, indent=4)
 
     with open(log_file, 'w') as f:
         json.dump(output_json, f, indent=4)

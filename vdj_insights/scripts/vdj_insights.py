@@ -435,8 +435,8 @@ def run_html(args):
         python_executable = get_python_executable()
         process = subprocess.Popen(
             [python_executable, str(output_dir / 'app.py')],
-            stdout=False if args.dev_mode else subprocess.DEVNULL,
-            stderr=False if args.dev_mode else subprocess.DEVNULL,
+            #stdout=False if args.dev_mode else subprocess.DEVNULL,
+            #stderr=False if args.dev_mode else subprocess.DEVNULL,
         )
         process.communicate()
     except KeyboardInterrupt:

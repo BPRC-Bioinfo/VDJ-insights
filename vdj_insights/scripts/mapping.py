@@ -110,6 +110,7 @@ def make_bowtie2_command(bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie2 command string.
     """
     command = f"bowtie2 --end-to-end --very-sensitive -p {threads} --score-min L,0,-0.5 -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
+    #command = f"bowtie2 --end-to-end --very-sensitive -p {threads}  -f -x {bowtie_db} -U {rfasta} -S {sam_file}"
     return command
 
 
@@ -129,10 +130,10 @@ def make_bowtie_command(bowtie_db, rfasta, sam_file, threads):
         str: A fully configured Bowtie command string.
     """
     #command = f"bowtie -a -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
-    command = f"bowtie -k 2 -n 2 -p {threads} -M 3 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
-
+    command = f"bowtie -k 5 -a --strata -p {threads} -f -x {bowtie_db} {rfasta} -S {sam_file}"
     #command = f"bowtie --best -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
 
+    #command = f"bowtie --strata k 3 -p {threads} -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
