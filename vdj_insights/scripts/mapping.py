@@ -129,11 +129,7 @@ def make_bowtie_command(bowtie_db, rfasta, sam_file, threads):
     Returns:
         str: A fully configured Bowtie command string.
     """
-    #command = f"bowtie -a -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
-    command = f"bowtie -k 5 -a --strata -p {threads} -f -x {bowtie_db} {rfasta} -S {sam_file}"
-    #command = f"bowtie --best -n 2 -p {threads} -M 10 --strata -f -x {bowtie_db} {rfasta} -S {sam_file}"
-
-    #command = f"bowtie --strata k 3 -p {threads} -f -x {bowtie_db} {rfasta} -S {sam_file}"
+    command = f"bowtie -k 5 -a -M 5 --strata -p {threads} -f -x {bowtie_db} {rfasta} -S {sam_file}"
     return command
 
 
