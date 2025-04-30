@@ -120,12 +120,10 @@ def make_bowtie_command(bowtie_db, rfasta, sam_file, threads):
     The constructed command includes these parameters along with the Bowtie database, reference FASTA file, and the output SAM file paths.
 
     Args:
-        acc (int): Accuracy score between 1 and 100.
         bowtie_db (str): Path to the Bowtie database index.
         rfasta (str): Path to the reference FASTA file.
         sam_file (str): Path to the output SAM file.
         threads (int): Number of threads to use for the mapping process.
-
     Returns:
         str: A fully configured Bowtie command string.
     """
