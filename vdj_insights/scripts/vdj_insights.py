@@ -271,13 +271,14 @@ def setup_annotation_args(subparsers):
     data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes.')
     data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
 
+    parser_annotation.add_argument('-S', '--scaffolding',required=False, type=validate_file, help='Path to the reference genome (FASTA) containing the chromosomes of interest for the selected species')
+
     parser_annotation.add_argument('-M', '--metadata',required=False, type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
     parser_annotation.add_argument('-s', '--species', type=str, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
     parser_annotation.add_argument('-o', '--output', type=str, default=str(Path.cwd() / 'annotation_results'), help='Output directory for the results.')
     mapping_options = ['minimap2', 'bowtie', 'bowtie2']
     parser_annotation.add_argument('-m', '--mapping-tool', nargs='*', choices=mapping_options, default=mapping_options, help='Mapping tool(s) to use. Choose from: minimap2, bowtie, bowtie2. Defaults to all.')
     parser_annotation.add_argument('-t', '--threads', type=int, required=False, default=8, help='Amount of threads to run the analysis.')
-    parser_annotation.add_argument('--no-split', required=False, action='store_true', help='Prevents output of separate Excel files for each individual sample')
 
     parser_annotation.set_defaults(func=run_annotation)
 
