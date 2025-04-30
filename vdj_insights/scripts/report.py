@@ -80,7 +80,7 @@ def add_region_segment(row, cell_type):
     prefix = fetch_prefix(query, cell_type)
     short_name = prefix
     prefix = re.sub(r"[0-9-]", "", prefix)
-    segment = prefix[3]
+    segment =  prefix[3]
     row["Segment"], row["Short name"] = segment, short_name
     return row
 
@@ -175,15 +175,14 @@ def rename_columns(df):
         pd.DataFrame: The DataFrame with the added 'Old name-like' column and renamed columns.
     """
     output_df = df[[
-        'subject', 'query', 'mismatches', '% Mismatches of total alignment',
+        'subject', 'query','mismatches', '% Mismatches of total alignment',
         'start', 'stop', 'subject seq', 'query seq', 'tool', '% identity', 'strand', 'path',
         'btop', 'SNPs', 'Insertions', 'Deletions'
 
     ]]
     output_df.columns = [
         'Library name', 'Target name', 'Mismatches', '% Mismatches of total alignment',
-        'Start coord', 'End coord', 'Library sequence', 'Target sequence', 'Mapping tool', '% identity', 'Strand',
-        'Path',
+        'Start coord', 'End coord', 'Library sequence', 'Target sequence', 'Mapping tool', '% identity','Strand', 'Path',
         'BTOP', 'SNPs', 'Insertions', 'Deletions'
     ]
     return output_df
@@ -358,7 +357,7 @@ def filtering_data(df, cell_type):
     )
 
     filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
-    # filterd_df["Alignment_length"] = df['Target sequence'].str.len()
+    #filterd_df["Alignment_length"] = df['Target sequence'].str.len()
 
     longest_sequences = (
         filterd_df
@@ -380,8 +379,7 @@ def filtering_data(df, cell_type):
                 if next_interval["% identity"] > current_interval["% identity"]:
                     current_interval = next_interval
                 else:
-                    group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"],
-                                                                        next_interval["End coord"])
+                    group.loc[current_interval.name, "End coord"] = max(current_interval["End coord"], next_interval["End coord"])
             else:
                 merged_intervals.append(current_interval)
                 current_interval = next_interval
@@ -410,10 +408,7 @@ def export_annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_f
     Raises:
         OSError: If the file cannot be created or written to.
     """
-    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name",
-             "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches",
-             "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool",
-             "Contig", "Extraction status", "Status", "Path"]]
+    df = df[["Sample", "Region", "Segment", "Start coord", "End coord", "Strand", "Target name", "Library name", "Short name", "Similar references", "Target sequence", "Library sequence", "Mismatches", "% Mismatches of total alignment", "% identity", "BTOP", "SNPs", "Insertions", "Deletions", "Mapping tool", "Contig", "Extraction status", "Status", "Path"]]
 
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
@@ -429,8 +424,7 @@ def export_annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_f
 
         if len(merge_cols) > 1:
             if "Haplotype" in metadata_df.columns:
-                df = df.merge(metadata_df[merge_cols + ["Haplotype"]], left_on="Sample", right_on="Accession",
-                              how="left")
+                df = df.merge(metadata_df[merge_cols + ["Haplotype"]], left_on="Sample", right_on="Accession", how="left")
             else:
                 df = df.merge(metadata_df[merge_cols], left_on="Sample", right_on="Accession", how="left")
             df = df.drop(columns=["Accession"])
@@ -521,8 +515,7 @@ def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
 
 
 @log_error()
-def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str,
-                library: Union[str, Path], assembly: Union[str, Path], metadata_folder: Union[str, Path]):
+def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path], cell_type: str, library: Union[str, Path], assembly: Union[str, Path], metadata_folder: Union[str, Path]):
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
