@@ -20,3 +20,4 @@ dependencies:
  - mafft
  - psutil
  - tqdm
+ - ragtag=2.1.0

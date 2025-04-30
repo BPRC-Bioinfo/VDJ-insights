@@ -11,19 +11,22 @@ def run_scaffolding(assembly_file: str, reference: str, scaffolding_dir: str):
     cwd = Path.cwd()
 
     assembly_name = assembly_file.stem
-    ragtag_output = cwd / Path("tmp/ragtag") / assembly_name
-    make_dir(ragtag_output)
+    reference_name = reference.stem
+    if assembly_name in reference_name:
+        ragtag_output = cwd / Path("tmp/ragtag") / assembly_name
+        make_dir(ragtag_output)
 
-    original_scaffold = cwd / ragtag_output / "ragtag.scaffold.fasta"
-    scaffolding_dir = cwd /scaffolding_dir
-    make_dir(scaffolding_dir)
-    renamed_scaffold = scaffolding_dir / f"{assembly_name}.fasta"
+        original_scaffold = cwd / ragtag_output / "ragtag.scaffold.fasta"
+        scaffolding_dir = cwd /scaffolding_dir
+        make_dir(scaffolding_dir)
+        renamed_scaffold = scaffolding_dir / f"{assembly_name}.fasta"
+        if not renamed_scaffold.is_file():
+            if ragtag_output.exists():
+                shutil.rmtree(ragtag_output)
+            rag_command = f"ragtag.py scaffold -t 4 {reference} {assembly_file} -o {ragtag_output}/"
+            subprocess.run(rag_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            shutil.move(str(original_scaffold), str(renamed_scaffold))
 
-    if not renamed_scaffold.is_file():
-
-        rag_command = f"ragtag.py scaffold -t 4 {reference} {assembly_file} -o {ragtag_output}/"
-        subprocess.run(rag_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        shutil.move(str(original_scaffold), str(renamed_scaffold))
 
 
 def scaffolding_main(reference: str, assembly_dir: Path, scaffolding_dir: str,  threads: int) -> Path:
