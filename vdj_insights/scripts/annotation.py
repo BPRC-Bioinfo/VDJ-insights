@@ -170,14 +170,17 @@ def main(args=None):
     if args.input:
         region_dir = args.input
 
+    timing_results = []
+
     if args.scaffolding:
         scaffolding_dir = "tmp/scaffold_assemblies"
+        start = time.time()
         args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir,  args.threads)
+        end = time.time()
+        timing_results.append(["Scaffolding", round(end - start, 2)])
 
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
-
-    timing_results = []
 
     #mapping flanking genes and region extraction
     flanking_genes_dict = ast.literal_eval(str(args.flanking_genes))
