@@ -36,62 +36,66 @@ def filter_best_ms(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tuple[list[tuple[str, int, int]], str, str]:
-    sam_file = pd.read_csv(sam, sep="\t", header=None, comment='@', dtype=str, usecols=[0, 1, 2, 3, 4, 12], names=["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "MS"])
-    if second != "-":
-        filterd_sam = sam_file[(sam_file["QNAME"].str.contains(first, na=False) | (sam_file["QNAME"].str.contains(second, na=False))) & (sam_file["FLAG"].astype(int) != 4)]
-    else:
-        filterd_sam = sam_file[(sam_file["QNAME"].str.contains(first, na=False)) & (sam_file["FLAG"].astype(int) != 4)]
-    extraction_regions = []
-    if not filterd_sam.empty:
-        filterd_sam["MS"] = filterd_sam["MS"].str.extract(r"ms:i:(\d+)").fillna(0).astype(int)
-        filterd_sam["MAPQ"] = filterd_sam["MAPQ"].astype(int)
-        filterd_sam["POS"] = filterd_sam["POS"].astype(int)
+    try:
+        sam_file = pd.read_csv(sam, sep="\t", header=None, comment='@', dtype=str, usecols=[0, 1, 2, 3, 4, 12], names=["QNAME", "FLAG", "RNAME", "POS", "MAPQ", "MS"])
         if second != "-":
-            for rname, group in filterd_sam.groupby("RNAME"):
-                first_subset = group[group["QNAME"].str.contains(first, na=False)]
-                first_subset = filter_best_ms(first_subset)
-
-                second_subset = group[group["QNAME"].str.contains(second, na=False)]
-                second_subset = filter_best_ms(second_subset)
-
-                if not first_subset.empty and not second_subset.empty:
-                    first_start = int(first_subset["POS"].min())
-                    first_end = int(first_subset["POS"].max())
-                    second_start = int(second_subset["POS"].min())
-                    second_end = int(second_subset["POS"].max())
-                    start = min(first_start, second_start)
-                    end = max(first_end, second_end)
-                    extraction_regions.append((rname, start, end, first, second))
-                    return extraction_regions
-
-            first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
-            first_subset = filter_best_ms(first_subset)
-            if not first_subset.empty:
-                first_contig = first_subset["RNAME"].astype(str).iloc[0]
-                start = first_subset["POS"].iloc[0]
-                end = get_length_contig(sam, first_contig)
-                extraction_regions.append((first_contig, start, end, first, "-"))
-
-
-            second_subset = filterd_sam[filterd_sam["QNAME"].str.contains(second, na=False)]
-            second_subset = filter_best_ms(second_subset)
-            if not second_subset.empty:
-                second_contig = second_subset["RNAME"].astype(str).iloc[0]
-                end = int(second_subset["POS"].astype(int).iloc[0])
-                extraction_regions.append((second_contig, 0, end, "-", second))
-
+            filterd_sam = sam_file[(sam_file["QNAME"].str.contains(first, na=False) | (sam_file["QNAME"].str.contains(second, na=False))) & (sam_file["FLAG"].astype(int) != 4)]
         else:
-            first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
-            first_subset = filter_best_ms(first_subset)
-            firts_contig = first_subset["RNAME"].astype(str).iloc[0]
-            start = int(first_subset["POS"].astype(int).iloc[0])
-            end = get_length_contig(sam, firts_contig)
-            reverse_strand = (first_subset["FLAG"].astype(int).iloc[0] & 16) != 0
-            if reverse_strand:
-                extraction_regions.append((firts_contig, 0, start, first, "-"))
+            filterd_sam = sam_file[(sam_file["QNAME"].str.contains(first, na=False)) & (sam_file["FLAG"].astype(int) != 4)]
+        extraction_regions = []
+        if not filterd_sam.empty:
+            filterd_sam["MS"] = filterd_sam["MS"].str.extract(r"ms:i:(\d+)").fillna(0).astype(int)
+            filterd_sam["MAPQ"] = filterd_sam["MAPQ"].astype(int)
+            filterd_sam["POS"] = filterd_sam["POS"].astype(int)
+            if second != "-":
+                for rname, group in filterd_sam.groupby("RNAME"):
+                    first_subset = group[group["QNAME"].str.contains(first, na=False)]
+                    first_subset = filter_best_ms(first_subset)
+
+                    second_subset = group[group["QNAME"].str.contains(second, na=False)]
+                    second_subset = filter_best_ms(second_subset)
+
+                    if not first_subset.empty and not second_subset.empty:
+                        first_start = int(first_subset["POS"].min())
+                        first_end = int(first_subset["POS"].max())
+                        second_start = int(second_subset["POS"].min())
+                        second_end = int(second_subset["POS"].max())
+                        start = min(first_start, second_start)
+                        end = max(first_end, second_end)
+                        extraction_regions.append((rname, start, end, first, second))
+                        return extraction_regions
+
+                first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
+                first_subset = filter_best_ms(first_subset)
+                if not first_subset.empty:
+                    first_contig = first_subset["RNAME"].astype(str).iloc[0]
+                    start = first_subset["POS"].iloc[0]
+                    end = get_length_contig(sam, first_contig)
+                    extraction_regions.append((first_contig, start, end, first, "-"))
+
+
+                second_subset = filterd_sam[filterd_sam["QNAME"].str.contains(second, na=False)]
+                second_subset = filter_best_ms(second_subset)
+                if not second_subset.empty:
+                    second_contig = second_subset["RNAME"].astype(str).iloc[0]
+                    end = int(second_subset["POS"].astype(int).iloc[0])
+                    extraction_regions.append((second_contig, 0, end, "-", second))
+
             else:
-                extraction_regions.append((firts_contig, start, end, first, "-"))
-    return extraction_regions
+                first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
+                first_subset = filter_best_ms(first_subset)
+                firts_contig = first_subset["RNAME"].astype(str).iloc[0]
+                start = int(first_subset["POS"].astype(int).iloc[0])
+                end = get_length_contig(sam, firts_contig)
+                reverse_strand = (first_subset["FLAG"].astype(int).iloc[0] & 16) != 0
+                if reverse_strand:
+                    extraction_regions.append((firts_contig, 0, start, first, "-"))
+                else:
+                    extraction_regions.append((firts_contig, start, end, first, "-"))
+        return extraction_regions
+    except:
+        console_log.error(f"Error processing SAM file: {sam.stem}")
+        return []
 
 
 def count_contigs(sam_file: Union[str, Path]) -> int:
