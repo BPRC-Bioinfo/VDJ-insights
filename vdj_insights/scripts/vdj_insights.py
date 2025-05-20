@@ -265,7 +265,7 @@ def setup_annotation_args(subparsers):
     group.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs.')
 
     parser_annotation.add_argument('-l', '--library', type=validate_file, help='Path to the library file. Expected to be in FASTA format.')
-    parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG', 'KIR-LILR'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+    parser_annotation.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
 
     data_choice = parser_annotation.add_mutually_exclusive_group(required=True)
     data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes.')
@@ -366,6 +366,7 @@ def run_annotation(args):
                 'No library specified, generating it with the IMGT scraper.')
             try:
                 create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
+                file_log.info(f"Starting scrape for species: {args.species}, type: {args.receptor_type}")
                 imgt_main(species=args.species, immune_type=args.receptor_type)
                 file_log.info(f"Downloaded the library from the IMGT for {args.species}")
             except subprocess.CalledProcessError as e:
