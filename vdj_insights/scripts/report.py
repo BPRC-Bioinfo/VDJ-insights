@@ -148,6 +148,7 @@ def pre_processing(df, cell_type, assembly):
 
     df['% identity'] = df['% identity'].astype(float)
 
+
     df = rename_columns(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = extract_region(df)
@@ -284,6 +285,7 @@ def extract_sample(path):
     if match:
         return match.group(0)
     else:
+        #return filename
         return filename.split("_")[0]
 
 
@@ -357,7 +359,6 @@ def filtering_data(df, cell_type):
     )
 
     filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
-    #filterd_df["Alignment_length"] = df['Target sequence'].str.len()
 
     longest_sequences = (
         filterd_df
