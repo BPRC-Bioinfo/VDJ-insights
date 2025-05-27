@@ -143,6 +143,7 @@ def main(args=None):
 
     console_log.info(f"Initialise pipeline")
     update_args = argparser_setup()
+    print(args)
 
     if args.assembly and args.metadata:
         if not validate_metadata_coverage(args.assembly, args.metadata):
