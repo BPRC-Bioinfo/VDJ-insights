@@ -1,4 +1,5 @@
 
+[metadata](https://github.com/BPRC-Bioinfo/VDJ-insights/blob/main/vdj_insights/metadata/metadata.xlsx)
 ![Logo](vdj_insights/images/BPRC_logo.png)
 # VDJ-Insights
 
