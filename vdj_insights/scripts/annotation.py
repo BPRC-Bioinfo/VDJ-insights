@@ -202,7 +202,7 @@ def main(args=None):
         start = time.time()
         for tool in args.mapping_tool:
             file_log.info(f"Processing tool: {tool}")
-            mapping_df = mapping_main(tool, args.receptor_type, region_dir, args.library, args.threads)
+            mapping_df = mapping_main(tool, region_dir, args.library, args.threads)
             report_df = pd.concat([report_df, mapping_df])
         report_df = report_df.drop_duplicates(subset=["reference", "start", "stop", "name"]).reset_index(drop=True)
         make_dir(annotation_folder / "tmp/")

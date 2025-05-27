@@ -458,7 +458,7 @@ def add_suffix_to_short_name(group):
     return group
 
 
-def make_bed(data: pd.DataFrame, output: str | Path) -> None:
+def make_bed(data: pd.DataFrame, output: Union[str, Path]) -> None:
     """
     Creates BED files from the given DataFrame, grouping by 'Sample', 'Path', and 'Region'.
     Each group is saved as a separate BED file in the specified output directory.
@@ -478,7 +478,7 @@ def make_bed(data: pd.DataFrame, output: str | Path) -> None:
         bed_df.to_csv(Path(output) / f"{file_name}.bed", sep="\t", index=False, header=False)
 
 
-def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
+def make_gtf(data: pd.DataFrame, output: Union[str, Path]) -> None:
     """
     Creates GTF files from the given DataFrame, grouping by 'Sample', 'Path', and 'Region'.
     Each group is saved as a separate GTF file in the specified output directory.

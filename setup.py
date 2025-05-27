@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="vdj-insights",
-    version="0.1.08",
+    version="0.1.11",
     author="Jesse Mittertreiner, Sayed Jamiel Mohammadi, Giang Le",
     author_email="jaimymohammadi@gmail.com",
     description="VDJ-Insights offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT).",
@@ -19,7 +19,7 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=[
-        "biopython==1.84",
+        "biopython",
         "PyYAML",
         "tqdm",
         "psutil",
@@ -27,7 +27,8 @@ setup(
         "seaborn",
         "bs4",
         "venny4py",
-        "requests"
+        "requests",
+        "Flask"
     ],
     entry_points={
         "console_scripts": [
