@@ -179,8 +179,7 @@ def unzip_file(file_path: Union[str, Path], unzip_path: Union[str, Path]) -> Non
         raise
 
 
-def calculate_available_resources(max_cores: int, threads: int, memory_per_process: int = 12,
-                                  buffer_percentage: int = 10) -> int:
+def calculate_available_resources(max_cores: int, threads: int, memory_per_process: int = 12, buffer_percentage: int = 10) -> int:
     """
     Calculate the maximum number of parallel jobs that can be run based on the available system resources.
 
