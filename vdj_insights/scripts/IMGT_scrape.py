@@ -121,7 +121,7 @@ def write_sequence(name: str, directory: Union[str, Path], sequence: str):
 
 
 
-def fetch_sequence(segment: str, directory: Union[str, Path], species: str, frame: str, retry_limit=3):
+def fetch_sequence(segment: str, directory: Union[str, Path], species: str, frame: str, retry_limit=10):
     """
     Fetches sequence data from IMGT server using a constructed URL and handles failures with specified retry logic.
     Implements differentiated wait times based on the cause of retry need.
@@ -219,15 +219,12 @@ def scrape_IMGT(species: str, immune_type: str, directory: Union[str, Path], fra
     make_dir(directory)
     for segment in segments[immune_type]:
         segment_file = directory / f"{segment}.fasta"
-        file_log.info(
-            f"Retrieving sequences from IMGT for the {segment} of {species}")
         if not Path(segment_file).exists():
             fetch_sequence(segment, directory, species, frame)
         else:
             count = sum(1 for _ in SeqIO.parse(segment_file, "fasta"))
             fasta_files_info.append(
                 {"name": segment_file.name, "entries": count})
-            file_log.info(f"File {segment}.fasta already exists skipping!")
             time.sleep(2)
 
 
@@ -300,7 +297,6 @@ def main(species: str,
     need to be removed. Lastly there is logged that the scrape is finished.
     """
     file_log.info(f"Starting scrape for species: {species}, type: {immune_type}")
-
     cwd = Path.cwd()
     if output_dir:
         path = cwd / output_dir

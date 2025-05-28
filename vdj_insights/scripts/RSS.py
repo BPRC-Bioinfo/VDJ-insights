@@ -141,7 +141,6 @@ def check_conserved(seq_l:str , seq_r: str, mer1: int, mer2: int, rss_layout: st
 
     if heptamer_matcher < threshold or nonamer_matcher < threshold:
         return False
-
     return True
 
 

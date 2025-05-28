@@ -38,7 +38,8 @@ def make_record_dict(fasta):
     with open(fasta, 'r') as fasta_file:
         for record in SeqIO.parse(fasta_file, "fasta"):
             if record.id not in record_dict:
-                record_dict[record.id] = record
+                record_dict[record.id] = len(record.seq)
+
     return record_dict
 
 
@@ -84,41 +85,6 @@ def add_region_segment(row, cell_type):
     return row
 
 
-def filter_group(group):
-    """
-    Filters out groups of sequences that contain a 100% identity match.
-
-    Args:
-        group (pd.DataFrame): A DataFrame group containing sequence alignments.
-
-    Returns:
-        bool: True if the group does not contain any 100% identity matches, False otherwise.
-    """
-    return not (group['% identity'] == 100).any()
-
-
-def split_df(df):
-    """
-    Processes the BLAST results DataFrame to filter out entries that contain gaps in the sequences or have 100% identity.
-    Converts the '% identity' column to float for numerical operations and filters out 100% identity entries,
-    which are considered as non-novel segments. The filtered entries are returned along with a reference DataFrame
-    containing only the entries with 100% identity.
-
-    Args:
-        df (pd.DataFrame): A DataFrame containing BLAST results.
-
-    Returns:
-        tuple: A tuple containing two DataFrames:
-            - df (pd.DataFrame): The filtered DataFrame without gaps and 100% identity entries.
-            - reference_df (pd.DataFrame): A DataFrame containing only 100% identity entries.
-    """
-    df['% identity'] = df['% identity'].astype(float)
-    reference_df = df[df['% identity'] == 100.0]
-
-    df = df.groupby(['start', 'stop', 'path']).filter(filter_group)
-    return df, reference_df
-
-
 def parse_btop(btop):
     snps = 0
     insertions = 0
@@ -142,28 +108,63 @@ def parse_btop(btop):
     return snps, insertions, deletions
 
 
-def add_values(df):
+def get_length(subject, segments_library):
+    try:
+        return segments_library[subject]
+    except KeyError:
+        return -1
+
+
+def filter_group(group):
+    """
+    Filters out groups of sequences that contain a 100% identity match.
+
+    Args:
+        group (pd.DataFrame): A DataFrame group containing sequence alignments.
+
+    Returns:
+        bool: True if the group does not contain any 100% identity matches, False otherwise.
+    """
+    return not (group['% identity'] == 100).any()
+
+
+def pre_processing(df, cell_type, assembly):
     """
     Adds additional columns to the DataFrame, such as the percentage of mismatches relative to the alignment length,
     the lengths of the query and subject sequences, and splits the 'query' column into multiple columns for easier access.
 
     Args:
         df (pd.DataFrame): A DataFrame containing BLAST results.
+        segments_library (dict): A dictionary mapping reference names to SeqRecord objects.
 
     Returns:
         pd.DataFrame: The DataFrame with additional columns for sequence lengths, mismatch percentage, and split query information.
     """
     df['% Mismatches of total alignment'] = (df['mismatches'] / df['alignment length']) * 100
-    df['query_seq_length'] = df['query seq'].str.len()
-    df['subject_seq_length'] = df['subject seq'].str.len()
-    df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda x: pd.Series(parse_btop(x)))
+    df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda btop: pd.Series(parse_btop(btop)))
 
     split_query_df = df['query'].str.split('#', expand=True)
     df[['query', 'start', 'stop', 'strand', 'path', 'tool']] = split_query_df[[0, 1, 2, 3, 4, 5]]
+
+    df['% identity'] = df['% identity'].astype(float)
+
+
+    df = rename_columns(df)
+    df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
+    df = extract_region(df)
+
+    df["Sample"] = df["Path"].apply(extract_sample)
+
+    df["Contig"] = ""
+    df["Extraction status"] = ""
+    if assembly:
+        df["Contig"] = df["Path"].apply(extract_contig)
+        df["Extraction status"] = df["Path"].apply(extract_extraction_status)
+
     return df
 
 
-def add_like_to_df(df):
+def rename_columns(df):
     """
     Adds a 'Old name-like' column to the DataFrame, which appends '-like' to the reference names.
     This function also sorts the DataFrame by 'Reference' and renames certain columns for consistency.
@@ -177,18 +178,15 @@ def add_like_to_df(df):
     output_df = df[[
         'subject', 'query','mismatches', '% Mismatches of total alignment',
         'start', 'stop', 'subject seq', 'query seq', 'tool', '% identity', 'strand', 'path',
-        'query_seq_length', 'subject_seq_length', 'btop', 'SNPs', 'Insertions', 'Deletions'
+        'btop', 'SNPs', 'Insertions', 'Deletions'
 
     ]]
     output_df.columns = [
         'Library name', 'Target name', 'Mismatches', '% Mismatches of total alignment',
         'Start coord', 'End coord', 'Library sequence', 'Target sequence', 'Mapping tool', '% identity','Strand', 'Path',
-        'Target length', 'subject library length', 'BTOP', 'SNPs', 'Insertions', 'Deletions'
+        'BTOP', 'SNPs', 'Insertions', 'Deletions'
     ]
-
-    output_df = output_df.sort_values(by="Library name")
     return output_df
-
 
 
 def trim_sequence(sequence, strand):
@@ -255,20 +253,19 @@ def filter_df(group_df, cell_type):
     return best_row.squeeze()
 
 
-def add_reference_length(row, record):
+def add_reference_length(row, segments_library):
     """
     Adds the length of the reference sequence to the DataFrame row.
     The length is determined by looking up the sequence in the record dictionary.
 
     Args:
         row (pd.Series): The current row of the DataFrame.
-        record (dict): A dictionary mapping reference names to SeqRecord objects.
+        segments_library (dict): A dictionary mapping reference names to SeqRecord objects.
 
     Returns:
         pd.Series: The updated row with the 'Library Length' column added.
     """
-    reference = row["Library name"]
-    row["Library length"] = len(record[reference].seq)
+    row["Library length"] = len(segments_library[row["subject"]].seq)
     return row
 
 
@@ -288,6 +285,7 @@ def extract_sample(path):
     if match:
         return match.group(0)
     else:
+        #return filename
         return filename.split("_")[0]
 
 
@@ -304,7 +302,6 @@ def extract_contig(path):
     filename = path.split("/")[-1]
     contig = filename.split("_")[-3]
     return contig
-
 
 
 def extract_region(data: pd.DataFrame) -> pd.DataFrame:
@@ -329,41 +326,14 @@ def extract_region(data: pd.DataFrame) -> pd.DataFrame:
     updated_df = pd.concat(updated_groups)
     return updated_df
 
+
 def extract_extraction_status(path):
     filename = path.split("/")[-1]
     contig = filename.split("_")[-2]
     return contig
 
-def run_like_and_length(df, record, cell_type, assembly):
-    """
-    Adds 'Target name', 'Region', 'Segment', and 'Library Length' columns to the DataFrame.
-    Filters the DataFrame to retain only rows where the reference length, Target name length, and library length are equal.
-    Adds a 'Sample' column, which is extracted from the path.
 
-    Args:
-        df (pd.DataFrame): The DataFrame to process.
-        record (dict): A dictionary mapping reference names to SeqRecord objects.
-        cell_type (str): The cell type used to fetch the prefix.
-
-    Returns:
-        pd.DataFrame: The processed DataFrame with additional columns and filtered rows.
-    """
-    df = add_like_to_df(df)
-    df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
-    df = df.apply(add_reference_length, axis=1, record=record)
-    df = extract_region(df)
-
-    df["Sample"] = df["Path"].apply(extract_sample)
-    if assembly:
-        df["Contig"] = df["Path"].apply(extract_contig)
-        df["Extraction status"] = df["Path"].apply(extract_extraction_status)
-    else:
-        df["Contig"] = ""
-        df["Extraction status"] = ""
-    return df
-
-
-def group_similar(df, cell_type):
+def filtering_data(df, cell_type):
     """
     Groups sequences by their start coordinate, end coordinate, and filters each group to identify the best reference sequence.
     The best reference sequence is selected based on the number of mismatches and the reference name, and similar references are stored.
@@ -381,21 +351,22 @@ def group_similar(df, cell_type):
     cols_to_convert = ["Start coord", "End coord", "% identity", "Mismatches"]
     df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors='coerce')
 
-
     filterd_df = (
         df
         .sort_values(by=['Sample', '% identity', 'Mismatches'], ascending=[True, False, True])
-        .groupby(['Start coord', 'End coord'], as_index=False)
+        .groupby(['Sample', 'Start coord', 'End coord'], as_index=False)
         .first()
     )
 
     filterd_df["Alignment_length"] = filterd_df["End coord"] - filterd_df["Start coord"]
+
     longest_sequences = (
         filterd_df
         .sort_values(by=["Sample", "% identity", "Alignment_length"], ascending=[True, False, False])
         .groupby(["Sample", "Start coord"], as_index=False)
         .first()
     )
+
     processed_groups = []
     grouped = longest_sequences.groupby(["Sample", "Region"], as_index=False)
     for name, group in grouped:
@@ -423,7 +394,7 @@ def group_similar(df, cell_type):
     return result_df
 
 
-def annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
+def export_annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_folder):
     """
     Generates a full annotation report and saves it as the specified file name.
     The report includes key columns such as reference names, coordinates, functions, similar references, paths, and regions.
@@ -487,7 +458,7 @@ def add_suffix_to_short_name(group):
     return group
 
 
-def make_bed(data: pd.DataFrame, output: str | Path) -> None:
+def make_bed(data: pd.DataFrame, output: Union[str, Path]) -> None:
     """
     Creates BED files from the given DataFrame, grouping by 'Sample', 'Path', and 'Region'.
     Each group is saved as a separate BED file in the specified output directory.
@@ -507,7 +478,7 @@ def make_bed(data: pd.DataFrame, output: str | Path) -> None:
         bed_df.to_csv(Path(output) / f"{file_name}.bed", sep="\t", index=False, header=False)
 
 
-def make_gtf(data: pd.DataFrame, output: str | Path) -> None:
+def make_gtf(data: pd.DataFrame, output: Union[str, Path]) -> None:
     """
     Creates GTF files from the given DataFrame, grouping by 'Sample', 'Path', and 'Region'.
     Each group is saved as a separate GTF file in the specified output directory.
@@ -549,39 +520,29 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
-    segments_library = make_record_dict(library)
-
     df = pd.read_csv(blast_file, low_memory=False)
-    df = add_values(df)
 
-    novel_df, known_df = split_df(df)
+    df = pre_processing(df, cell_type, assembly)
+    df = filtering_data(df, cell_type)
 
-    if not novel_df.empty:
-        novel_df = run_like_and_length(novel_df, segments_library, cell_type, assembly)
-        novel_df["Status"] = "Novel"
-    if not known_df.empty:
-        known_df = run_like_and_length(known_df, segments_library, cell_type, assembly)
-        known_df = known_df[known_df['Library length'] == known_df['Library sequence'].str.len()]
+    segments_library = make_record_dict(library)
+    known_mask = ((df['Library name'].map(segments_library).fillna(-1).astype(int) == df['Target sequence'].str.len()) & (df['% identity'] == 100.0))
+    known_df = df[known_mask].copy()
+    known_df["Status"] = "Known"
 
-        known_df["Status"] = "Known"
-
-    combined_df = pd.concat([novel_df, known_df], ignore_index=True)
-
-    grouped_df = group_similar(combined_df, cell_type)
-
-    known_df = grouped_df[grouped_df["Status"] == "Known"]
-    novel_df = grouped_df[grouped_df["Status"] == "Novel"]
+    novel_df = df[~known_mask].copy()
+    novel_df["Status"] = "Novel"
 
     if not novel_df.empty:
         novel_df = novel_df.groupby('Library name', group_keys=False).apply(add_suffix_to_short_name)
-        annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', metadata_folder)
+        export_annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', metadata_folder)
 
     if not known_df.empty:
-        annotation(known_df, annotation_folder, 'annotation_report_known.xlsx', metadata_folder)
+        export_annotation(known_df, annotation_folder, 'annotation_report_known.xlsx', metadata_folder)
 
     combined_df = pd.concat([novel_df, known_df], ignore_index=True)
     if not combined_df.empty:
-        annotation(combined_df, annotation_folder, 'annotation_report_all.xlsx', metadata_folder)
+        export_annotation(combined_df, annotation_folder, 'annotation_report_all.xlsx', metadata_folder)
 
     console_log.info(f"Known segments detected: {known_df.shape[0]}")
     console_log.info(f"Novel segments detected: {novel_df.shape[0]}")

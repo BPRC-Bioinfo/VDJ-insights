@@ -6,8 +6,11 @@ import ast
 
 from tqdm import tqdm
 
+from .scaffolding import scaffolding_main
+
 from .mapping import mapping_main
 from .report import report_main
+
 from .functionality import main_functionality
 from .RSS import main_rss
 from .CDR import main_cdr
@@ -74,20 +77,26 @@ def argparser_setup(include_help: bool = True) -> argparse.ArgumentParser:
         argparse.ArgumentParser: Configured argument parser ready for parsing input arguments.
     """
     parser = argparse.ArgumentParser(description='A tool for finding known and novel VDJ segments in certain data, with a library of choice.',formatter_class=argparse.ArgumentDefaultsHelpFormatter,add_help=include_help)
+
     required_group = parser.add_argument_group('Required Options')
     required_group.add_argument('-l', '--library', required=True, type=validate_file, help='Path to the library file. Expected to be in FASTA format.')
     required_group.add_argument('-r', '--receptor-type', required=True, type=str.upper, choices=['TR', 'IG'], help='Type of receptor to analyze: TR (T-cell receptor) or IG (Immunoglobulin).')
+
     regions_or_assembly_group = parser.add_argument_group('Data Source Options','Select the data source: regions or assembly. These options are mutually exclusive.')
     data_choice = regions_or_assembly_group.add_mutually_exclusive_group(required=True)
     data_choice.add_argument('-i', '--input', type=validate_input, help='Directory containing the extracted sequence regions in FASTA format, where VDJ segments can be found. Cannot be used with -f/--flanking-genes or -s/--species.')
     data_choice.add_argument('-a', '--assembly', type=validate_input, help='Directory containing the assembly FASTA files. Must be used with -f/--flanking-genes and -s/--species.')
+
     assembly_options = parser.add_argument_group('Assembly-Specific Options','These options are required if -a/--assembly is chosen:')
     assembly_options.add_argument('-M', '--metadata',required=False, type=validate_file, help='Directory containing the metadata file relevant to the analysis. (.XLMX)')
     assembly_options.add_argument('-s', '--species', type=str.capitalize, help='Species name, e.g., Homo sapiens. Required with -a/--assembly.')
+    assembly_options.add_argument('-S', '--scaffolding',required=False, type=validate_file, help='Path to the reference genome (FASTA) containing the chromosomes of interest for the selected species')
+
     exclusive_group = parser.add_argument_group('Exclusive Options')
     exclusive_mutually_exclusive = exclusive_group.add_mutually_exclusive_group()
     exclusive_mutually_exclusive.add_argument('-f', '--flanking-genes', type=validate_flanking_genes, help='Comma-separated list of flanking genes, e.g., MGAM2,EPHB6. Add them as pairs. Required with -a/--assembly.')
     exclusive_mutually_exclusive.add_argument('--default', action='store_true', help='Use default settings. Cannot be used with -f/--flanking-genes or -c/--chromosomes.')
+
     optional_group = parser.add_argument_group('Optional Options')
     optional_group.add_argument('-o', '--output', type=str, default='annotation', help='Output directory for the results.')
     mapping_options = ['minimap2', 'bowtie', 'bowtie2']
@@ -134,6 +143,7 @@ def main(args=None):
 
     console_log.info(f"Initialise pipeline")
     update_args = argparser_setup()
+    print(args)
 
     if args.assembly and args.metadata:
         if not validate_metadata_coverage(args.assembly, args.metadata):
@@ -149,6 +159,9 @@ def main(args=None):
     if args.assembly:
         if not args.flanking_genes or not args.species:
             update_args.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
+    if args.scaffolding:
+        if not args.assembly:
+            update_args.error('-S/--scaffolding requires -a/--assembly.')
     if args.input:
         if not args.receptor_type or not args.species:
             update_args.error('-i/--input requires -r/--region and -s/--species.')
@@ -158,10 +171,17 @@ def main(args=None):
     if args.input:
         region_dir = args.input
 
+    timing_results = []
+
+    if args.scaffolding:
+        scaffolding_dir = "tmp/scaffold_assemblies"
+        start = time.time()
+        args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir,  args.threads)
+        end = time.time()
+        timing_results.append(["Scaffolding", round(end - start, 2)])
+
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
-
-    timing_results = []
 
     #mapping flanking genes and region extraction
     flanking_genes_dict = ast.literal_eval(str(args.flanking_genes))
@@ -176,7 +196,6 @@ def main(args=None):
         end = time.time()
         timing_results.append(["Region of intrest extraction", round(end - start, 2)])
 
-
     #mapping library and creating report
     report = annotation_folder / "tmp/report.csv"
     if not report.exists():
@@ -184,7 +203,7 @@ def main(args=None):
         start = time.time()
         for tool in args.mapping_tool:
             file_log.info(f"Processing tool: {tool}")
-            mapping_df = mapping_main(tool, args.receptor_type, region_dir, args.library, args.threads)
+            mapping_df = mapping_main(tool, region_dir, args.library, args.threads)
             report_df = pd.concat([report_df, mapping_df])
         report_df = report_df.drop_duplicates(subset=["reference", "start", "stop", "name"]).reset_index(drop=True)
         make_dir(annotation_folder / "tmp/")
