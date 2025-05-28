@@ -115,7 +115,7 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
         Exception: If an unexpected error occurs during the mapping process, logs the error and raises an exception.
     """
     sam_file = output_dir / assembly_file.with_suffix(".sam").name
-    if not sam_file.is_file():
+    if not sam_file.is_file() or sam_file.stat().st_size == 0:
         command = (f'minimap2 -ax asm5 -t {threads} {assembly_file} {flanking_genes} > {sam_file}')
         subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
