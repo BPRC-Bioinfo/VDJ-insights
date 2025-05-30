@@ -280,14 +280,17 @@ def extract_sample(path):
         str: The extracted sample identifier. If no match is found, returns the first part of the filename.
     """
     filename = path.split("/")[-1]
+    return filename.split("__")[0]
+    """
+    filename = path.split("/")[-1]
     sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
     match = sample_pattern.search(filename)
     if match:
         return match.group(0)
     else:
         #return filename
-        return filename.split("_")[0]
-
+        return filename.split("__")[0]
+    """
 
 def extract_contig(path):
     """
@@ -300,7 +303,7 @@ def extract_contig(path):
         str: The extracted contig identifier.
     """
     filename = path.split("/")[-1]
-    contig = filename.split("_")[-3]
+    contig = filename.split("__")[-3]
     return contig
 
 
@@ -329,8 +332,7 @@ def extract_region(data: pd.DataFrame) -> pd.DataFrame:
 
 def extract_extraction_status(path):
     filename = path.split("/")[-1]
-    contig = filename.split("_")[-2]
-    return contig
+    return filename.split("__")[-2]
 
 
 def filtering_data(df, cell_type):
@@ -414,20 +416,12 @@ def export_annotation(df: pd.DataFrame, annotation_folder, file_name, metadata_f
     if metadata_folder:
         metadata_df = pd.read_excel(metadata_folder)
         merge_cols = []
-        for column in ["Accession", "Population", "Accession name"]:
+        for column in ["Accession", "Population"]:
             if column in metadata_df.columns:
                 merge_cols.append(column)
 
-        if "Accession" in metadata_df.columns and "Accession name" in metadata_df.columns:
-            haplo_map = metadata_df[["Accession name", "Accession"]].drop_duplicates()
-            haplo_map["Haplotype"] = haplo_map.groupby("Accession name").cumcount().map({0: "hap1", 1: "hap2"})
-            metadata_df = metadata_df.merge(haplo_map, on=["Accession name", "Accession"], how="left")
-
         if len(merge_cols) > 1:
-            if "Haplotype" in metadata_df.columns:
-                df = df.merge(metadata_df[merge_cols + ["Haplotype"]], left_on="Sample", right_on="Accession", how="left")
-            else:
-                df = df.merge(metadata_df[merge_cols], left_on="Sample", right_on="Accession", how="left")
+            df = df.merge(metadata_df[merge_cols], left_on="Sample", right_on="Accession", how="left")
             df = df.drop(columns=["Accession"])
 
     full_annotation_path = annotation_folder / file_name
