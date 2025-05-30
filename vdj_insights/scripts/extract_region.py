@@ -119,7 +119,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
     for contig, start, end, flanking_gene_one, flanking_gene_second in extraction_regions:
         Extraction_status = "extracted" if first == flanking_gene_one and second == flanking_gene_second else "fragmented"
 
-        output_file = directory / f"{sample}_{flanking_gene_one}_{flanking_gene_second}_{contig}_{Extraction_status}_{immuno_region}.fasta"
+        output_file = directory / f"{sample}__{flanking_gene_one}__{flanking_gene_second}__{contig}__{Extraction_status}__{immuno_region}.fasta"
         if not output_file.is_file():
             cmd = f"samtools faidx {assembly_fasta} {contig}:{start}-{end}"
             result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
