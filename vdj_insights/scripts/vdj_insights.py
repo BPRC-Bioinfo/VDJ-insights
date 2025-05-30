@@ -463,8 +463,6 @@ def annotation_main(args: argparse.Namespace):
     if args.input:
         region_dir = args.input
 
-    timing_results = []
-
     if args.scaffolding:
         scaffolding_dir = "tmp/scaffold_assemblies"
         args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir,  args.threads)
@@ -511,15 +509,12 @@ def annotation_main(args: argparse.Namespace):
 
     #create figures
     if args.metadata:
-        functions = [barplot_main, boxplot_main, broken_regions_main, sub_families_main, venn_diagram_main, heatmap_main]
-        args_list = [(annotation_folder,), (annotation_folder,), (cwd,), (annotation_folder,), (annotation_folder, args.receptor_type), (annotation_folder,)]
+        functions = [barplot_main, boxplot_main, sub_families_main, venn_diagram_main, heatmap_main]
+        args_list = [(annotation_folder,), (annotation_folder,), (annotation_folder,), (annotation_folder, args.receptor_type), (annotation_folder,)]
+
         with tqdm(total=len(functions), desc="Creating plots", unit="Plot") as pbar:
             for func, args in zip(functions, args_list):
                 func(*args)
-
-    excel_path = annotation_folder / "execution_times.xlsx"
-    df = pd.DataFrame(timing_results, columns=["Process", "Execution Time (s)"])
-    df.to_excel(excel_path, index=False)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
