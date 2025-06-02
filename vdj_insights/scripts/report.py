@@ -143,7 +143,7 @@ def pre_processing(df, cell_type, assembly):
     df['% Mismatches of total alignment'] = (df['mismatches'] / df['alignment length']) * 100
     df[['SNPs', 'Insertions', 'Deletions']] = df['btop'].apply(lambda btop: pd.Series(parse_btop(btop)))
 
-    split_query_df = df['query'].str.split('#', expand=True)
+    split_query_df = df['query'].str.split('___', expand=True)
     df[['query', 'start', 'stop', 'strand', 'path', 'tool']] = split_query_df[[0, 1, 2, 3, 4, 5]]
 
     df['% identity'] = df['% identity'].astype(float)

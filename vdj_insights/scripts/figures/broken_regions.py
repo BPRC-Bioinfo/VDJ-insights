@@ -19,6 +19,7 @@ def make_dataframe(data: pd.DataFrame) -> pd.DataFrame:
     for assembly, regions_data in data.items():
         found_regions = set()
         for region, info in regions_data.items():
+            print(info)
             rows.append({
                 "Region": region,
                 "Assembly": assembly.split("-")[0],

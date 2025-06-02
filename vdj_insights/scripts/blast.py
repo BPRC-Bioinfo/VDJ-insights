@@ -138,7 +138,7 @@ def execute_blast_search(row: pd.Series, database_path: Path) -> str:
 
     sequence = sequence.replace("-", "")
     with Ntf(mode='w+', delete=False, suffix='.fasta') as fasta_temp:
-        sep = "#"
+        sep = "___"
         fasta_header = f">{header}{sep}{start}{sep}{stop}{sep}{strand}{sep}{fasta_file_name}{sep}{tool}\n"
         fasta_temp.write(fasta_header + sequence + "\n")
         fasta_temp.flush()

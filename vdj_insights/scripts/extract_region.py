@@ -17,7 +17,9 @@ from .util import make_dir, calculate_available_resources
 from .property import log_error
 
 from .logger import console_logger, file_logger
+import warnings
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)

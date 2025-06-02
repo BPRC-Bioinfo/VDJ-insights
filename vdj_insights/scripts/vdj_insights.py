@@ -20,13 +20,9 @@ from tqdm import tqdm
 from .CDR import main_cdr
 from .IMGT_scrape import main as imgt_main
 from .RSS import main_rss
-from .blast import blast_main
-from .figures.barplot import main as barplot_main
-from .figures.boxplot import main as boxplot_main
-from .figures.broken_regions import main as broken_regions_main
-from .figures.heatmap import main as heatmap_main
-from .figures.sub_families import main as sub_families_main
-from .figures.venn_diagram import main as venn_diagram_main
+from .blast_v2 import blast_main
+#from .blast import blast_main
+
 from .functionality import main_functionality
 from .logger import console_logger, file_logger
 from .mapping import mapping_main
@@ -37,6 +33,13 @@ from .report import make_bed, make_gtf, report_main
 from .scaffolding import scaffolding_main
 from .util import load_config, make_dir,validate_directory, validate_file, validate_input, validate_metadata_coverage
 from .env_manager import create_and_activate_env, deactivate_env
+
+from .figures.barplot import main as barplot_main
+from .figures.boxplot import main as boxplot_main
+from .figures.broken_regions import main as broken_regions_main
+from .figures.heatmap import main as heatmap_main
+from .figures.sub_families import main as sub_families_main
+from .figures.venn_diagram import main as venn_diagram_main
 
 console_log = console_logger(__name__)
 file_log = file_logger(__name__)
