@@ -1,9 +1,0 @@
-name: inspector2
-channels:
-  - bioconda
-  - conda-forge
-  - defaults
-dependencies:
-  - inspector=1.2
-  - python=3.6
-  - matplotlib=3.3.4

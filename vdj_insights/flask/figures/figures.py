@@ -1,7 +1,7 @@
 from itertools import cycle
 
-from bokeh.models import Legend, LegendItem, NumeralTickFormatter, HoverTool
-from bokeh.embed import file_html
+from bokeh.models import Legend, LegendItem, NumeralTickFormatter, HoverTool, ColumnDataSource
+from bokeh.embed import file_html, components
 from bokeh.resources import CDN
 
 import plotly.express as px
@@ -15,6 +15,12 @@ import base64
 
 from dna_features_viewer import GraphicFeature, GraphicRecord
 from plotly.offline import plot
+
+import re
+from Bio import SeqIO
+from bokeh.plotting import figure
+from bokeh.layouts import gridplot
+from math import ceil
 
 matplotlib.use('agg')
 
@@ -569,3 +575,104 @@ def get_venn_diagram(set1, set2, label1, label2, status):
 
     encoded_svg = base64.b64encode(img.getvalue()).decode('utf-8')
     return f"data:image/svg+xml;base64,{encoded_svg}"
+
+
+def generate_bokeh_segment_div_from_df(df_filtered: pd.DataFrame):
+    if df_filtered.empty:
+        return None, None
+
+    segment_colors = {'V': '#8f9cd2', 'D': '#c989a1', 'J': '#92c989'}
+    status_width  = {'Known': 0.2, 'Novel': 0.3}
+    plots = []
+
+    selected_sample = df_filtered["Sample"].iloc[0]
+    region = df_filtered["Region"].iloc[0]
+
+    for _, region_df in df_filtered.groupby("Path"):
+        try:
+            record = SeqIO.read(region_df["Path"].iloc[0], "fasta")
+        except Exception:
+            continue
+
+        sequence = str(record.seq).upper()
+        length = len(sequence)
+
+        n_blocks = list(re.finditer(r'N{100,}', sequence))
+        n_contigs = len(n_blocks) + 1
+
+        p = figure(
+            width=1200, height=250,
+            title=f"{selected_sample} | {region} | {n_contigs} contigs",
+            x_range=(0, length),
+            y_range=(0, 1.3),
+            tools="xpan,xwheel_zoom,reset,save",
+            toolbar_location="above"
+        )
+        p.yaxis.visible = False
+        p.xaxis.formatter = NumeralTickFormatter(format='0')
+        p.xgrid.visible = False
+        p.ygrid.visible = False
+
+        seg_x, seg_y0, seg_y1 = [], [], []
+        seg_name, seg_type, seg_stat, seg_col = [], [], [], []
+        for name, segment, status, start, end in region_df[
+            ["Short name", "Segment", "Status", "Start coord", "End coord"]
+        ].itertuples(index=False):
+            color = segment_colors.get(segment, "#aaaaaa")
+            y0 = status_width.get(status, 0.2)
+            y1 = 1 - y0
+            for pos in (start, end):
+                seg_x.append(pos)
+                seg_y0.append(y0)
+                seg_y1.append(y1)
+                seg_name.append(name)
+                seg_type.append(segment)
+                seg_stat.append(status)
+                seg_col.append(color)
+
+        src_seg = ColumnDataSource(data=dict(
+            x=seg_x, y0=seg_y0, y1=seg_y1,
+            name=seg_name, type=seg_type,
+            status=seg_stat, color=seg_col
+        ))
+        seg_r = p.segment(x0='x', y0='y0', x1='x', y1='y1',
+                          color='color', line_width=2, source=src_seg)
+        p.add_tools(HoverTool(
+            tooltips=[("Segment", "@name"), ("Type", "@type"),
+                      ("Status", "@status"), ("Positie", "@x")],
+            renderers=[seg_r]
+        ))
+
+        # N-regio’s
+        n_left, n_right, n_lbl = [], [], []
+        for m in n_blocks:
+            s, e = m.start(), m.end()
+            n_left.append(max(0, s - 10))
+            n_right.append(min(length, e + 10))
+            n_lbl.append("N-region (scaffold gap)")
+
+        src_n = ColumnDataSource(data=dict(
+            left=n_left,
+            right=n_right,
+            top=[1.25] * len(n_left),
+            bottom=[0.0] * len(n_left),
+            label=n_lbl
+        ))
+        n_r = p.quad(
+            left='left', right='right',
+            top='top', bottom='bottom',
+            fill_color="black", fill_alpha=1.0,
+            line_color="black", source=src_n
+        )
+        p.add_tools(HoverTool(
+            tooltips=[("Regio", "@label")],
+            renderers=[n_r]
+        ))
+
+        plots.append(p)
+
+    rows = ceil(len(plots) / 2)
+    grid = gridplot([plots[i*2:(i+1)*2] for i in range(rows)])
+    grid.toolbar.logo = None
+    script, div = components(grid)
+    return script, div

@@ -18,10 +18,7 @@ import base64
 
 from task import merge_sequences
 
-#from import_data import get_annotation_data
-from import_data import open_json
-from import_data import get_sequences
-from import_data import get_region_data
+from import_data import open_json, get_sequences, get_region_data, get_scaffold_data
 
 from figures.figures import get_known_novel_plot
 from figures.figures import get_vdj_plot
@@ -34,6 +31,7 @@ from figures.figures import plot_count_distribution_bar_chart
 from figures.figures import get_dna_vieuwer_plot
 from figures.figures import get_pi_plot
 from figures.figures import get_venn_diagram
+from figures.figures import generate_bokeh_segment_div_from_df
 
 from HaplotypeAligner import HaplotypeAligner
 from NetworkBuilder import  NetworkBuilder
@@ -463,19 +461,51 @@ def get_report():
     return render_template("report.html",heatmap=heatmap, vdj_plot_known=vdj_plot_known, vdj_plot_novel=vdj_plot_novel, vdj_plot=vdj_plot)
 
 
-@app.route('/get_sample_table', methods=['POST', 'GET'])
-def get_sample_table():
+@app.route('/get_scaffold_figure', methods=['POST', 'GET'])
+def get_scaffold_figure():
     selected_sample = request.form.get('selected_sample')
+    selected_contig = request.form.get('selected_contig')
+
+    scaffold_data = get_scaffold_data(BASE_PATH)
+
+    contigs = scaffold_data[
+        (scaffold_data['File'] == selected_sample) &
+        (scaffold_data['Scaffold'] == selected_contig)
+        ]["Contig"].to_list()
 
     df = get_annotation_data()
 
+
+    print(contigs)
+    return send_file(
+        contigs,
+        mimetype="text/plain",
+        as_attachment=True,
+        download_name=f"{selected_sample}.bed"
+    )
+
+
+
+@app.route('/get_sample_table', methods=['POST', 'GET'])
+def get_sample_table():
+    selected_sample = request.form.get('selected_sample')
+    selected_region = request.form.get('region')
+    df = get_annotation_data()
+    regions = df["Region"].unique().tolist()
+
     if selected_sample:
-        df_filtered = df[df["Sample"] == selected_sample].copy()
-        regions = df_filtered["Region"].unique().tolist()
-        selected_region = request.form.get('region', regions[0])
-        if selected_region:
-            df_filtered = df_filtered[df_filtered["Region"] == selected_region].copy()
+        df_sample = df[df["Sample"] == selected_sample].copy()
+        regions = df_sample["Region"].unique().tolist()
+        selected_region = request.form.get('region', request.form.get('selected_region'))
+
+        if selected_region is None or selected_region not in regions:
+            selected_region = regions[0]
+
+        df_filtered = df_sample[df_sample["Region"] == selected_region].copy()
+
         region_data = get_region_data(BASE_PATH)
+        plot_dict = {}
+
         if not region_data.empty:
             region_data = region_data[region_data["File"].str.contains(selected_sample)]
 
@@ -483,6 +513,22 @@ def get_sample_table():
             region_data["3_coords"] = pd.to_numeric(region_data["3_coords"], errors="coerce").fillna(0).astype(int)
             region_data = region_data.iloc[:, 2:]
             region_data.columns = [col.replace("_", " ").title() for col in region_data.columns]
+            print(region_data.columns)
+
+            for (region_name, contig), row_df in region_data.groupby(["Region", "Contig"]):
+                plot_df_filtered = df[
+                    (df["Sample"] == selected_sample) &
+                    (df["Region"] == region_name) &
+                    (df["Contig"] == contig)
+                    ].copy()
+
+                if not plot_df_filtered.empty:
+                    script, div = generate_bokeh_segment_div_from_df(plot_df_filtered)
+
+                    plot_dict[(region_name, contig)] = {
+                        "script": script,
+                        "div": div
+                    }
 
         segments_plot = get_pi_plot(df_filtered, "Segment", "Segment")
         known_novel_plot = get_pi_plot(df_filtered, "Status", "Status")
@@ -497,6 +543,7 @@ def get_sample_table():
                                data_table=df_filtered,
                                region_data=region_data,
                                selected_sample=selected_sample,
+                               plots=plot_dict,
                                regions=regions,
                                selected_region=selected_region,
                                segments_plot=segments_plot,
@@ -506,6 +553,8 @@ def get_sample_table():
                                function_messenger_plot2=function_messenger_plot2,
                                region_viewer=region_viewer
                                )
+    elif selected_region:
+        df = df[df["Region"] == selected_region].copy()
 
     grouped_data = df.groupby(["Sample", "Status"]).size().reset_index(name="Count")
 
@@ -522,7 +571,8 @@ def get_sample_table():
     pivot_data["Total"] = pivot_data["Known"] + pivot_data["Novel"]
     pivot_data = pivot_data.sort_values(by="Total", ascending=False)
 
-    return render_template("samples.html", pivot_data=pivot_data.to_dict('records'))
+
+    return render_template("samples.html", pivot_data=pivot_data.to_dict('records'), regions=regions, selected_region=selected_region)
 
 
 

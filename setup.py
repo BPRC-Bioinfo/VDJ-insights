@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="vdj-insights",
-    version="0.1.20",
+    version="0.1.51",
     author="Jesse Mittertreiner, Sayed Jamiel Mohammadi, Giang Le",
     author_email="jaimymohammadi@gmail.com",
     description="VDJ-Insights offers a robust framework for analyzing, assembling, and annotating long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT).",
@@ -29,7 +29,9 @@ setup(
         "venny4py",
         "requests",
         "Flask",
-
+        "jsonify",
+        "flask_caching",
+        "celery"
     ],
     entry_points={
         "console_scripts": [

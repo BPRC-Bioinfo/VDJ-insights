@@ -37,3 +37,21 @@ def get_region_data(path: Path):
         return pd.DataFrame(records)
     except FileNotFoundError:
         return pd.DataFrame()
+
+
+def get_scaffold_data(path: Path):
+    try:
+        scaffold_json = open_json(path / "ragtag_scaffolds.json")
+        records = []
+        if scaffold_json:
+            for file, scaffold_dict in scaffold_json.items():
+                for scaffold_name, contigs in scaffold_dict.items():
+                    for contig in contigs:
+                        records.append({
+                            "File": file,
+                            "Scaffold": scaffold_name,
+                            "Contig": contig
+                        })
+        return pd.DataFrame(records)
+    except FileNotFoundError:
+        return pd.DataFrame()

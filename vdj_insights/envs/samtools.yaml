@@ -1,7 +1,0 @@
-name: samtools
-channels:
- - bioconda
- - conda-forge
-dependencies:
- - samtools=1.6
-

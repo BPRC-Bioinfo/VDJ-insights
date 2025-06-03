@@ -10,6 +10,7 @@ import pandas as pd
 from Bio.Seq import Seq
 from pathlib import Path
 from Bio import SeqIO
+from tqdm import tqdm
 
 from .util import log_error, make_dir
 from .logger import console_logger, file_logger
@@ -281,16 +282,6 @@ def extract_sample(path):
     """
     filename = path.split("/")[-1]
     return filename.split("__")[0]
-    """
-    filename = path.split("/")[-1]
-    sample_pattern = re.compile(r'(GCA|GCF|DRR|ERR)_?\d{6,9}(\.\d+)?')
-    match = sample_pattern.search(filename)
-    if match:
-        return match.group(0)
-    else:
-        #return filename
-        return filename.split("__")[0]
-    """
 
 def extract_contig(path):
     """
@@ -514,9 +505,13 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
+    tqdm.write("Reading BLAST file...")
     df = pd.read_csv(blast_file, low_memory=False)
 
+    tqdm.write("Preprocessing of BLAST results.")
     df = pre_processing(df, cell_type, assembly)
+
+    tqdm.write("Filtering of report...")
     df = filtering_data(df, cell_type)
 
     segments_library = make_record_dict(library)
@@ -527,6 +522,7 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     novel_df = df[~known_mask].copy()
     novel_df["Status"] = "Novel"
 
+    tqdm.write("Exporting reports...")
     if not novel_df.empty:
         novel_df = novel_df.groupby('Library name', group_keys=False).apply(add_suffix_to_short_name)
         export_annotation(novel_df, annotation_folder, 'annotation_report_novel.xlsx', metadata_folder)

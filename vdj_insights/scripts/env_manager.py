@@ -63,9 +63,14 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
             shutil.rmtree(archive_path)
         shutil.move(env_dir, archive_path)
 
-    file_log.environment(f"Creating environment {env_name}.")
+    console_log.environment(f"Creating environment {env_name}. Install mamba for faster environment creation.")
+    if shutil.which("mamba") is not None:
+        cmd = ["mamba", "env", "create", "-f", str(env_file), "--prefix", str(env_dir)]
+    else:
+        cmd = ["conda", "env", "create", "-f", str(env_file), "--prefix", str(env_dir)]
+
     result = subprocess.run(
-        ["conda", "env", "create", "--file", str(env_file), "--prefix", str(env_dir)],
+        args=cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True

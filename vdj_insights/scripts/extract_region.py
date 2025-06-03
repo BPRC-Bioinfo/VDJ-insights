@@ -18,6 +18,7 @@ from .property import log_error
 
 from .logger import console_logger, file_logger
 import warnings
+import re
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -100,12 +101,6 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
         return []
 
 
-def count_contigs(sam_file: Union[str, Path]) -> int:
-    cmd = f'grep "^@SQ" "{sam_file}" | wc -l'
-    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    return int(result.stdout.strip())
-
-
 def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory : Union[str, Path], first: str, second: str, sample: str, immuno_region: str):
     """
     Extracts a sequence from an assembly FASTA file based on flanking genes,
@@ -129,6 +124,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
             with open(output_file, 'w') as file:
                 file.write(f">{output_file.stem}\n{str(Seq(concatenated_sequence))}")
 
+            n_contigs = len(list(re.finditer(r'N{100,}', str(Seq(concatenated_sequence)).upper()))) + 1
             log_data = {
                 "Region": immuno_region,
                 "Contig": contig,
@@ -141,7 +137,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
                 "Assembly_file": str(assembly_fasta.name),
                 "Output": str(output_file),
                 "Output_file": str(output_file.name),
-                "Count_contigs": count_contigs(sam)
+                "Count_contigs": n_contigs,
             }
             all_log_data.append(log_data)
 

@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import sys
 import threading
-import time
 import webbrowser
 from pathlib import Path
 
@@ -20,8 +19,7 @@ from tqdm import tqdm
 from .CDR import main_cdr
 from .IMGT_scrape import main as imgt_main
 from .RSS import main_rss
-from .blast_v2 import blast_main
-#from .blast import blast_main
+from .blast import blast_main
 
 from .functionality import main_functionality
 from .logger import console_logger, file_logger
@@ -252,11 +250,10 @@ def run_annotation(args):
     file_log.info('Starting annotation')
     lib_dest = cwd / 'library' / 'library.fasta'
 
+    create_and_activate_env(settings_dir / 'envs' / 'vdj-insights_env.yaml')
     if not args.library:
         if not lib_dest.is_file():
-            create_and_activate_env(settings_dir / 'envs' / 'IMGT.yaml')
             imgt_main(species=args.species, immune_type=args.receptor_type)
-            deactivate_env()
             args.library = lib_dest
         else:
             args.library = lib_dest
@@ -266,7 +263,6 @@ def run_annotation(args):
         args.library = lib_dest
 
     create_config(output_dir, settings_dir, args)
-    create_and_activate_env(settings_dir / 'envs' / 'scripts.yaml')
     annotation_main(args)
     deactivate_env()
 
