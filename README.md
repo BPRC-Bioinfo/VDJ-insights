@@ -85,6 +85,7 @@ Download the assembly file (GCA_009914755.4) using the following wget command:
 ```bash
 wget https://ftp.ensembl.org/pub/rapid-release/species/Homo_sapiens/GCA_009914755.4/ensembl/genome/Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
 ```
+(base) jaimy@cgr-jaimy-lnx:~/genome$ gunzip Homo_sapiens-GCA_009914755.4-unmasked.fa.gz 
 
 gunzip Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
 Run the annotation tool with the downloaded assembly:

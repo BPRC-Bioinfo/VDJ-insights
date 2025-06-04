@@ -79,9 +79,9 @@ def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Processed DataFrame with FIMO output, including sequence index, scores, and p/q values.
     """
-    fimo_output = fimo_intput / "fimo.txt"
-    df_fimo = pd.read_csv(fimo_output, sep='\t')
-    df_fimo["index_group_df"] = df_fimo["sequence name"].str.split("_").str[-1]
+    fimo_output = fimo_intput / "fimo.tsv"
+    df_fimo = pd.read_csv(fimo_output, sep='\t', comment='#')
+    df_fimo["index_group_df"] = df_fimo["sequence_name"].str.split("_").str[-1]
     df_fimo['index_group_df'] = df_fimo['index_group_df'].astype(int)
     return df_fimo
 
@@ -115,7 +115,7 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
             group_locus.loc[index_segment, f"{direction}'-p-value"] = df_match["p-value"].values[0]
             group_locus.loc[index_segment, f"{direction}'-q-value"] = df_match["q-value"].values[0]
             group_locus.loc[index_segment, f"{direction}'-score"] = df_match["score"].values[0]
-            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched sequence"].values[0].upper()
+            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched_sequence"].values[0].upper()
         else:
             group_locus.loc[index_segment, "Function"] = "pseudo"
             group_locus.loc[index_segment, "Function_messenger"] = "None functionality RSS found"
@@ -209,7 +209,8 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
                         locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
                         sum_lenght_seq += len(rss)
-                    elif check and row["Status"] == "Known" and row["Segment"] in ["D"]:
+                    #elif check and row["Status"] == "Known" and row["Segment"] in ["D"]:
+                    elif row["Status"] == "Known" and row["Segment"] in ["D"]:
                         spacer = len(spacer) * "N"
                         locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1

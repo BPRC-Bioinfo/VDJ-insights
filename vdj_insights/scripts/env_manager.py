@@ -71,8 +71,8 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
 
     result = subprocess.run(
         args=cmd,
-        #stdout=subprocess.PIPE,
-        #stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True
     )
 
