@@ -246,22 +246,7 @@ def run_annotation(args):
         args (argparse.Namespace): Parsed command-line arguments.
     """
     settings_dir, output_dir = cwd_setup(args.output)
-    cwd = Path.cwd()
-    file_log.info('Starting annotation')
-    lib_dest = cwd / 'library' / 'library.fasta'
-
     create_and_activate_env(settings_dir / 'envs' / 'vdj-insights_env.yaml')
-    if not args.library:
-        if not lib_dest.is_file():
-            imgt_main(species=args.species, immune_type=args.receptor_type)
-            args.library = lib_dest
-        else:
-            args.library = lib_dest
-    else:
-        make_dir(cwd / 'library')
-        shutil.copy(args.library, lib_dest)
-        args.library = lib_dest
-
     create_config(output_dir, settings_dir, args)
     annotation_main(args)
     deactivate_env()
@@ -456,6 +441,21 @@ def annotation_main(args: argparse.Namespace):
         if not args.receptor_type or not args.species:
             parser.error('-i/--input requires -r/--region and -s/--species.')
 
+
+    settings_dir, output_dir = cwd_setup(args.output)
+    lib_dest = cwd / 'library' / 'library.fasta'
+    create_and_activate_env(settings_dir / 'envs' / 'vdj-insights_env.yaml')
+    if not args.library:
+        if not lib_dest.is_file():
+            imgt_main(species=args.species, immune_type=args.receptor_type)
+            args.library = lib_dest
+        else:
+            args.library = lib_dest
+    else:
+        make_dir(cwd / 'library')
+        shutil.copy(args.library, lib_dest)
+        args.library = lib_dest
+
     args.species = args.species.capitalize() if args.species else None
 
     region_dir = "tmp/region"
@@ -523,7 +523,6 @@ def main():
     """
     Entry point for the VDJ Insights pipeline. Parses command-line arguments and executes the appropriate command.
     """
-    console_log.info("Starting VDJ Insights pipeline.")
     parser = argparse.ArgumentParser(description="VDJ-Insights")
     subs = parser.add_subparsers(dest='command', required=True)
 
@@ -536,6 +535,9 @@ def main():
 
     args = parser.parse_args()
     args.func(args)
+
+    console_log.info("Starting VDJ Insights pipeline.")
+
 
 if __name__ == '__main__':
     main()

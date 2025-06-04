@@ -25,7 +25,7 @@ To install VDJ-Insights, you can choose one of the following methods:
 
 3. Run the pipeline using Python's -m option:
    ```bash
-   python -m vdj_insights.<pipeline|annotation|html> [arguments]
+   python -m vdj_insights <pipeline|annotation|html> [arguments]
    ```
 **Note:** When cloning the repository, the pipeline must always be executed using the python -m option. This ensures that Python correctly recognizes the package structure and runs the pipeline without additional installation steps.
 
@@ -86,10 +86,11 @@ Download the assembly file (GCA_009914755.4) using the following wget command:
 wget https://ftp.ensembl.org/pub/rapid-release/species/Homo_sapiens/GCA_009914755.4/ensembl/genome/Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
 ```
 
+gunzip Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
 Run the annotation tool with the downloaded assembly:
 
 ```bash
-python -m vdj-insights.annotation -a /path/to/GCA_009914755.4-unmasked.fa.gz -r IG -s "Homo sapiens" --default
+python -m vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa.gz -r IG -s "Homo sapiens" --default
 or
 vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa.gz -r IG -s "Homo sapiens" --default
 ```

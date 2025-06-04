@@ -5,10 +5,11 @@ from pathlib import Path
 import pandas as pd
 import requests
 from Bio import SeqIO
-from Bio.Seq import Seq
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from tqdm import tqdm
 
+from .logger import console_logger, file_logger
+
+console_log = console_logger(__name__)
+file_log = file_logger(__name__)
 
 def scrape_imgt(species: str, receptor: str, library_file: Path) -> dict:
     segments = {
@@ -25,7 +26,7 @@ def scrape_imgt(species: str, receptor: str, library_file: Path) -> dict:
             with open(library_file, 'a') as output_handle:
                 SeqIO.write(sequences.values(), output_handle, "fasta")
         else:
-            print(f"Waarschuwing: kon {url} niet ophalen (status code {response.status_code}).")
+            console_log.warning(f"{url} fails ({response.status_code}).")
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
