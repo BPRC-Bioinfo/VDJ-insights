@@ -101,7 +101,7 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
         return []
 
 
-def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory : Union[str, Path], first: str, second: str, sample: str, immuno_region: str):
+def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory : Union[str, Path], first: str, second: str, sample: str, immuno_region: str, verbose: bool):
     """
     Extracts a sequence from an assembly FASTA file based on flanking genes,
     and writes it to an output FASTA file.
@@ -119,7 +119,14 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
         output_file = directory / f"{sample}__{flanking_gene_one}__{flanking_gene_second}__{contig}__{Extraction_status}__{immuno_region}.fasta"
         if not output_file.is_file():
             cmd = f"samtools faidx {assembly_fasta} {contig}:{start}-{end}"
-            result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True
+            )
             concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
             with open(output_file, 'w') as file:
                 file.write(f">{output_file.stem}\n{str(Seq(concatenated_sequence))}")
@@ -146,7 +153,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
 
 
 @log_error()
-def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], threads: int):
+def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], threads: int, verbose: bool):
     """
     Main function that processes SAM files to create region-specific assembly files
     based on flanking genes specified in the configuration.
@@ -168,7 +175,7 @@ def region_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path],
 
     for region, extract_flanking_genes in flanking_genes.items():
         for assembly in assembly_files:
-            tasks.append((cwd, assembly, directory, extract_flanking_genes[0], extract_flanking_genes[1], assembly.stem, region))
+            tasks.append((cwd, assembly, directory, extract_flanking_genes[0], extract_flanking_genes[1], assembly.stem, region, verbose))
     max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
     total_tasks = len(tasks)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:

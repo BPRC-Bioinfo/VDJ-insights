@@ -39,7 +39,7 @@ def open_files(cwd: Path) -> pd.DataFrame:
 
 
 #@log_error()
-def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, sum_lenght_seq: int) -> None:
+def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, sum_lenght_seq: int, verbose: bool) -> None:
     """
     Runs the MEME command to find motifs in the given FASTA file.
 
@@ -51,11 +51,16 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
     """
     meme_command = f"meme {locus_fasta_file_name} -o {meme_output} -dna -mod zoops -nmotifs 1 -minw {rss_length} -maxw {rss_length} -maxsize {sum_lenght_seq}"
     if not meme_output.exists():
-        subprocess.run(meme_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(meme_command,
+                       shell=True,
+                       check=True,
+                       stdout=subprocess.PIPE if not verbose else None,
+                       stderr=subprocess.PIPE if not verbose else None
+                       )
 
 
 @log_error()
-def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) -> None:
+def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path, verbose: bool) -> None:
     """
     Runs the FIMO command to find motif occurrences in the given FASTA file.
 
@@ -66,8 +71,12 @@ def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path) 
     """
     fimo_command = f"fimo --thresh 0.0001 --o {fimo_output} {meme_output}/meme.txt {locus_fasta_file_name}"
     if not fimo_output.exists():
-        subprocess.run(fimo_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+        subprocess.run(fimo_command,
+                       shell=True,
+                       check=True,
+                       stdout=subprocess.PIPE if not verbose else None,
+                       stderr=subprocess.PIPE if not verbose else None
+                       )
 
 def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
     """
@@ -144,7 +153,7 @@ def check_conserved(seq_l:str , seq_r: str, mer1: int, mer2: int, rss_layout: st
     return True
 
 
-def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
+def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verbose):
     """
     Processes each variant of a locus gene type by generating FASTA files and running MEME/FIMO.
 
@@ -219,11 +228,11 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
         if sum_seq > 1:
             meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
             os.makedirs(cwd / output_base / "meme_output", exist_ok=True)
-            run_meme(locus_fasta_file_name=locus_with_gaps_fasta_file_name, meme_output=meme_output, rss_length=rss_length, sum_lenght_seq=sum_lenght_seq)
+            run_meme(locus_fasta_file_name=locus_with_gaps_fasta_file_name, meme_output=meme_output, rss_length=rss_length, sum_lenght_seq=sum_lenght_seq, verbose=verbose)
 
             fimo_output = cwd / output_base / "fimo_output" / f"{locus_type}_{rss_variant}"
             os.makedirs(cwd / output_base / "fimo_output", exist_ok=True)
-            run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name)
+            run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name, verbose=verbose)
 
             df_fimo = get_fimo_output(fimo_intput=fimo_output)
             group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, rss_layout=rss_layout, rss_length=rss_length)
@@ -231,7 +240,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
     return combined_results
 
 
-def main_rss(threads: int = 8) -> None:
+def main_rss(threads: int = 8, verbose: bool = False) -> None:
     """
     Main function to process RSS annotations in parallel using multiple threads.
 
@@ -249,7 +258,7 @@ def main_rss(threads: int = 8) -> None:
     max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = [
-            executor.submit(process_variant, locus_gene_type, group_locus, config, output_base, cwd)
+            executor.submit(process_variant, locus_gene_type, group_locus, config, output_base, cwd, verbose)
             for locus_gene_type, group_locus in vdj_grouped
         ]
         with tqdm(total=vdj_grouped.ngroups, desc="Processing RSS", unit='task') as pbar:

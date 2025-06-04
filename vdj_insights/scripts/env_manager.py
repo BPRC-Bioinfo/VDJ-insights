@@ -19,7 +19,7 @@ def get_archive_dir():
     return Path.cwd() / '.tool' / 'conda_archive'
 
 
-def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None):
+def create_and_activate_env(env_file, verbose, env_root_dir=None, saved_env_yaml_dir=None):
     """
     Creates and activates a conda environment from a given environment YAML file.
     If the environment already exists and matches the YAML file, it is simply activated.
@@ -71,8 +71,8 @@ def create_and_activate_env(env_file, env_root_dir=None, saved_env_yaml_dir=None
 
     result = subprocess.run(
         args=cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE if not verbose else None,
+        stderr=subprocess.PIPE if not verbose else None,
         text=True
     )
 

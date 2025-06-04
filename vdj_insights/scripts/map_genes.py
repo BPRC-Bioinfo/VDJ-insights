@@ -22,7 +22,7 @@ console_log = console_logger(__name__)
 file_log = file_logger(__name__)
 
 
-def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> None:
+def download_flanking_genes(gene: str, path: Path, species: str, verbose: bool) -> None:
     """
     Downloads flanking gene sequences for the specified gene and species using the NCBI datasets CLI.
     Extracts the sequences to a specified directory and processes them into a FASTA file.
@@ -47,7 +47,12 @@ def download_flanking_genes(gene: str, path: Path, species="Homo sapiens") -> No
         retry_delay = 5
         for attempt in range(1, max_retries + 1):
             try:
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                subprocess.run(command,
+                               shell=True,
+                               check=True,
+                               stdout=subprocess.PIPE if not verbose else None,
+                               stderr=subprocess.PIPE if not verbose else None,
+                               text=True)
                 break
             except subprocess.CalledProcessError as e:
                 print(e.stderr)
@@ -100,7 +105,7 @@ def combine_genes(path: Union[str, Path], flanking_output: Union[str, Path]) -> 
     return flanking_output
 
 
-def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Path, threads : int = 8) -> None:
+def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Path, threads : int, verbose: bool) -> None:
     """
     Maps flanking genes to an assembly file using Minimap2, producing a SAM file.
 
@@ -117,11 +122,16 @@ def map_flanking_genes(output_dir: Path, flanking_genes: Path, assembly_file: Pa
     sam_file = output_dir / assembly_file.with_suffix(".sam").name
     if not sam_file.is_file() or sam_file.stat().st_size == 0:
         command = (f'minimap2 -ax asm5 -t {threads} {assembly_file} {flanking_genes} > {sam_file}')
-        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(command,
+                       shell=True,
+                       check=True,
+                       stdout=subprocess.PIPE if not verbose else None,
+                       stderr=subprocess.PIPE if not verbose else None,
+                       )
         file_log.info(f"Mapped flanking genes from {flanking_genes} to {assembly_file}")
 
 
-def map_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], species: str, threads: int) -> None:
+def map_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], species: str, threads: int, verbose: bool) -> None:
     """
     Main function that coordinates the downloading, combining, and mapping of flanking genes to assemblies.
 
@@ -144,14 +154,14 @@ def map_main(flanking_genes: dict[list[str]], assembly_dir: Union[str, Path], sp
     flanking_genes_list = [gene for genes in flanking_genes.values() for gene in genes]
     for gene in flanking_genes_list:
         if gene != "-" and len(gene) > 1:
-            download_flanking_genes(gene, flanking_genes_dir, species)
+            download_flanking_genes(gene, flanking_genes_dir, species, verbose)
 
     gene_output = combine_genes(flanking_genes_dir, flanking_genes_dir / "all_genes.fna")
     assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / assembly_dir).glob(ext)]
     console_log.info(f"Number of assembly files: {len(assembly_files)}")
 
     tasks = [
-        (map_flanking_genes_dir, gene_output, Path(assembly_file), 4)
+        (map_flanking_genes_dir, gene_output, Path(assembly_file), 4, verbose)
         for assembly_file in assembly_files
     ]
     total_tasks = len(tasks)

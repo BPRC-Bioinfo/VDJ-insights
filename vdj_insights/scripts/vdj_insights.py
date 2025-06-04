@@ -11,6 +11,7 @@ import sys
 import threading
 import webbrowser
 from pathlib import Path
+import json
 
 import pandas as pd
 import yaml
@@ -186,6 +187,11 @@ def setup_annotation_args(subparsers):
         default=8,
         help='Number of threads.'
     )
+    p.add_argument(
+        '--verbose',
+        help='Enable verbose logging.',
+        action='store_true'
+    )
     p.set_defaults(func=run_annotation, parser=p)
 
 
@@ -293,7 +299,7 @@ def run_annotation(args):
         args (argparse.Namespace): Parsed command-line arguments.
     """
     settings_dir, output_dir = cwd_setup(args.output)
-    create_and_activate_env(settings_dir / 'envs' / 'vdj-insights_env.yaml')
+    create_and_activate_env(settings_dir / 'envs' / 'vdj-insights_env.yaml', args.verbose)
     create_config(output_dir, settings_dir, args)
     annotation_main(args)
     deactivate_env()
@@ -354,6 +360,7 @@ def run_scrape(args):
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
     """
+    console_log.info(f"Starting scrape for species: {args.species} ({args.receptor_type})")
     imgt_main(species=args.species, immune_type=args.receptor_type, output_dir=args.output)
 
 
@@ -401,6 +408,28 @@ def create_config(output_dir, settings_dir, args):
     make_dir(cfg_path.parent)
     with open(cfg_path, 'w') as f:
         yaml.dump(config, f, default_flow_style=False)
+
+
+def save_args(args):
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    args_path = output_dir / "used_commando.json"
+
+    skip_keys = {"func", "parser"}
+    def is_json_serializable(v):
+        return isinstance(v, (str, int, float, bool, list, dict, type(None)))
+
+    serializable_args = {
+        k: (v if is_json_serializable(v) else str(v))
+        for k, v in vars(args).items()
+        if k not in skip_keys
+    }
+
+    serializable_args["_command"] = " ".join(sys.argv)
+
+    with open(args_path, "w") as f:
+        json.dump(serializable_args, f, indent=4)
 
 
 def initialize_config(args, species_cfg, settings_dir, config):
@@ -506,7 +535,18 @@ def annotation_main(args: argparse.Namespace):
         if not args.receptor_type or not args.species:
             parser.error('-i/--input requires -r/--region and -s/--species.')
 
+    args.species = args.species.capitalize() if args.species else None
 
+    region_dir = "tmp/region"
+    if args.input:
+        region_dir = args.input
+
+    if args.scaffolding:
+        scaffolding_dir = "tmp/scaffold_assemblies"
+        args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir,  args.threads, args.verbose)
+
+    #download library if not provided
+    console_log.info(f"IMGT scrape: {args.species} ({args.receptor_type})")
     lib_dest = cwd / 'library' / 'library.fasta'
     if not args.library:
         if not lib_dest.is_file():
@@ -519,24 +559,14 @@ def annotation_main(args: argparse.Namespace):
         shutil.copy(args.library, lib_dest)
         args.library = lib_dest
 
-    args.species = args.species.capitalize() if args.species else None
-
-    region_dir = "tmp/region"
-    if args.input:
-        region_dir = args.input
-
-    if args.scaffolding:
-        scaffolding_dir = "tmp/scaffold_assemblies"
-        args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir,  args.threads)
-
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
 
     #mapping flanking genes and region extraction
     flanking_genes_dict = ast.literal_eval(str(args.flanking_genes))
     if args.assembly:
-        map_main(flanking_genes_dict, args.assembly, args.species, args.threads)
-        region_main(flanking_genes_dict, args.assembly, args.threads)
+        map_main(flanking_genes_dict, args.assembly, args.species, args.threads, args.verbose)
+        region_main(flanking_genes_dict, args.assembly, args.threads, args.verbose)
 
     #mapping library and creating report
     report = annotation_folder / "tmp/report.csv"
@@ -544,7 +574,7 @@ def annotation_main(args: argparse.Namespace):
         report_df = pd.DataFrame()
         for tool in args.mapping_tool:
             file_log.info(f"Processing tool: {tool}")
-            mapping_df = mapping_main(tool, region_dir, args.library, args.threads)
+            mapping_df = mapping_main(tool, region_dir, args.library, args.threads, args.verbose)
             report_df = pd.concat([report_df, mapping_df])
         report_df = report_df.drop_duplicates(subset=["reference", "start", "stop", "name"]).reset_index(drop=True)
         make_dir(annotation_folder / "tmp/")
@@ -556,13 +586,13 @@ def annotation_main(args: argparse.Namespace):
     #reevaluate mapping genes of library with blast
     blast_file = annotation_folder / "tmp/blast_results.csv"
     if not blast_file.exists():
-        blast_main(report_df, blast_file, args.library, args.threads)
+        blast_main(report_df, blast_file, args.library, args.threads, args.verbose)
 
     #create report and rss
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.assembly, args.metadata)
-    main_functionality(args.receptor_type, args.species, args.threads)
-    main_rss(args.threads)
-    main_cdr(args.species, args.receptor_type, args.threads)
+    main_functionality(args.receptor_type, args.species, args.threads, args.verbose)
+    main_rss(args.threads, args.verbose)
+    main_cdr(args.species, args.receptor_type, args.threads, args.verbose)
 
     #create BED and GTF files
     data = pd.read_excel(annotation_folder / "annotation_report_all.xlsx")
@@ -598,6 +628,7 @@ def main():
         sys.exit(0)
 
     args = parser.parse_args()
+    save_args(args)
     args.func(args)
     console_log.info("Starting VDJ Insights pipeline.")
 

@@ -39,7 +39,7 @@ def write_fasta(sub_df: pd.DataFrame, out_fasta: Path):
 
 
 @log_error()
-def make_blast_db(cwd: Path, library: str) -> Path:
+def make_blast_db(cwd: Path, library: str, verbose: bool) -> Path:
     """
     Checks if the BLAST database directory exists. If not, creates the directory
     and initializes the database using the provided library file. Uses the `makeblastdb`
@@ -67,12 +67,17 @@ def make_blast_db(cwd: Path, library: str) -> Path:
     if not blast_db_path.exists():
         make_dir(blast_db_path)
         command = f"makeblastdb -in {library} -dbtype nucl -out {blast_db_path}/blast_db"
-        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(command,
+                       stdout=subprocess.PIPE if not verbose else None,
+                       stderr=subprocess.PIPE if not verbose else None,
+                       shell=True,
+                       check=True
+                       )
     return blast_db_path
 
 
 @log_error()
-def run_blast_per_sample(df: pd.DataFrame, db_path: Path, output_csv: Path, threads: int) -> None:
+def run_blast_per_sample(df: pd.DataFrame, db_path: Path, output_csv: Path, threads: int, verbose: bool) -> None:
     """
     Batch-BLAST per sample: split op sample, voor elke sample:
       1) Maak FASTA voor lange en korte sequenties.
@@ -130,7 +135,12 @@ def run_blast_per_sample(df: pd.DataFrame, db_path: Path, output_csv: Path, thre
                 f"-out {blast_long_out} "
                 f"-num_threads {threads}"
             )
-            subprocess.run(cmd_long, shell=True, check=True)
+            subprocess.run(cmd_long,
+                           shell=True,
+                           check=True,
+                           stdout=subprocess.PIPE if not verbose else None,
+                           stderr=subprocess.PIPE if not verbose else None,
+                           )
 
             with open(blast_long_out, 'r') as f:
                 for line in f:
@@ -152,7 +162,12 @@ def run_blast_per_sample(df: pd.DataFrame, db_path: Path, output_csv: Path, thre
                 f"-out {blast_short_out} "
                 f"-num_threads {threads}"
             )
-            subprocess.run(cmd_short, shell=True, check=True)
+            subprocess.run(cmd_short,
+                           shell=True,
+                           check=True,
+                           stdout=subprocess.PIPE if not verbose else None,
+                           stderr=subprocess.PIPE if not verbose else None,
+                        )
 
             with open(blast_short_out, 'r') as f:
                 for line in f:
@@ -170,7 +185,7 @@ def run_blast_per_sample(df: pd.DataFrame, db_path: Path, output_csv: Path, thre
 
 
 @log_error()
-def blast_main(df: pd.DataFrame, blast_file: Union[str, Path], library: str, threads: int) -> None:
+def blast_main(df: pd.DataFrame, blast_file: Union[str, Path], library: str, threads: int, verbose: bool) -> None:
     """
     Beheert het volledige BLAST-proces, van database-aanmaak tot weergave van resultaat:
 
@@ -186,6 +201,6 @@ def blast_main(df: pd.DataFrame, blast_file: Union[str, Path], library: str, thr
         threads (int): Aantal cores om BLAST mee te draaien.
     """
     cwd = Path.cwd()
-    db_path = make_blast_db(cwd, library)
+    db_path = make_blast_db(cwd, library, verbose)
     output_csv = Path(blast_file)
-    run_blast_per_sample(df, db_path, output_csv, threads)
+    run_blast_per_sample(df, db_path, output_csv, threads, verbose)

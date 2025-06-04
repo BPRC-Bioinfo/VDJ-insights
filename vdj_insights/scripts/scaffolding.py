@@ -35,7 +35,7 @@ def make_json_scaffolds():
         json.dump(all_scaffolds, f, indent=2)
 
 
-def run_scaffolding(assembly_file: str, reference: str, scaffolding_dir: str):
+def run_scaffolding(assembly_file: str, reference: str, scaffolding_dir: str, verbose: bool):
     cwd = Path.cwd()
 
     assembly_name = assembly_file.stem
@@ -50,12 +50,17 @@ def run_scaffolding(assembly_file: str, reference: str, scaffolding_dir: str):
         if ragtag_output.exists():
             shutil.rmtree(ragtag_output)
         rag_command = f"ragtag.py scaffold -t 4 {reference} {assembly_file} -o {ragtag_output}/"
-        subprocess.run(rag_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(rag_command,
+                       shell=True,
+                       check=True,
+                       stdout=subprocess.PIPE if not verbose else None,
+                       stderr=subprocess.PIPE if not verbose else None,
+                       )
 
         shutil.move(str(original_scaffold), str(renamed_scaffold))
 
 
-def scaffolding_main(reference: str, assembly_dir: Path, scaffolding_dir: str,  threads: int) -> Path:
+def scaffolding_main(reference: str, assembly_dir: Path, scaffolding_dir: str,  threads: int, verbose: bool) -> Path:
     cwd = Path.cwd()
     assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / assembly_dir).glob(ext)]
     scaffold_assembly_files = [file for ext in ["*.fna", "*.fasta", "*.fa"] for file in (cwd / scaffolding_dir).glob(ext)]
@@ -63,7 +68,7 @@ def scaffolding_main(reference: str, assembly_dir: Path, scaffolding_dir: str,  
         total_tasks = len(assembly_files)
         max_jobs = calculate_available_resources(max_cores=threads, threads=4, memory_per_process=12)
         with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-            futures = [executor.submit(run_scaffolding, assembly_file, reference, scaffolding_dir)for assembly_file in assembly_files]
+            futures = [executor.submit(run_scaffolding, assembly_file, reference, scaffolding_dir, verbose)for assembly_file in assembly_files]
             with tqdm(total=total_tasks, desc='Scaffolding:', unit="Assemblies") as pbar:
                 for future in as_completed(futures):
                     pbar.update(1)

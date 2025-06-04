@@ -32,7 +32,7 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
-def main_cdr(species: str, receptor: str,  threads: int = 12) -> None:
+def main_cdr(species: str, receptor: str,  threads: int, verbose: bool) -> None:
     """
     Hoofdfunctie om de CDR-annotaties te verwerken.
     """
@@ -81,8 +81,13 @@ def main_cdr(species: str, receptor: str,  threads: int = 12) -> None:
     for library in [cdr1_library, cdr2_library]:
         cdr = library.stem
         output_blast_file = output_blast_result / f"{cdr}.txt"
-        blast_cmd = f'blastn -task blastn-short -query {library} -subject {target_sequence} -qcov_hsp_perc 100 -out {output_blast_file} -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"'
-        subprocess.run(blast_cmd, shell=True, check=True)
+        blast_cmd = f'blastn -task blastn-short -query {library} -subject {target_sequence} -qcov_hsp_perc 100 -out {output_blast_file} -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs" -num_threads {threads}'
+        subprocess.run(blast_cmd,
+                       shell=True,
+                       check=True,
+                       stdout=subprocess.PIPE if not verbose else None,
+                       stderr=subprocess.PIPE if not verbose else None
+                       )
 
         if output_blast_file.exists():
             columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart",

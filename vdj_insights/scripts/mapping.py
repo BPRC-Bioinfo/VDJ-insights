@@ -220,7 +220,7 @@ def make_df(all_entries):
     return df.reset_index(drop=True)
 
 
-def run_single_task(fasta, outdir, rfasta, mapping_type, threads_per_process) -> list:
+def run_single_task(fasta, outdir, rfasta, mapping_type, threads_per_process, verbose) -> list:
     """
     Runs the mapping process for each FASTA file in the input directory.
 
@@ -248,7 +248,11 @@ def run_single_task(fasta, outdir, rfasta, mapping_type, threads_per_process) ->
         files = MappingFiles(prefix, index, beddir)
         if not files.bed.exists():
             for command in all_commands(files, fasta, rfasta, mapping_type, threads_per_process):
-                subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(command,
+                               shell=True,
+                               stdout=subprocess.PIPE if not verbose else None,
+                               stderr=subprocess.PIPE if not verbose else None,
+                               )
         if files.bed.exists():
             entries = parse_bed(files.bed, fasta, mapping_type)
             file_log.info(f"Parsed {len(entries)} entries from {files.bed}")
@@ -261,7 +265,7 @@ def run_single_task(fasta, outdir, rfasta, mapping_type, threads_per_process) ->
         return []
 
 
-def mapping_main(mapping_type, input_dir, library, threads):
+def mapping_main(mapping_type: str, input_dir: Path, library: Path, threads: int, verbose: bool):
     """
     Main function to run the mapping process for a specified tool.
 
@@ -288,7 +292,7 @@ def mapping_main(mapping_type, input_dir, library, threads):
 
     max_jobs = calculate_available_resources(max_cores=threads, threads=2, memory_per_process=2)
     with ThreadPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [executor.submit(run_single_task, fasta, outdir, rfasta, mapping_type, 2) for fasta in assembly_files]
+        futures = [executor.submit(run_single_task, fasta, outdir, rfasta, mapping_type, 2, verbose) for fasta in assembly_files]
         with tqdm(total=total_tasks, desc=f'Mapping library with {mapping_type}:', unit="file") as pbar:
             for future in as_completed(futures):
                 try:

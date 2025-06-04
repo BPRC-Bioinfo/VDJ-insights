@@ -92,7 +92,7 @@ def write_extract_region_from_genome(locus_fasta_path, region, l_part, length, g
     return locus_fasta_file_name
 
 
-def get_blast_results(output_base, l_part, region, locus_fasta_file_name, library_path, extract_coords):
+def get_blast_results(output_base, l_part, region, locus_fasta_file_name, library_path, extract_coords, verbose):
     output_blast_result = output_base / "blast"
     output_blast_result.mkdir(exist_ok=True, parents=True)
     output_blast_result = output_blast_result / f"{l_part}_{region}.txt"
@@ -100,7 +100,12 @@ def get_blast_results(output_base, l_part, region, locus_fasta_file_name, librar
     library_file = library_path / f"{l_part}.fasta"
 
     blast_cmd = f'blastn -task blastn-short -word_size 7 -reward 1  -penalty -2 -gapopen 5 -gapextend 2 -dust no  -query {library_file} -subject {locus_fasta_file_name} -best_hit_overhang 0.1 -best_hit_score_edge 0.1 -out {output_blast_result} -strand both -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq qcovs"'
-    subprocess.run(blast_cmd, shell=True, check=True)
+    subprocess.run(blast_cmd,
+                   shell=True,
+                   check=True,
+                   stdout=subprocess.PIPE if not verbose else None,
+                   stderr=subprocess.PIPE if not verbose else None,
+                   )
 
     if output_blast_result.exists():
         columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore", "qseq", "sseq", "qcovs"]
@@ -239,12 +244,12 @@ def save_results(combined_results, cwd):
         novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
         novel.to_excel(cwd / "annotation" / "annotation_report_novel.xlsx", index=False)
 
-def proces_v_segment(locus_gene_type, group_locus, output_base, library_path, locus_fasta_path):
+def proces_v_segment(locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose):
     extract_coords = {}
     off_set = 500 - 50
     for l_part, length in zip(["L_PART1", "L_PART2"], [500, 50]):
         locus_fasta_file_name = write_extract_region_from_genome(locus_fasta_path, locus_gene_type, l_part, length, group_locus)
-        extract_coords = get_blast_results(output_base, l_part, locus_gene_type, locus_fasta_file_name, library_path, extract_coords)
+        extract_coords = get_blast_results(output_base, l_part, locus_gene_type, locus_fasta_file_name, library_path, extract_coords, verbose)
     group_locus = extraxt_region_from_genome(locus_fasta_path, locus_gene_type, group_locus, extract_coords, off_set)
     return group_locus
 
@@ -272,7 +277,7 @@ def process_j_group(region, group_locus):
     return group_locus
 
 
-def main_functionality(immune_type, species, threads: int = 12) -> None:
+def main_functionality(immune_type, species, threads: int, verbose: bool) -> None:
 
     cwd = Path.cwd()
     output_base = cwd / "tmp/functionality"
@@ -299,7 +304,7 @@ def main_functionality(immune_type, species, threads: int = 12) -> None:
     max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
     with ProcessPoolExecutor(max_workers=max_jobs) as executor:
         futures = [
-            executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path)
+            executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose)
             for locus_gene_type, group_locus in v_grouped
         ]
 

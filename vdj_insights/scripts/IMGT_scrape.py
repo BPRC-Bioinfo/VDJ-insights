@@ -296,8 +296,6 @@ def main(species: str,
     created and/or that the individual fasta files of the segments
     need to be removed. Lastly there is logged that the scrape is finished.
     """
-    file_log.info(f"Starting scrape for species: {species}, type: {immune_type}")
-    console_log.info(f"Starting scrape for species: {species}, type: {immune_type}")
     cwd = Path.cwd()
     if output_dir:
         path = cwd / output_dir
