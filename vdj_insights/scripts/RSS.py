@@ -81,7 +81,7 @@ def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
     """
     fimo_output = fimo_intput / "fimo.tsv"
     df_fimo = pd.read_csv(fimo_output, sep='\t', comment='#')
-    df_fimo["index_group_df"] = df_fimo["sequence_name"].str.split("_").str[-1]
+    df_fimo["index_group_df"] = df_fimo["sequence_name"].str.split("__").str[-1]
     df_fimo['index_group_df'] = df_fimo['index_group_df'].astype(int)
     return df_fimo
 
@@ -201,18 +201,18 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd):
 
                     check = check_conserved(seq_l, seq_r, mer1, mer2, rss_layout,  row['Target name'])
 
-                    locus_fasta_file.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                    locus_fasta_file.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
                     #if check and row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
                     if row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
                         spacer = len(spacer) * "N"
-                        locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        locus_fasta_file2.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
                         sum_lenght_seq += len(rss)
                     #elif check and row["Status"] == "Known" and row["Segment"] in ["D"]:
                     elif row["Status"] == "Known" and row["Segment"] in ["D"]:
                         spacer = len(spacer) * "N"
-                        locus_fasta_file2.write(f">{row['Target name']}_{index_segment}\n{seq_l}{spacer}{seq_r}\n")
+                        locus_fasta_file2.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
                         sum_lenght_seq += len(rss)
 

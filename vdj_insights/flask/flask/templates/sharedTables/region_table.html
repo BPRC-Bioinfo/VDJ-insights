@@ -1,0 +1,59 @@
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                {% for column in region_data.columns %}
+                    <th data-column="{{ column }}"
+                        {% if column not in ['Region', 'Contig', '5 Flanking Gene', '3 Flanking Gene', 'Count Contigs'] %}
+                            style="display: none;"
+                        {% endif %}
+                    >
+                        {{ column }}
+                    </th>
+                {% endfor %}
+                <th>Annotation figure</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for index, row in region_data.iterrows() %}
+                <tr>
+                    {% for col in region_data.columns %}
+                        <td data-column="{{ col }}"
+                            {% if col not in ['Region', 'Contig', '5 Flanking Gene', '3 Flanking Gene', 'Count Contigs'] %}
+                                style="display: none;"
+                            {% endif %}
+                        >
+                            {{ row[col] }}
+                        </td>
+                    {% endfor %}
+                    <td>
+                        <a class="btn btn-sm btn-primary"
+                           data-bs-toggle="collapse"
+                           href="#collapse_{{ loop.index }}"
+                           role="button"
+                           aria-expanded="false"
+                           aria-controls="collapse_{{ loop.index }}">
+                            Show
+                        </a>
+                    </td>
+                </tr>
+
+                <tr class="p-0 border-0">
+                    <td colspan="{{ region_data.columns|length + 1 }}" class="p-0 border-0">
+                        <div class="collapse" id="collapse_{{ loop.index }}">
+                            <div class="card-body py-3 px-4">
+                                {% set plot_key = (row['Region'], row['Contig']) %}
+                                {% if plots[plot_key] %}
+                                    {{ plots[plot_key].script | safe }}
+                                    {{ plots[plot_key].div | safe }}
+                                {% else %}
+                                    <div class="text-muted">No data.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

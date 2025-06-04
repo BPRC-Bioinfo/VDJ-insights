@@ -5,7 +5,8 @@ import shutil
 import base64
 from pathlib import Path
 from datetime import datetime
-import io
+
+from PIL import Image
 
 import jsonify
 import pandas as pd
@@ -59,10 +60,6 @@ RSS_PATH = BASE_PATH / "tmp/RSS"
 def home():
     return render_template("home.html")
 
-
-@app.route('/help_annotation', methods=['POST', 'GET'])
-def help_annotation():
-    return render_template("help_annotation.html")
 
 @app.route('/get_compare', methods=['POST', 'GET'])
 def get_compare():
@@ -579,7 +576,6 @@ def get_sample_table():
     return render_template("samples.html", pivot_data=pivot_data.to_dict('records'), regions=regions, selected_region=selected_region)
 
 
-
 @app.route('/get_rss', methods=['POST', 'GET'])
 def get_rss():
     df = get_annotation_data()
@@ -603,29 +599,27 @@ def get_rss():
         fimo_submappen = list(RSS_PATH.glob(fimo_pattern))
 
         for meme_submap in meme_submappen:
-            meme_logo = meme_submap / "logo1.png"
-            if meme_logo.exists():
-                with open(meme_logo, "rb") as img_file:
-                    encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
-                rss_data[meme_submap.name] = {
-                    'meme_logo': encoded_image
-                }
+            meme_logo_eps = meme_submap / "logo1.eps"
+            if meme_logo_eps.exists():
+                try:
+                    with Image.open(meme_logo_eps) as img:
+                        img.load(scale=2)
+                        buffer = io.BytesIO()
+                        img.save(buffer, format="PNG")
+                        encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+                    rss_data[meme_submap.name] = {
+                        'meme_logo': encoded_image
+                    }
+                except Exception as e:
+                    print(f"Fout bij converteren van {meme_logo_eps}: {e}")
 
         for fimo_submap in fimo_submappen:
-            fimo_txt = fimo_submap / "fimo.txt"
+            fimo_txt = fimo_submap / "fimo.tsv"
             if fimo_txt.exists():
-                fimo_data = []
-                with open(fimo_txt, "r", encoding="utf-8") as txt_file:
-                    headers = txt_file.readline().strip().split("\t")
-                    selected_headers = [headers[i] for i in [1, 5, 6, 7]]
-
-                    for line in txt_file:
-                        lines = line.strip().split("\t")
-                        selected_lines = [lines[i] for i in [1, 5, 6, 7]]
-
-                        fimo_data.append({
-                            header: value for header, value in zip(selected_headers, selected_lines)
-                        })
+                df_fimo = pd.read_csv(fimo_txt, sep="\t", comment="#", usecols=[2, 6, 7, 8, 9])
+                df_fimo.columns = ['Sequence name', 'Score', 'P-value', 'Q-value', 'matched sequence']
+                fimo_data = df_fimo.to_dict(orient="records")
 
                 if fimo_submap.name in rss_data:
                     rss_data[fimo_submap.name]['fimo_data'] = fimo_data
@@ -633,14 +627,15 @@ def get_rss():
                     rss_data[fimo_submap.name] = {
                         'fimo_data': fimo_data
                     }
+
     return render_template("rss.html",
                            segments=segments,
                            selected_segment=selected_segment,
                            regions=regions,
                            selected_region=selected_region,
                            rss_plot=rss_plot,
-                           rss_data=rss_data
-                           )
+                           rss_data=rss_data)
+
 
 @app.route("/download_xlsx")
 def download_xlsx():
@@ -847,4 +842,5 @@ def clear_cache():
 def get_annotation_data() -> pd.DataFrame:
     df = pd.read_excel(BASE_PATH / "annotation/annotation_report_all.xlsx")
     return df
+
 

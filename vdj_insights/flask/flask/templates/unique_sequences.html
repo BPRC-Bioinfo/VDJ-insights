@@ -1,0 +1,54 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}Nieuwe reparatie{% endblock %}
+{% block body %}
+
+    <div class="container">
+        <h2 class="mt-5">Unique sequences</h2>
+          <!-- <div class="card card-body mb-4">
+           {{ plot  | safe }}
+        </div> -->
+
+        <div class="card card-body mb-4">
+            <div class="row d-flex align-items-center g-3">
+                <div class="col">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search in report...">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-warning" type="button" id="amountTable"></button>
+                </div>
+            </div>
+            <div class="table-responsive" style="height: 1000px;">
+                <table class="table table-hover mt-3" id="DataTable">
+                    <thead class="table-light">
+                    <tr>
+                        {% for column in data_table.columns %}
+                            <th class="column-header sortable"
+                                data-column="{{ column }}">
+                                {{ column }}
+                            </th>
+                        {% endfor %}
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for index, row in data_table.iterrows() %}
+                        <tr>
+                            {% for column in data_table.columns %}
+                                <td class="column-data" data-column="{{ column }}"> {{ row[column] }} </td>
+                            {% endfor %}
+                            <td>
+                                <form method="POST" action="/unique_sequences">
+                                    <input type="hidden" name="reference_id" value="{{ row['Sample'] }}">
+                                    <button type="submit" class="btn btn-primary">&#8594;</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

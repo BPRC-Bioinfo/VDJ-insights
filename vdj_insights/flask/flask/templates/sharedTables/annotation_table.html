@@ -1,0 +1,34 @@
+<div class="table-responsive" style="height: 1000px;">
+    <table class="table table-hover mt-3" id="DataTable">
+        <thead class="table-light">
+        <tr>
+            {% for column in data_table.columns %}
+                <th class="column-header sortable"
+                    data-column="{{ column }}"
+                    {% if column not in ['Sample', 'Haplotype', 'Region', 'Segment',
+                                        'Start coord', 'End coord', 'Reference',
+                                        'short name', 'Status', 'Presence'] %}style="display: none;"{% endif %}
+                >
+                    {{ column }}
+                </th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for index, row in data_table.iterrows() %}
+            <tr>
+                {% for column in data_table.columns %}
+                    <td class="column-data"
+                        data-column="{{ column }}"
+                        {% if column not in ['Sample', 'Haplotype', 'Region', 'Segment',
+                                            'Start coord', 'End coord', 'Reference',
+                                            'short name', 'Status', 'Presence'] %}style="display: none;"{% endif %}
+                    >
+                        {{ row[column] }}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

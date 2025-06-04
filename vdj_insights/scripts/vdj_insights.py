@@ -191,31 +191,44 @@ def setup_annotation_args(subparsers):
 
 def setup_html(subparsers):
     """
-    Configures the command-line arguments for the HTML report command.
+    Configures the command-line arguments for the HTML report viewer.
 
     Args:
-        subparsers (argparse._SubParsersAction): Subparsers object for adding commands.
+        subparsers (argparse._SubParsersAction): The subparsers object to which the 'html' command will be added.
     """
     p = subparsers.add_parser(
         'html',
-        help='Display the generated HTML report.'
+        help='Serve and view the annotation report in a browser.'
     )
     p.add_argument(
         '-i', '--input',
         required=True,
         type=validate_html,
-        help='Path to HTML report directory.'
+        help='Path to the directory containing annotation data.'
     )
     p.add_argument(
-        '--reset-flask',
-        action='store_true',
-        help='Re-copy the flask directory.'
+        '--port',
+        default=5002,
+        type=int,
+        help='Port to run the local server on (default: 5002).'
     )
     p.add_argument(
-        '--dev-mode',
-        action='store_true',
-        help='Show flask output in console.'
+        '--host',
+        default="0.0.0.0",
+        type=str,
+        help='Host address to bind the server (default: 0.0.0.0).'
     )
+    p.add_argument(
+        '-r', '--reset-flask',
+        action='store_true',
+        help='Re-copy the Flask template directory before starting.'
+    )
+    p.add_argument(
+        '-d', '--dev-mode',
+        action='store_true',
+        help='Run in development mode and display Flask logs in the console.'
+    )
+
     p.set_defaults(func=run_html)
 
 
@@ -275,6 +288,7 @@ def get_python_executable():
     raise RuntimeError("No python executable found in PATH.")
 
 
+
 def run_html(args):
     """
     Launches the HTML report using Flask.
@@ -288,7 +302,15 @@ def run_html(args):
     os.chdir(output_dir.parent)
     if not args.dev_mode:
         threading.Timer(1, open_browser).start()
-    cmd = [get_python_executable(), str(output_dir / 'app.py')]
+    cmd = [
+        "flask", "--app",
+        str(output_dir / 'app.py'),
+        "run",
+        "--host", str(args.host),
+        "--port", str(args.port)
+    ]
+    if args.dev_mode:
+        cmd.append("--debug")
     subprocess.Popen(cmd).communicate()
 
 

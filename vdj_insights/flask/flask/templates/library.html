@@ -1,0 +1,174 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}Library{% endblock %}
+{% block body %}
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h2 class="mt-5">Library</h2>
+        <div class="card card-body mb-4">
+            {% if library_plot %}
+                {{ library_plot | safe }}
+            {% endif %}
+
+            {% if library_violin %}
+                {{ library_violin | safe }}
+            {% endif %}
+            <a class="btn btn-primary gap-2" data-toggle="collapse" href="#showSequenceTable" role="button">Show
+                library data</a>
+        </div>
+        <div class="collapse" id="showSequenceTable">
+
+            <div class="card card-body">
+
+                <form action="/get_library" method="POST" id="form">
+
+                    <div class="d-flex gap-2 mb-4">
+                        <button class="btn btn-success flex-grow-1" type="submit" id="toggleButton">Select</button>
+                        <button class="btn btn-danger flex-grow-1" type="submit" id="removeSelected" name="action" value="remove">Remove from library</button>
+                        <button class="btn btn-primary w-10" type="submit" id="download_selected_count" name="action" value="download">Download (0)</button>
+                    </div>
+
+                <div>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search in library...">
+                </div>
+
+                {% if sequences %}
+                    <div class="table-responsive" style="height: 1000px;">
+                        <table class="table table-hover mt-3" id="sequenceTable">
+                            <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Sequence ID</th>
+                                <th>Sequence</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for seq in sequences %}
+                                <tr class="sequence-row" data-id="{{ seq.id }}" data-sequence="{{ seq.sequence }}">
+                                    <td>
+                                        <input type="checkbox" name="selected_sequences" value="{{ seq.id }}">
+                                    </td>
+                                    <td>{{ seq.id }}</td>
+                                    <td>
+                                <span class="d-inline-block text-truncate"
+                                      style="max-width: 750px;">{{ seq.sequence }}</span></td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+                                </form>
+
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="sequenceModal" tabindex="-1" aria-labelledby="sequenceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sequenceModalLabel">Sequence Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Sequence ID:</strong></p>
+                    <pre id="modalSequenceId"></pre>
+
+                    <p><strong>Sequence:</strong></p>
+                    <pre id="modalSequence" style="white-space: pre-wrap;"></pre>
+
+                    <p><strong>Sequence length:</strong></p>
+                    <pre id="modalSequenceLength" style="white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const downloadButton = document.getElementById("download_selected_count");
+        const toggleButton = document.getElementById("toggleButton");
+        const searchInput = document.getElementById("searchInput");
+        const tableRows = document.querySelectorAll("#sequenceTable tbody tr");
+
+        // Functie om de Download-knoptekst bij te werken
+        function updateDownloadButtonText() {
+            const selectedCount = document.querySelectorAll('#sequenceTable tbody input[type="checkbox"]:checked').length;
+            downloadButton.textContent = `Download (${selectedCount})`;
+        }
+
+        // Eventlistener voor de Select all-knop
+        toggleButton.addEventListener("click", function () {
+            const rows = document.querySelectorAll("#sequenceTable tbody tr");
+            const visibleRows = Array.from(rows).filter(row => row.style.display !== "none");
+
+            const allChecked = visibleRows.every(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                return checkbox.checked;
+            });
+
+            visibleRows.forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                checkbox.checked = !allChecked;
+            });
+
+            toggleButton.textContent = allChecked ? "Select" : "Deselect";
+            updateDownloadButtonText();
+        });
+
+        // Eventlistener voor handmatige checkbox-selectie
+        document.querySelectorAll('#sequenceTable tbody input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener("change", updateDownloadButtonText);
+        });
+
+        // Eventlistener voor de zoekbalk
+        searchInput.addEventListener("keyup", function () {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll("#sequenceTable tbody tr");
+
+            rows.forEach(row => {
+                const sequenceId = row.cells[1].textContent.toLowerCase();
+                const sequence = row.cells[2].textContent.toLowerCase();
+                if (sequenceId.includes(filter) || sequence.includes(filter)) {
+                    row.style.display = ""; // Toon rij
+                } else {
+                    row.style.display = "none"; // Verberg rij
+                }
+            });
+
+            // Update knopteksten na filtering
+            toggleButton.textContent = "Select";
+            updateDownloadButtonText();
+        });
+
+
+        document.querySelectorAll("#sequenceTable tbody tr").forEach(row => {
+            row.addEventListener("click", function (event) {
+                if (event.target.tagName === "SPAN" && event.target.parentNode.cellIndex === 2) {
+                    const sequenceId = this.getAttribute("data1-id");
+                    const sequence = this.getAttribute("data1-sequence");
+                    const sequenceLength = sequence.length;
+
+                    const formattedSequence = sequence.match(/.{1,50}/g).join("\n");
+                    document.getElementById("modalSequenceId").textContent = sequenceId;
+                    document.getElementById("modalSequence").textContent = formattedSequence;
+                    document.getElementById("modalSequenceLength").textContent = sequenceLength;
+
+                    const modal = new bootstrap.Modal(document.getElementById("sequenceModal"));
+                    modal.show();
+                }
+            });
+        });
+
+    </script>
+
+{% endblock %}

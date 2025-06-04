@@ -32,7 +32,12 @@ setup(
         "Flask",
         "jsonify",
         "flask_caching",
-        "celery"
+        "celery",
+        "bokeh",
+        "plotly",
+        "matplotlib-venn",
+        "dna-features-viewer",
+        "ghostscript"
     ],
     entry_points={
         "console_scripts": [

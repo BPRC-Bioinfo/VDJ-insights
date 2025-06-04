@@ -1,0 +1,101 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}{{ reference }}{% endblock %}
+{% block body %}
+    <div class="container">
+        <h2 class="mt-5">{{ reference }}</h2>
+        <div class="card card-body">
+            <div class="row d-flex align-items-center g-3">
+                <div class="col">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search in reference data...">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-warning" type="button" id="amountTable"></button>
+                </div>
+            </div>
+            <div class="table-responsive" style="height: 1000px;">
+                <table class="table table-hover mt-3" id="DataTable">
+                    <thead>
+                    <tr>
+                        {% for column in data_table.columns[:-3] %}
+                            <th class="column-header sortable" data-column={{ column }}>{{ column }}</th>
+                        {% endfor %}
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in data_table.iterrows() %}
+                        <tr>
+                            {% for value, column in zip(row[1][:-3], data_table.columns[:-2]) %}
+                                <td class="column-data">
+                                    {{ value }}
+                                </td>
+                            {% endfor %}
+                            <td>
+                                <form action="{{ url_for('msa_sequence') }}" method="POST">
+                                    <input type="hidden" name="reference" value="{{ row[1]["Target name"] }}">
+                                    <input type="hidden" name="allele" value="{{ row[1]["Library name"] }}">
+
+                                    <input type="hidden" name="query" value="{{ row[1]["Library sequence"] }}">
+                                    <input type="hidden" name="subject" value="{{ row[1]["Target sequence"] }}">
+                                    <button type="submit" class="btn btn-primary">
+                                        MSA
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const table = document.getElementById('DataTable');
+            const headers = table.querySelectorAll('thead th.sortable');
+
+            headers.forEach((header, index) => {
+                header.addEventListener('click', function () {
+                    const currentAsc = header.classList.contains('asc');
+                    sortTableByColumn(table, index, !currentAsc);
+
+                    headers.forEach(h => h.classList.remove('asc', 'desc'));
+                    if (!currentAsc) {
+                        header.classList.add('asc');
+                    } else {
+                        header.classList.add('desc');
+                    }
+                });
+            });
+
+            function sortTableByColumn(table, columnIndex, ascending = true) {
+                const tBody = table.querySelector('tbody');
+                const rows = Array.from(tBody.querySelectorAll('tr'));
+
+                rows.sort((rowA, rowB) => {
+                    const cellA = rowA.querySelectorAll('td')[columnIndex].textContent.trim();
+                    const cellB = rowB.querySelectorAll('td')[columnIndex].textContent.trim();
+
+                    const numA = parseFloat(cellA.replace(',', '.'));
+                    const numB = parseFloat(cellB.replace(',', '.'));
+                    const aIsNumeric = !isNaN(numA);
+                    const bIsNumeric = !isNaN(numB);
+
+                    if (aIsNumeric && bIsNumeric) {
+                        return ascending ? numA - numB : numB - numA;
+                    } else {
+                        if (cellA.toLowerCase() < cellB.toLowerCase()) r / eturn
+                        ascending ? -1 : 1;
+                        if (cellA.toLowerCase() > cellB.toLowerCase()) return ascending ? 1 : -1;
+                        return 0;
+                    }
+                });
+
+                rows.forEach(row => tBody.appendChild(row));
+            }
+        });
+    </script>
+{% endblock %}
