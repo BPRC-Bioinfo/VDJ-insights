@@ -232,6 +232,40 @@ def setup_html(subparsers):
     p.set_defaults(func=run_html)
 
 
+
+def setup_scrape_args(subparsers):
+    """
+    Configures the command-line arguments for the scrape command.
+
+    Args:
+        subparsers (argparse._SubParsersAction): Subparsers object for adding commands.
+    """
+    p = subparsers.add_parser(
+        'scrape',
+        help='Scrape immune gene segments from IMGT.'
+    )
+    p.add_argument(
+        '-r', '--receptor-type',
+        required=True,
+        type=str.upper,
+        choices=['TR', 'IG'],
+        help='TR or IG.'
+    )
+    p.add_argument(
+        '-s', '--species',
+        required=True,
+        type=str,
+        help='Species name.'
+    )
+    p.add_argument(
+        '-o', '--output',
+        required=True,
+        type=str,
+        help='Output directory for scraped data.'
+    )
+    p.set_defaults(func=run_scrape, parser=p)
+
+
 def validate_html(value):
     """
     Validates the HTML report directory.
@@ -288,7 +322,6 @@ def get_python_executable():
     raise RuntimeError("No python executable found in PATH.")
 
 
-
 def run_html(args):
     """
     Launches the HTML report using Flask.
@@ -312,6 +345,16 @@ def run_html(args):
     if args.dev_mode:
         cmd.append("--debug")
     subprocess.Popen(cmd).communicate()
+
+
+def run_scrape(args):
+    """
+    Runs the IMGT scraping tool.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+    """
+    imgt_main(species=args.species, immune_type=args.receptor_type, output_dir=args.output)
 
 
 def log_subprocess_error(e):
@@ -548,6 +591,7 @@ def main():
 
     setup_annotation_args(subs)
     setup_html(subs)
+    setup_scrape_args(subs)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -555,8 +599,8 @@ def main():
 
     args = parser.parse_args()
     args.func(args)
-
     console_log.info("Starting VDJ Insights pipeline.")
+
 
 
 if __name__ == '__main__':
