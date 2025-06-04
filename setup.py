@@ -20,6 +20,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "biopython",
+        "openpyxl",
         "PyYAML",
         "tqdm",
         "psutil",

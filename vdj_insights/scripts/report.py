@@ -508,7 +508,7 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     tqdm.write("Reading BLAST file...")
     df = pd.read_csv(blast_file, low_memory=False)
 
-    tqdm.write("Preprocessing of BLAST results.")
+    tqdm.write("Preprocessing of BLAST results...")
     df = pre_processing(df, cell_type, assembly)
 
     tqdm.write("Filtering of report...")

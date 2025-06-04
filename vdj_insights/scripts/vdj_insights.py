@@ -431,7 +431,7 @@ def annotation_main(args: argparse.Namespace):
 
     if args.assembly:
         if not args.flanking_genes or not args.species:
-            parser.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
+            parser.error('-a/--assembly requires -f/--flanking-genes (or --default) and -s/--species.')
 
     if args.scaffolding:
         if not args.assembly:
@@ -442,9 +442,7 @@ def annotation_main(args: argparse.Namespace):
             parser.error('-i/--input requires -r/--region and -s/--species.')
 
 
-    settings_dir, output_dir = cwd_setup(args.output)
     lib_dest = cwd / 'library' / 'library.fasta'
-    create_and_activate_env(settings_dir / 'envs' / 'vdj-insights_env.yaml')
     if not args.library:
         if not lib_dest.is_file():
             imgt_main(species=args.species, immune_type=args.receptor_type)
