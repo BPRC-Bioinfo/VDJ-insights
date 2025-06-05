@@ -12,6 +12,7 @@ import threading
 import webbrowser
 from pathlib import Path
 import json
+import time
 
 import pandas as pd
 import yaml
@@ -478,31 +479,31 @@ def annotation_main(args: argparse.Namespace):
     """
     Main function for the annotation tool. Performs the following steps:
 
-        1. Parses command-line arguments and sets up paths for input and output files.
-        2. Validates input parameters and configures the environment based on the selected options.
-        3. Creates necessary directories and initializes the annotation process.
-        4. Executes the mapping and region extraction processes if assembly mode is selected:
-           - Calls `map_main` to map flanking genes against the assembly.
-           - Calls `region_main` to extract regions based on mapped genes.
-        5. Retrieves or creates a DataFrame from existing or new mapping results:
-           - Uses `get_or_create` to check for existing reports or generate new ones.
-           - Calls `combine_df` to merge mapping results and remove duplicates.
-        6. Runs BLAST operations to align sequences and generate results:
-           - Calls `blast_main` to perform BLAST alignment on the combined DataFrame.
-        7. Generates the final annotation report and RSS file:
-           - Calls `report_main` to generate an Excel report summarizing the findings.
-           - Calls `RSS_main` to produce an RSS feed if required.
+    1. Parses command-line arguments and sets up paths for input and output files.
+    2. Validates input parameters and configures the environment based on the selected options.
+    3. Creates necessary directories and initializes the annotation process.
+    4. Executes the mapping and region extraction processes if assembly mode is selected:
+      - Calls map_main to map flanking genes against the assembly.
+      - Calls region_main to extract regions based on mapped genes.
+    5. Retrieves or creates a DataFrame from existing or new mapping results:
+      - Uses get_or_create to check for existing reports or generate new ones.
+      - Calls combine_df to merge mapping results and remove duplicates.
+    6. Runs BLAST operations to align sequences and generate results:
+      - Calls blast_main to perform BLAST alignment on the combined DataFrame.
+    7. Generates the final annotation report and RSS file:
+      - Calls report_main to generate an Excel report summarizing the findings.
+      - Calls RSS_main to produce an RSS feed if required.
 
     Args:
-        args (list or None): Command-line arguments to parse. Defaults to None.
+    args (list or None): Command-line arguments to parse. Defaults to None.
 
     Returns:
-        None
+    None
 
     Raises:
-        ValueError: If invalid arguments are passed to the main function.
-        OSError: If any file or directory operation fails.
-        subprocess.CalledProcessError: If a BLAST command or database creation fails.
+    ValueError: If invalid arguments are passed to the main function.
+    OSError: If any file or directory operation fails.
+    subprocess.CalledProcessError: If a BLAST command or database creation fails.
     """
     parser = args.parser
 
@@ -537,22 +538,35 @@ def annotation_main(args: argparse.Namespace):
 
     args.species = args.species.capitalize() if args.species else None
 
-    region_dir = "tmp/region"
-    if args.input:
-        region_dir = args.input
+    timings = {}
+    start_total = time.time()
 
+    # Scaffold
     if args.scaffolding:
+        t0 = time.time()
         scaffolding_dir = "tmp/scaffold_assemblies"
-        args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir,  args.threads, args.verbose)
+        args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir, args.threads, args.verbose)
+        timings["scaffolding"] = round(time.time() - t0, 2)
 
-    #download library if not provided
+    from .IMGT_scrape import set_release
+    # Library
     console_log.info(f"IMGT scrape: {args.species} ({args.receptor_type})")
     lib_dest = cwd / 'library' / 'library.fasta'
     if not args.library:
         if not lib_dest.is_file():
+            t0 = time.time()
             imgt_main(species=args.species, immune_type=args.receptor_type)
             args.library = lib_dest
+            timings["imgt_scraping"] = round(time.time() - t0, 2)
         else:
+            json_dest = cwd / 'library' / "library_info.json"
+            with open(json_dest, "r") as f:
+                config = json.load(f)
+
+            old_release = config["set_release"]
+            new_release = set_release()
+            if old_release != new_release:
+                console_log.warning(f"New release detected of library: {old_release} → {new_release}")
             args.library = lib_dest
     else:
         make_dir(cwd / 'library')
@@ -562,13 +576,20 @@ def annotation_main(args: argparse.Namespace):
     annotation_folder = cwd / 'annotation'
     make_dir(annotation_folder)
 
-    #mapping flanking genes and region extraction
+    # Mapping en regio-extractie
     flanking_genes_dict = ast.literal_eval(str(args.flanking_genes))
     if args.assembly:
+        t0 = time.time()
         map_main(flanking_genes_dict, args.assembly, args.species, args.threads, args.verbose)
-        region_main(flanking_genes_dict, args.assembly, args.threads, args.verbose)
+        timings["mapping flanking genes"] = round(time.time() - t0, 2)
 
-    #mapping library and creating report
+        t0 = time.time()
+        region_main(flanking_genes_dict, args.assembly, args.threads, args.verbose)
+        timings["extract regions"] = round(time.time() - t0, 2)
+
+    # Mapping library
+    t0 = time.time()
+    region_dir = args.input if args.input else "tmp/region"
     report = annotation_folder / "tmp/report.csv"
     if not report.exists():
         report_df = pd.DataFrame()
@@ -579,34 +600,56 @@ def annotation_main(args: argparse.Namespace):
         report_df = report_df.drop_duplicates(subset=["reference", "start", "stop", "name"]).reset_index(drop=True)
         make_dir(annotation_folder / "tmp/")
         report_df.to_csv(report, index=False)
-
     else:
         report_df = pd.read_csv(report)
+    timings["library_mapping"] = round(time.time() - t0, 2)
 
-    #reevaluate mapping genes of library with blast
+    # BLAST
+    t0 = time.time()
     blast_file = annotation_folder / "tmp/blast_results.csv"
     if not blast_file.exists():
         blast_main(report_df, blast_file, args.library, args.threads, args.verbose)
+    timings["blast"] = round(time.time() - t0, 2)
 
-    #create report and rss
+    # Report + RSS + CDR
+    t0 = time.time()
     report_main(annotation_folder, blast_file, args.receptor_type, args.library, args.assembly, args.metadata)
-    main_functionality(args.receptor_type, args.species, args.threads, args.verbose)
-    main_rss(args.threads, args.verbose)
-    main_cdr(args.species, args.receptor_type, args.threads, args.verbose)
+    timings["report"] = round(time.time() - t0, 2)
 
-    #create BED and GTF files
+    t0 = time.time()
+    main_functionality(args.receptor_type, args.species, args.threads, args.verbose)
+    timings["functionality"] = round(time.time() - t0, 2)
+
+    t0 = time.time()
+    main_rss(args.threads, args.verbose)
+    timings["rss"] = round(time.time() - t0, 2)
+
+    t0 = time.time()
+    main_cdr(args.species, args.receptor_type, args.threads, args.verbose)
+    timings["cdr"] = round(time.time() - t0, 2)
+
+    # BED + GTF
     data = pd.read_excel(annotation_folder / "annotation_report_all.xlsx")
     make_bed(data, annotation_folder / "BED")
     make_gtf(data, annotation_folder / "GTF")
 
-    #create figures
+    # Figures
+    t0 = time.time()
     if args.metadata:
         functions = [barplot_main, boxplot_main, sub_families_main, venn_diagram_main, heatmap_main]
         args_list = [(annotation_folder,), (annotation_folder,), (annotation_folder,), (annotation_folder, args.receptor_type), (annotation_folder,)]
-
         with tqdm(total=len(functions), desc="Creating plots", unit="Plot") as pbar:
-            for func, args in zip(functions, args_list):
-                func(*args)
+            for func, args_ in zip(functions, args_list):
+                func(*args_)
+                pbar.update()
+    timings["figures"] = round(time.time() - t0, 2)
+
+    timings["total_time"] = round(time.time() - start_total, 2)
+
+    output_dir = Path(args.output)
+
+    with open("timing.json", "w") as f:
+        json.dump(timings, f, indent=4)
 
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")

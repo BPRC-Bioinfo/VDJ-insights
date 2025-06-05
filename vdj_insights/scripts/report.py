@@ -505,6 +505,12 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     """
     Main function to process and generate the annotation reports from the BLAST results.
     """
+    annotation_file_all = annotation_folder / "annotation_report_all.xlsx"
+    annotation_file_known = annotation_folder / "annotation_report_known.xlsx"
+    annotation_file_novel = annotation_folder / "annotation_report_novel.xlsx"
+    if annotation_file_all.exists() and annotation_file_known.exists() and annotation_file_novel.exists():
+        return None
+
     tqdm.write("Reading BLAST file...")
     df = pd.read_csv(blast_file, low_memory=False)
 
