@@ -65,9 +65,9 @@ def create_and_activate_env(env_file, verbose, env_root_dir=None, saved_env_yaml
 
     console_log.environment(f"Creating environment {env_name}. Install mamba for faster environment creation.")
     if shutil.which("mamba") is not None:
-        cmd = ["mamba", "env", "create", "-f", str(env_file), "--prefix", str(env_dir)]
+        cmd = ["mamba", "env", "create", "-f", str(env_file), "--prefix", str(env_dir), "--yes"]
     else:
-        cmd = ["conda", "env", "create", "-f", str(env_file), "--prefix", str(env_dir)]
+        cmd = ["conda", "env", "create", "-f", str(env_file), "--prefix", str(env_dir), "--yes"]
 
     result = subprocess.run(
         args=cmd,

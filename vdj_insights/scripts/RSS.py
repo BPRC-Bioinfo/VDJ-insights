@@ -240,7 +240,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verb
     return combined_results
 
 
-def main_rss(threads: int = 8, verbose: bool = False) -> None:
+def main_rss(threads: int, verbose: bool = False) -> None:
     """
     Main function to process RSS annotations in parallel using multiple threads.
 
