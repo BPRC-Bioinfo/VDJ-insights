@@ -671,7 +671,8 @@ def main():
         sys.exit(0)
 
     args = parser.parse_args()
-    save_args(args)
+    if args.command != 'html':
+        save_args(args)
     args.func(args)
     console_log.info("Starting VDJ Insights pipeline.")
 
