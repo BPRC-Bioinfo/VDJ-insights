@@ -244,6 +244,7 @@ def save_results(combined_results, cwd):
         novel = novel.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
         novel.to_excel(cwd / "annotation" / "annotation_report_novel.xlsx", index=False)
 
+
 def proces_v_segment(locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose):
     extract_coords = {}
     off_set = 500 - 50
@@ -297,40 +298,41 @@ def main_functionality(immune_type, species, threads: int, verbose: bool) -> Non
     write_l_region_fasta_files(library_file, library_path)
 
     data_V, data_D, data_J = open_files(cwd)
-    combined_results = data_D
 
-    # V-REGION
-    v_grouped = data_V.groupby("Region")
-    max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
-    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [
-            executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose)
-            for locus_gene_type, group_locus in v_grouped
-        ]
+    if not "Function" in data_V.columns and not "Function" in data_D.columns and not "Function" in data_J.columns:
+        combined_results = data_D
 
-        with tqdm(total=v_grouped.ngroups, desc="Processing functionality V segments", unit='task') as pbar:
-            for future in as_completed(futures):
-                result = future.result()
-                combined_results = pd.concat([combined_results, result])
-                pbar.update(1)
+        # V-REGION
+        v_grouped = data_V.groupby("Region")
+        max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
+        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+            futures = [
+                executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose)
+                for locus_gene_type, group_locus in v_grouped
+            ]
 
-    #J-REGION
-    j_grouped = data_J.groupby("Region")
-    with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-        futures = [
-            executor.submit(process_j_group, region, group_locus)
-            for region, group_locus in j_grouped
-        ]
-        with tqdm(total=j_grouped.ngroups, desc="Processing functionality J segments", unit='task') as pbar:
-            for future in as_completed(futures):
-                group_result = future.result()
-                combined_results = pd.concat([combined_results, group_result])
-                pbar.update(1)
+            with tqdm(total=v_grouped.ngroups, desc="Processing functionality V segments", unit='task') as pbar:
+                for future in as_completed(futures):
+                    result = future.result()
+                    combined_results = pd.concat([combined_results, result])
+                    pbar.update(1)
 
-    combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["pseudo", ""], axis=1, result_type="expand")
+        #J-REGION
+        j_grouped = data_J.groupby("Region")
+        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+            futures = [
+                executor.submit(process_j_group, region, group_locus)
+                for region, group_locus in j_grouped
+            ]
+            with tqdm(total=j_grouped.ngroups, desc="Processing functionality J segments", unit='task') as pbar:
+                for future in as_completed(futures):
+                    group_result = future.result()
+                    combined_results = pd.concat([combined_results, group_result])
+                    pbar.update(1)
 
-    mask = combined_results["Segment"].isin(["D"])
-    combined_results.loc[mask, ["Function", "Function_messenger"]] = ["functional", ""]
-    save_results(combined_results, cwd)
+        combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["pseudo", ""], axis=1, result_type="expand")
 
+        mask = combined_results["Segment"].isin(["D"])
+        combined_results.loc[mask, ["Function", "Function_messenger"]] = ["functional", ""]
+        save_results(combined_results, cwd)
 

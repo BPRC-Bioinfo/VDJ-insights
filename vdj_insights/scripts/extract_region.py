@@ -82,7 +82,7 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
                 if not second_subset.empty:
                     second_contig = second_subset["RNAME"].astype(str).iloc[0]
                     end = int(second_subset["POS"].astype(int).iloc[0])
-                    extraction_regions.append((second_contig, 0, end, "-", second))
+                    extraction_regions.append((second_contig, 1, end, "-", second))
 
             else:
                 first_subset = filterd_sam[filterd_sam["QNAME"].str.contains(first, na=False)]
@@ -92,7 +92,7 @@ def get_positions_and_name(sam: Union[str, Path], first: str, second: str) -> tu
                 end = get_length_contig(sam, firts_contig)
                 reverse_strand = (first_subset["FLAG"].astype(int).iloc[0] & 16) != 0
                 if reverse_strand:
-                    extraction_regions.append((firts_contig, 0, start, first, "-"))
+                    extraction_regions.append((firts_contig, 1, start, first, "-"))
                 else:
                     extraction_regions.append((firts_contig, start, end, first, "-"))
         return extraction_regions
@@ -128,6 +128,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
                 check=True
             )
             concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
+
             with open(output_file, 'w') as file:
                 file.write(f">{output_file.stem}\n{str(Seq(concatenated_sequence))}")
 
@@ -145,6 +146,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
                 "Output": str(output_file),
                 "Output_file": str(output_file.name),
                 "Count_contigs": n_contigs,
+                "Amounnt_basepairs": len(concatenated_sequence),
             }
             all_log_data.append(log_data)
 

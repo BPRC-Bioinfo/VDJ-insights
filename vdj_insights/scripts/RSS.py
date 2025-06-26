@@ -91,7 +91,7 @@ def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
     fimo_output = fimo_intput / "fimo.tsv"
     df_fimo = pd.read_csv(fimo_output, sep='\t', comment='#')
 
-    print(df_fimo[~df_fimo['sequence_name'].str.contains(r'__\d+$')].copy())
+    #print(df_fimo[~df_fimo['sequence_name'].str.contains(r'__\d+$')].copy()) #fimo error check
 
     df_fimo = df_fimo[df_fimo['sequence_name'].str.contains(r'__\d+$')].copy()
     df_fimo["index_group_df"] = df_fimo["sequence_name"].str.split("__").str[-1]
