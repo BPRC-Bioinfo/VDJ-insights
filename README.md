@@ -35,11 +35,11 @@ You can install VDJ-Insights using one of the following methods:
    ```
 2. Run the pipeline:
    ```bash
-   vdj_insights <pipeline|annotation|html> [arguments]
+   vdj_insights <annotation|html> [arguments]
    ```
 
-## Annotation
-Use the following command to run the script:
+## Using VDJ-Insights
+Use the following command to run the annotation script:
 
 ```bash
 python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -l <library_directory/library.fasta> -r <receptor_type> -s <species_name> -f <flanking_genes> -t <threads> -m <mappingtool, mapping_tool> -M <metadata_directory> -o <output_directory> --default
@@ -48,7 +48,7 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 ### **Required Arguments:**
 | **Argument**                      | **Description**                                                                                                                                                          | **Example**                                                                       |
 |-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| `-r, --receptor-type`             | Type of receptor to analyze. Choices are `TR` (T-cell receptor) or `IG` (immunoglobulin). **(Required when using `--default`)**                                          | `-r TR`                                                                           |
+| `-r`, `--receptor-type`             | Type of receptor to analyze. Choices are `TR` (T-cell receptor) or `IG` (immunoglobulin). **(Required when using `--default`)**                                          | `-r TR`                                                                           |
 | `-i, --input` or `-a, --assembly` | Directory containing the extracted sequence regions (`--input`) **or** the assembly FASTA files (`--assembly`).                                                          | `-a /path/to/assembly` or `-i /path/to/region`                                    |
 | `-l, --library`                   | Path to the library FASTA file containing V(D)J segment sequences.                                                                                                       | `-l /path/to/library.fasta`                                                       |
 | `-f, --flanking-genes`            | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is available, use `"-"` as a placeholder.                   | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'` |
