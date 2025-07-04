@@ -57,7 +57,7 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 ---
 
 ### **Optional Arguments:**
-| **Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                 | **Description**                                                                                    | **Example**              |
+| **Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                 | **Description**                                                                                    | **Example**              |
 |---------------------|----------------------------------------------------------------------------------------------------|-------------------------|
 | `-M`,<br> `--metadata`    | Path to the metadata file (.xlsx) relevant to the analysis.                                        | `-M metadata.xlsx`       |
 | `-o`,<br> `--output`      | Output directory for the results (default: `annotation_results` in the current directory).         | `-o /path/to/output`     |
