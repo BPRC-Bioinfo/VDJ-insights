@@ -1,16 +1,15 @@
-![Logo](vdj_insights/images/BPRC_logo.png)
 # VDJ-Insights
 
-## Abstract
+## Introduction
 
-VDJ-Insights offers a robust framework for annotating the B-cell receptors (BCR) or T-cell receptors (TCR) regions. Its uncover both known and novel V(D)J gene segments within BCR or TCR regions. This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
+VDJ-Insights is a robust software package for accurate annotation of the V, D, and J gene segments within immunoglobulin (IG) and T-cell receptor (TCR) genomic regions. In addition to segment annotation, it evaluates gene functionality, detects recombination signal sequences (RSS), and annotates complementary-determining regions 1 and 2 (CDR1 and CDR2). These features extend the utility of VDJ-Insights beyond gene annotation, providing a powerful framework for functional immunogenetics and enabling evolutionary and comparative analyses at individual, population, and species levels.
 
 ---
 
 ## Installation
 
-VDJ-Insights is currently supported only on Linux systems. Please ensure that Python (>3.7) and Conda are installed on your system before running the pipeline.
-To install VDJ-Insights, you can choose one of the following methods:
+VDJ-Insights is currently only supported on Linux systems. Before running the pipeline, please ensure that Python (version 3.7 or higher) and Conda are installed on your system. 
+You can install VDJ-Insights using one of the following methods:
 
 ### Option 1: Clone the repository
 1. Clone the VDJ-Insights repository:
@@ -25,9 +24,9 @@ To install VDJ-Insights, you can choose one of the following methods:
 
 3. Run the pipeline using Python's -m option:
    ```bash
-   python -m vdj_insights <pipeline|annotation|html> [arguments]
+   python -m vdj_insights <annotation|html> [arguments]
    ```
-**Note:** When cloning the repository, the pipeline must always be executed using the python -m option. This ensures that Python correctly recognizes the package structure and runs the pipeline without additional installation steps.
+**Note:** When cloning the repository, the pipeline must always be executed using the ```python -m``` option. This ensures that Python correctly recognizes the package structure and runs the pipeline without additional installation steps.
 
 ### Option 2: Install via pip
 1. Use pip to install VDJ-Insights:
