@@ -49,7 +49,7 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 | **Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    | **Description**                                                                                                                                                         | **Example**                                                                    |
 |-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | `-r`,<br> `--receptor-type`                      | Type of receptor to analyze. Choices: `IG` (immunoglobulin) or `TR` (T-cell receptor).<br> **Required when using `--default`.**                                            | `-r TR`                                                                        |
-| `-i`,<br> `--input` <br><br> or <br><br> `-a`, `--assembly` | Directory containing either extracted sequence regions (`--input`), referring to sequences of the region of interest already isolated from a genome assembly <br><br> **or** <br><Br> complete genome assembly files (`--assembly`).                                                         | `-i /path/to/region` <br> `-a /path/to/assembly`                                 |
+| `-i`,<br> `--input` <br><br> **or** <br><br> `-a`, `--assembly` | Directory containing either extracted sequence regions (`--input`), referring to sequences of the region of interest already isolated from a genome assembly <br><br> **or** <br><Br> complete genome assembly files (`--assembly`).                                                         | `-i /path/to/region` <br> `-a /path/to/assembly`                                 |
 | `-l`,<br> `--library`                            | Path to the FASTA library file containing reference V(D)J segment sequences.                                                                                                     | `-l /path/to/library.fasta`                                                    |
 | `-f`,<br> `--flanking-genes`                     | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is present, use `"-"` as a placeholder for the missing side.              | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'` |
 | `-s`,<br> `--species`                           | Scientific species name (e.g., `Homo sapiens`).                                                                                                                                   | `-s "Homo sapiens"`                                                            |
@@ -59,12 +59,12 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 ### **Optional Arguments:**
 | **Argument**        | **Description**                                                                                    | **Example**              |
 |---------------------|----------------------------------------------------------------------------------------------------|-------------------------|
-| `-M, --metadata`    | Path to the metadata file (.xlsx) relevant to the analysis.                                        | `-M metadata.xlsx`       |
-| `-o, --output`      | Output directory for the results (default: `annotation_results` in the current directory).         | `-o /path/to/output`     |
-| `-m, --mapping-tool`| Available mapping tools: `minimap2`, `bowtie`, `bowtie2`. (Default: all).                          | `-m minimap2`            |
-| `-t, --threads`     | Number of threads for parallel processing (default: `8`).                                          | `-t 16`                  |
+| `-M`,<br> `--metadata`    | Path to the metadata file (.xlsx) relevant to the analysis.                                        | `-M metadata.xlsx`       |
+| `-o`,<br> `--output`      | Output directory for the results (default: `annotation_results` in the current directory).         | `-o /path/to/output`     |
+| `-m`,<br> `--mapping-tool`| Available mapping tools: `minimap2`, `bowtie`, `bowtie2`. (Default: all).                          | `-m minimap2`            |
+| `-t`,<br> `--threads`     | Number of threads for parallel processing (default: `8`).                                          | `-t 16`                  |
 | `--default`         | Use default settings (cannot be used with `--flanking-genes`).                                     | `--default`              |
-| `-S, --scaffolding` | Path to the reference genome (FASTA). **Only supports assemblies representing a single phased contigs.** | `-S /path/to/reference.fasta`|
+| `-S,<br> `--scaffolding` | Path to the reference genome (FASTA). **Only supports assemblies representing a single phased contigs.** | `-S /path/to/reference.fasta`|
 
 
 [Download metadata template](https://github.com/BPRC-Bioinfo/VDJ-insights/blob/main/vdj_insights/metadata/metadata.xlsx)
