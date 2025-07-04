@@ -64,7 +64,7 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 | `-m`,<br> `--mapping-tool`| Available mapping tools: `minimap2`, `bowtie`, `bowtie2`. (Default: all).                          | `-m minimap2`            |
 | `-t`,<br> `--threads`     | Number of threads for parallel processing (default: `8`).                                          | `-t 16`                  |
 | `--default`         | Use default settings (cannot be used with `--flanking-genes`).                                     | `--default`              |
-| `-S,<br> `--scaffolding` | Path to the reference genome (FASTA). **Only supports assemblies representing a single phased contigs.** | `-S /path/to/reference.fasta`|
+| `-S`,<br> `--scaffolding` | Path to the reference genome (FASTA). **Only supports assemblies representing a single phased contigs.** | `-S /path/to/reference.fasta`|
 
 
 [Download metadata template](https://github.com/BPRC-Bioinfo/VDJ-insights/blob/main/vdj_insights/metadata/metadata.xlsx)
