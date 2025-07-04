@@ -70,9 +70,9 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 
 - If using the `-i/--input` flag, do not specify `-f/--flanking-genes`, as flanking genes are only required when defining regions of interest from a complete genome assembly using `-a/--assembly`.
 - If using the `-i/--input` flag, input file(s) should be named in the format `<sample-name>_<region>.fasta` and must be located in the indicated directory.
-- If using the `--default` flag, do not specify `-f/--flanking-genes` as they are mutually exclusive with `--default`.
-- If using the `--default` flag, the annotation tool will automatically download the appropriate V(D)J segment library for the selected receptor `(-r)` type and species `(-s)`. This means you don’t need to specify the flanking genes or provide a local library file.
-- If using the `--scaffolding` flag, RagTag scaffolding requires a single-haplotype assembly. If your input contains both haplotypes, split them and scaffold each one independently.
+- If using the `--default` flag, do not specify `-f/--flanking-genes` as they are mutually exclusive.
+- If using the `--default` flag, the annotation tool automatically downloads the appropriate V(D)J gene segment library based on the specified receptor type (`-r`) and species (`-s`). There is no need to define flanking genes manually or provide a local library file.
+- If using the `--scaffolding` flag, RagTag scaffolding requires a phased assembly as input. If the input assembly contains contigs of both haplotypes, it should be phased beforehand.
 
 ### Example
 Download the assembly file (GCA_009914755.4) using the following wget command:
