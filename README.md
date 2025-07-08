@@ -75,26 +75,26 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 - If using the `--scaffolding` flag, RagTag scaffolding requires a phased assembly as input. If the input assembly contains contigs of both haplotypes, it should be phased beforehand.
 
 ### Example
-Download the T2T-CHM13v2.0 assembly file from the T2T Consortium (GCA_009914755.4) using the following command:
+1. Download the T2T-CHM13v2.0 assembly file from the T2T Consortium (GCA_009914755.4) using the following command:
 
-```bash
-wget https://ftp.ensembl.org/pub/rapid-release/species/Homo_sapiens/GCA_009914755.4/ensembl/genome/Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
-```
+   ```bash
+   wget https://ftp.ensembl.org/pub/rapid-release/species/Homo_sapiens/GCA_009914755.4/ensembl/genome/Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
+   ```
 
-Extract the assembly file:
-```bash
-gunzip Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
-```
+2. Extract the assembly file:
+   ```bash
+   gunzip Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
+   ```
 
-Run VDJ-Insights using the T2T assembly:
+3. Run VDJ-Insights using the T2T assembly:
 
-```bash
-python -m vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa -r IG -s "Homo sapiens" --default
-```
-or
-```bash
-vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa -r IG -s "Homo sapiens" --default
-```
+   ```bash
+   python -m vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa -r IG -s "Homo sapiens" --default
+   ```
+   or
+   ```bash
+   vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa -r IG -s "Homo sapiens" --default
+   ```
 
 When the `--default` flag is used, VDJ-Insights automatically downloads the appropriate V(D)J segment library for the specified receptor type (`-r`) and species (`-s`) from the IMGT, when available. It is not necessary to specify flanking genes or provide a local library file.
 
