@@ -89,13 +89,11 @@ gunzip Homo_sapiens-GCA_009914755.4-unmasked.fa.gz
 Run VDJ-Insights using the T2T assembly:
 
 ```bash
-python -m vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa.gz -r IG -s "Homo sapiens" --default
+python -m vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa -r IG -s "Homo sapiens" --default
 ```
-
 or
-
 ```bash
-vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa.gz -r IG -s "Homo sapiens" --default
+vdj-insights annotation -a /path/to/GCA_009914755.4-unmasked.fa -r IG -s "Homo sapiens" --default
 ```
 
 When the `--default` flag is used, VDJ-Insights automatically downloads the appropriate V(D)J segment library for the specified receptor type (`-r`) and species (`-s`) from the IMGT, when available. It is not necessary to specify flanking genes or provide a local library file.
@@ -112,47 +110,49 @@ Each annotation report (known or novel) includes the following columns, providin
 
 | **Column**                     | **Explanation**                                                                                                                                                                                                                               | **Example**                  |
 |---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
-| **Sample**                      | The name of the sample | `Sample_001` |
-| **Haplotype**                   | The haplotype ID (maternal and paternal) | `1` or `mat` |
-| **Region**                      | The annotated region | `IGHV` |
-| **Segment**                     | The gene segment type | `V` |
-| **Start coord**                 | The start coordinate on the annotated contig | `12345`|
-| **End coord**                   | The end coordinate on the annotated contig |`12789`|
-| **Strand**                      | Segment orientation: `+` indicates 5' to 3' direction, and `-` indicates 3' to 5' direction | `+`|
-| **Library name**                   | The closest reference gene segment name associated with the identified segment | `IGHV3-23*01`|
-| **Target name**               | The name assigned to the novel gene segment, based on the closest reference gene, with "like" appended to indicate similarity | `IGHV3-23-like` |
-| **Short name**                  | The gene name, as defined by IMGT nomenclature standards | `IGHV3*01` |
-| **Similar references**          | Other reference gene segments sharing the same start and end coordinates; the best match is selected based on the mutation count and the reference gene name                                                                                               | `IGHV3-33*02`                 |
-| **Target sequence**           | The DNA sequence of the identified "Old name-like" segment. | `ATGGTGCAAGC...` |
-| **Library sequence**               | The DNA sequence of the closest reference gene segment. | `ATGGTGCAAAC...` |
-| **Mismatches**                  | The total number of mismatches between the identified segment and the reference.                                                                                                                                                               | `3`                           |
-| **% Mismatches of total alignment** | The percentage of mismatches relative to the total length of the alignment between the identified segment and the reference.                                                                                                                   | `1.5%`                        |
-| **% identity**                  | The percentage of identical bases between the identified segment and the reference across the entire alignment.  | `98.5%` |
+| **Sample**                      | The name of the sample. | `Sample_001` |
+| **Haplotype**                   | The haplotype ID (maternal and paternal). | `1` or `mat` |
+| **Region**                      | The annotated region. | `IGHV` |
+| **Segment**                     | The gene segment type. | `V` |
+| **Start coord**                 | The start coordinate on the annotated contig. | `12345`|
+| **End coord**                   | The end coordinate on the annotated contig. |`12789`|
+| **Strand**                      | Segment orientation: `+` indicates 5' to 3' direction, and `-` indicates 3' to 5' direction. | `+`|
+| **Library name**                   | The closest reference gene segment name associated with the identified segment. | `IGHV3-23*01`|
+| **Target name**               | The name assigned to the novel gene segment, based on the closest reference gene, with "like" appended to indicate similarity. | `IGHV3-23-like` |
+| **Short name**                  | The gene name, as defined by IMGT nomenclature standards. | `IGHV3*01` |
+| **Similar references**          | Other reference gene segments sharing the same start and end coordinates; the best match is selected based on the mutation count and the reference gene name.                                                                                               | `IGHV3-33*02`                 |
+| **Target sequence**           | The nucleotide sequence of the novel gene segment. | `ATGGTGCAAGC...` |
+| **Library sequence**               | The nucleotide sequence of the closest reference gene segment. | `ATGGTGCAAAC...` |
+| **Mismatches**                  | The total number of mismatches observed between the novel segment and the reference sequence.                                                                                                                                                              | `3`                           |
+| **% Mismatches of total alignment** | The percentage of mismatches relative to the total alignment length between the identified segment and the reference.                                                                                                                   | `1.5%`                        |
+| **% identity**                  | The percentage of identical bases between the identified segment and the reference over the full alignment.  | `98.5%` |
 | **BTOP**                        | BLAST traceback string that describes the exact location of substitutions, insertions, and deletions in the alignment.| `10A5G3T` |
-| **SNPs**                        | The number of single nucleotide polymorphisms (SNPs) detected in the alignment. | `2` |
-| **Insertions**                  | The number of insertions in the identified segment relative to the reference. | `1` |
-| **Deletions**                   | The number of deletions in the identified segment relative to the reference. | `0` |
-| **Mapping tool**                        | The name of the mapping tool used for the annotation. | `Minimap2` |
+| **SNPs**                        | The number of single nucleotide polymorphisms (SNPs) relative to the reference. | `2` |
+| **Insertions**                  | The number of insertions relative to the reference. | `1` |
+| **Deletions**                   | The number of deletions relative to the reference. | `0` |
+| **Mapping tool**                        | The name(s) of the mapping tool(s) used for gene segment annotation. | `Minimap2` |
 | **Function**                    | The functional classification of the segment: "F/ORF" for functional/open reading frame, "P" for potentially functional/open reading frame, or "pseudogene" if an early stop codon is detected.                                               | `F/ORF`                       |
-| **Status**                      | Indicates whether the segment is classified as **Known** or **Novel**. | `Novel`|
-| **Message**                     | A generated message for the segment if stop codons are detected in critical positions. | `the STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement`  |
-| **Population**                  | The population group associated with the sample, if metedata is provided. | `Dutch` |                                                  
+| **Status**                      | Indicates whether the gene segment is classified as **Known** or **Novel**. | `Novel`|
+| **Message**                     | A generated message for the segment if stop codons are detected at critical positions. | `The STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement`  |
+| **Population**                  | The population group associated with the sample, if metadata is provided. | `Dutch` |                                                  
 
 ## Web interface report 
-The pipeline provides an interactive web interface for visualizing and exploring the annotation results. You can generate and open the web-based Flask report using the following command:
+The pipeline includes an interactive web interface for visualizing and exploring the annotation results. The web-based Flask report can be generated and opened using the following command:
 
 ```bash
 python -m vdj_insights.html -i /path/to/output --show
+```
 or
+```bash
 vdj_insights html -i /path/to/output --show
 ```
 
 ## Citing VDJ-Insights
-If you use VDJ-Insights in your work, please cite:
+If VDJ-Insights contributes to your research, please cite:
 <cite>
 
 ## Acknowledgements
-This tool was developed by the department of Comparative genetics & Refinement of the Biomedical Primate Research Centre ([BPRC](https://www.bprc.nl/en)) in Rijswijk, the Netherlands.
+VDJ-Insights was developed by the department of Comparative Genetics & Refinement of the Biomedical Primate Research Centre ([BPRC](https://www.bprc.nl/en)) in Rijswijk, the Netherlands.
 
 - [@Jesse mittertreiner](https://github.com/AntiCakejesCult)
 - [@Sayed Jamiel Mohammadi](https://github.com/sayedjm)
