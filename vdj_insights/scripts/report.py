@@ -149,7 +149,6 @@ def pre_processing(df, cell_type, assembly):
 
     df['% identity'] = df['% identity'].astype(float)
 
-
     df = rename_columns(df)
     df = df.apply(add_region_segment, axis=1, cell_type=cell_type)
     df = extract_region(df)
@@ -232,25 +231,20 @@ def filter_df(group_df, cell_type):
         pd.Series: The best reference sequence with an additional column for similar references.
     """
     group_df['Specific Part'] = group_df["Region"] + group_df["Segment"]
-    specific_part_in_reference = group_df.apply(
-        lambda x: x['Specific Part'] in x['Library name'], axis=1)
-    query_subject_length_equal = group_df['Library sequence'].str.len(
-    ) == group_df['Target sequence'].str.len()
+    specific_part_in_reference = group_df.apply(lambda x: x['Specific Part'] in x['Library name'], axis=1)
+    query_subject_length_equal = group_df['Library sequence'].str.len() == group_df['Target sequence'].str.len()
     filtered_rows = group_df[specific_part_in_reference & query_subject_length_equal]
     best_row = filtered_rows.sort_values(by=['Mismatches', 'Library name']).head(1)
 
     if best_row.empty:
         best_row = group_df.head(1)
-    all_references = ', '.join(
-        set(group_df['Library name']) - set(best_row['Library name']))
+    all_references = ', '.join(set(group_df['Library name']) - set(best_row['Library name']))
     best_row['Similar references'] = all_references
     best_row["Target name"] = best_row["Library name"]
-    best_row["Short name"] = best_row["Library name"].apply(
-        lambda ref: fetch_prefix(ref, cell_type))
+    best_row["Short name"] = best_row["Library name"].apply(lambda ref: fetch_prefix(ref, cell_type))
     if float(best_row["% identity"].iloc[0]) < 100.0:
         best_row["Target name"] = best_row["Library name"] + "-like"
-        best_row["Short name"] = best_row["Library name"].apply(
-            lambda ref: fetch_prefix(ref, cell_type)) + "-like"
+        best_row["Short name"] = best_row["Library name"].apply(lambda ref: fetch_prefix(ref, cell_type)) + "-like"
     return best_row.squeeze()
 
 
@@ -517,15 +511,18 @@ def report_main(annotation_folder: Union[str, Path], blast_file: Union[str, Path
     tqdm.write("Preprocessing of BLAST results...")
     df = pre_processing(df, cell_type, assembly)
 
+    segments_library = make_record_dict(library)
+
+    lenght_mask = ((df['Library name'].map(segments_library).fillna(-1).astype(int) - df['Deletions'].astype(int) + df['Insertions'].astype(int)) == df['Target sequence'].str.len())
+    df = df[lenght_mask].copy()
+
     tqdm.write("Filtering of report...")
     df = filtering_data(df, cell_type)
 
-    segments_library = make_record_dict(library)
-    known_mask = ((df['Library name'].map(segments_library).fillna(-1).astype(int) == df['Target sequence'].str.len()) & (df['% identity'] == 100.0))
-    known_df = df[known_mask].copy()
+    known_df = df[df['% identity'] == 100.0].copy()
     known_df["Status"] = "Known"
 
-    novel_df = df[~known_mask].copy()
+    novel_df = df[df['% identity'] != 100.0].copy()
     novel_df["Status"] = "Novel"
 
     tqdm.write("Exporting reports...")
