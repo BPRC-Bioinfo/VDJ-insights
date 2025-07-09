@@ -136,17 +136,17 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
             log_data = {
                 "Region": immuno_region,
                 "Contig": contig,
-                "5_flanking_gene": flanking_gene_one,
-                "3_flanking_gene": flanking_gene_second,
-                "5_coords": int(start),
-                "3_coords": int(end),
+                "5'-flanking gene": flanking_gene_one,
+                "3'-flanking gene": flanking_gene_second,
+                "5 coords": int(start),
+                "3 coords": int(end),
                 "Extraction status": Extraction_status.capitalize(),
                 "Assembly": str(assembly_fasta),
-                "Assembly_file": str(assembly_fasta.name),
+                "Assembly file": str(assembly_fasta.name),
                 "Output": str(output_file),
-                "Output_file": str(output_file.name),
-                "Count_contigs": n_contigs,
-                "Amounnt_basepairs": len(concatenated_sequence),
+                "Output file": str(output_file.name),
+                "Contig counts": n_contigs,
+                "Amount basepairs": len(concatenated_sequence),
             }
             all_log_data.append(log_data)
 
