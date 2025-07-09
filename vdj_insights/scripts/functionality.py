@@ -14,7 +14,7 @@ from tqdm import tqdm
 from .IMGT_scrape import main as imgt_main
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from .util import load_config, calculate_available_resources, log_error
+from .util import calculate_available_resources
 
 
 pd.set_option('display.max_rows', 500)
@@ -183,20 +183,20 @@ def extraxt_region_from_genome(locus_fasta_path, region, group_locus, extract_co
 def check_functional_protein(segment, l_region, target_sequence, strand, protein, donor_splice, acceptor_splice):
     if segment == "V":
         if len(l_region) % 3 != 0:
-            return ["pseudo", "Frameshift in L-part region"]
+            return ["Pseudo", "Frameshift in L-part region"]
 
         if protein[0] != 'M':
-            return ["pseudo", "No start codon in protein"]
+            return ["Pseudo", "No startcodon in protein"]
 
         if "*" in protein[:-1]:
-            return ["pseudo", "Stop codon within protein"]
+            return ["Pseudo", "Stopcodon within protein"]
 
         if "*" not in protein:
-            base_status = ["functional", ""]
+            base_status = ["Functional", ""]
         elif protein[-1] == "*":
-            base_status = ["ORF", "Last protein is stop codon"]
+            base_status = ["ORF", "Last protein is stopcodon"]
         else:
-            base_status = ["pseudo", ""]
+            base_status = ["Pseudo", ""]
 
         if donor_splice.upper() != "GT":
             return ["ORF", f"Incorrect donor splice site {donor_splice}"]
@@ -205,7 +205,7 @@ def check_functional_protein(segment, l_region, target_sequence, strand, protein
             return ["ORF", f"Incorrect acceptor splice site {acceptor_splice}"]
 
         if Seq(target_sequence.replace("-", "")).translate(to_stop=False).upper().count("C") < 2:
-            return ["ORF", "Missing Cysteine in protein"]
+            return ["ORF", "Missing cysteine in protein"]
 
         return base_status
 
@@ -219,15 +219,15 @@ def check_functional_protein(segment, l_region, target_sequence, strand, protein
             if re.compile(r'[FW]G.G').search(J_protein):
                 motief_count += 1
                 if "*" in J_protein:
-                    return ["pseudo", f"Stop codon in protein, frame {frame}"]
+                    return ["Pseudo", f"Stopcodon in protein, frame {frame}"]
 
         if motief_count == 0:
-            return ["ORF", "No motifs ([FW]G.G) found"]
+            return ["ORF", "No motif ([FW]G.G) found"]
 
         if donor_splice.upper() != "GT":
-            return ["pseudo", f"In correct donor splice site {donor_splice}"]
+            return ["Pseudo", f"Incorrect donor splice site {donor_splice}"]
 
-        return ["functional", ""]
+        return ["Functional", ""]
 
 
 def save_results(combined_results, cwd):
@@ -330,9 +330,9 @@ def main_functionality(immune_type, species, threads: int, verbose: bool) -> Non
                     combined_results = pd.concat([combined_results, group_result])
                     pbar.update(1)
 
-        combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["pseudo", ""], axis=1, result_type="expand")
+        combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["Pseudo", ""], axis=1, result_type="expand")
 
         mask = combined_results["Segment"].isin(["D"])
-        combined_results.loc[mask, ["Function", "Function_messenger"]] = ["functional", ""]
+        combined_results.loc[mask, ["Function", "Function_messenger"]] = ["Functional", ""]
         save_results(combined_results, cwd)
 
