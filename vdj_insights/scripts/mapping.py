@@ -39,29 +39,6 @@ class MappingFiles:
         self.bed = beddir / f"mapped_{prefix}.bed"
 
 
-def get_sequence(line, fasta):
-    """
-    Extracts a sequence from a FASTA file based on coordinates in a BED file.
-
-    This function takes a line from a BED file, extracts the sequence
-    specified by the coordinates (start and stop) and reference, and
-    returns the sequence.
-
-    Args:
-        line (list): A list representing a line from a BED file,
-        containing reference, start, and stop coordinates.
-        fasta (str): Path to the FASTA file.
-
-    Returns:
-        str: The sequence extracted from the FASTA file based on
-        the coordinates in the BED file line.
-    """
-    reference, start, stop = line[0:3]
-    sequences = SeqIO.to_dict(SeqIO.parse(fasta, "fasta"))
-    specific_sequence = sequences[reference].seq
-    return str(specific_sequence[int(start): int(stop)])
-
-
 def parse_bed(file_path, fasta, mapping_type):
     """
     Parses a BED file and extracts relevant information for each entry.
@@ -77,12 +54,15 @@ def parse_bed(file_path, fasta, mapping_type):
     Returns:
         list[list]: A nested list containing information for each entry in the BED file.
     """
+    seq_dict = SeqIO.to_dict(SeqIO.parse(fasta, "fasta"))
     entries = []
-    with open(file_path, "r") as file:
-        for line in file:
-            line = line.strip().split("\t")
-            line.extend([get_sequence(line, fasta), mapping_type, fasta])
-            entries.append(line)
+    with open(file_path) as fh:
+        for line in fh:
+            cols = line.strip().split("\t")
+            reference, start, stop = cols[:3]
+            seq = seq_dict[reference].seq[int(start):int(stop)]
+            cols.extend([str(seq), mapping_type, fasta])
+            entries.append(cols)
     return entries
 
 
