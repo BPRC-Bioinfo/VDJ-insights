@@ -13,13 +13,14 @@ import webbrowser
 from pathlib import Path
 import json
 import time
+from datetime import datetime
 
 import pandas as pd
 import yaml
 from tqdm import tqdm
 
 from .CDR import main_cdr
-from .IMGT_scrape import main as imgt_main
+from .IMGT_scrape import main as imgt_main, set_release
 from .RSS import main_rss
 from .blast import blast_main
 
@@ -106,7 +107,7 @@ def validate_flanking_genes(value):
     return value
 
 
-def setup_annotation_args(subparsers):
+def setup_annotation_args2(subparsers):
     """
     Configures the command-line arguments for the annotation command.
 
@@ -115,14 +116,10 @@ def setup_annotation_args(subparsers):
     """
     p = subparsers.add_parser(
         'annotation',
+
         help='Run VDJ segment annotation.'
     )
     group = p.add_mutually_exclusive_group()
-    group.add_argument(
-        '--default',
-        action='store_true',
-        help='Use default settings (cannot be used with --flanking-genes).'
-    )
     group.add_argument(
         '-f', '--flanking-genes',
         type=validate_flanking_genes,
@@ -196,6 +193,106 @@ def setup_annotation_args(subparsers):
     p.set_defaults(func=run_annotation, parser=p)
 
 
+
+def setup_annotation_args(subparsers):
+    """
+    Configures the command-line arguments for the annotation command.
+    """
+
+    class IndentedHelpFormatter(argparse.HelpFormatter):
+        def __init__(self, prog):
+            super().__init__(prog,
+                             indent_increment=2,
+                             max_help_position=50,
+                             width=None)
+
+    p = subparsers.add_parser(
+        'annotation',
+        usage=(
+            "vdj_insights.py annotation [OPTIONS]\n\n"
+        ),
+        formatter_class=IndentedHelpFormatter,
+        add_help=False,
+    )
+
+    p.add_argument(
+        '-h', '--help', action='help',
+        help='Show this help message and exit\n'
+    )
+
+    group = p.add_mutually_exclusive_group()
+    group.add_argument(
+        '-f', '--flanking-genes', metavar='<str>',
+        type=validate_flanking_genes,
+        help='Comma-separated list of flanking genes (must be even count).'
+    )
+
+    # Required arguments
+    req = p.add_argument_group('required arguments')
+    req.add_argument(
+        '-r', '--receptor-type', metavar='<TR|IG>',
+        required=True, type=str.upper, choices=['TR', 'IG'],
+        help='Receptor type: TR (T-cell receptor) or IG (immunoglobulin).'
+    )
+    data_choice = req.add_mutually_exclusive_group(required=True)
+    data_choice.add_argument(
+        '-i', '--input', metavar='<dir>',
+        type=validate_input,
+        help='Directory with input FASTA regions.'
+    )
+    data_choice.add_argument(
+        '-a', '--assembly', metavar='<dir>',
+        type=validate_input,
+        help='Directory with genome assembly FASTA (requires --flanking-genes and --species).'
+    )
+
+    opt = p.add_argument_group('optional arguments')
+    opt.add_argument(
+        '-l', '--library', metavar='<file>',
+        type=validate_file,
+        help='Path to library file.'
+    )
+    opt.add_argument(
+        '-S', '--scaffolding', metavar='<file>',
+        type=validate_file,
+        help='Path to reference genome file.'
+    )
+    opt.add_argument(
+        '-M', '--metadata', metavar='<file>',
+        type=validate_file,
+        help='Path to metadata file.'
+    )
+    opt.add_argument(
+        '-s', '--species', metavar='<str>',
+        type=str,
+        help='Species name (required with --assembly).'
+    )
+    opt.add_argument(
+        '-o', '--output', metavar='<path>',
+        type=str,
+        default=str(Path.cwd() / 'annotation_results'),
+        help='Path to output directory. [default: <current working directory>/annotation_results]'
+    )
+    opt.add_argument(
+        '-m', '--mapping-tool', metavar='<tool>',
+        nargs='*', choices=['minimap2', 'bowtie', 'bowtie2'],
+        default=['minimap2', 'bowtie', 'bowtie2'],
+        help='Mapping tools to use. [default: minimap2, bowtie, bowtie2]'
+    )
+    opt.add_argument(
+        '-t', '--threads', metavar='<int>',
+        type=int, default=8,
+        help='Number of threads. [default: 8]'
+    )
+    opt.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose logging.'
+    )
+
+    p.set_defaults(func=run_annotation, parser=p)
+
+
 def setup_html(subparsers):
     """
     Configures the command-line arguments for the HTML report viewer.
@@ -224,11 +321,6 @@ def setup_html(subparsers):
         default="0.0.0.0",
         type=str,
         help='Host address to bind the server (default: 0.0.0.0).'
-    )
-    p.add_argument(
-        '-r', '--reset-flask',
-        action='store_true',
-        help='Re-copy the Flask template directory before starting.'
     )
     p.add_argument(
         '-d', '--dev-mode',
@@ -338,7 +430,6 @@ def run_html(args):
     """
     console_log.info("Launching HTML report...")
     output_dir = args.input
-    copy_flask(output_dir, args.reset_flask)
     os.chdir(output_dir.parent)
     if not args.dev_mode:
         threading.Timer(1, open_browser).start()
@@ -412,10 +503,8 @@ def create_config(output_dir, settings_dir, args):
 
 
 def save_args(args):
-    output_dir = Path(args.output)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    args_path = output_dir / "used_commando.json"
+    cwd = Path.cwd()
+    args_path = cwd / "used_commando.json"
 
     skip_keys = {"func", "parser"}
     def is_json_serializable(v):
@@ -427,51 +516,30 @@ def save_args(args):
         if k not in skip_keys
     }
 
-    serializable_args["_command"] = " ".join(sys.argv)
-
+    serializable_args["command line"] = " ".join(sys.argv)
     with open(args_path, "w") as f:
         json.dump(serializable_args, f, indent=4)
 
 
 def initialize_config(args, species_cfg, settings_dir, config):
-    """
-    Initializes the configuration dictionary based on command-line arguments.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-        species_cfg (dict): Species configuration data.
-        settings_dir (Path): Path to the settings directory.
-        config (dict): Configuration dictionary to populate.
-    """
     parser = args.parser
 
-    if args.default and not args.species:
-        parser.error("--default requires --species/-s to be set")
-    if args.assembly and not args.species:
+    if getattr(args, 'assembly', None) and not args.species:
         parser.error("--assembly requires --species/-s to be set")
 
-    config['SPECIES'] = {'name': args.species, 'cell': args.receptor_type}
-    config['SETTINGS'] = str(settings_dir)
-
     if getattr(args, 'flanking_genes', None):
-        config['FLANKING_GENES'] = args.flanking_genes
-
-    elif getattr(args, 'default', False):
+        flanking_genes = args.flanking_genes
+    else:
         species_key = args.species.capitalize().replace(" ", "_")
-        species_data = species_cfg.get(species_key, species_cfg.get("default", {}))
-        receptor_data = species_data.get(
-            args.receptor_type,
-            species_cfg.get("default", {}).get(args.receptor_type, {})
-        )
-        default_flanking = receptor_data.get("FLANKING_GENES")
-        if default_flanking:
-            config['FLANKING_GENES'] = default_flanking
-            args.flanking_genes = default_flanking
 
-    if getattr(args, 'assembly', None):
-        data = config.setdefault('DATA', {})
-        data['library'] = str(args.library)
-        data['assembly'] = str(args.assembly)
+        species_data = species_cfg.get(species_key, species_cfg['default'])
+        receptor_data = species_data.get(args.receptor_type, species_cfg['default'][args.receptor_type])
+        flanking_genes = receptor_data.get("FLANKING_GENES")
+
+        if species_key not in species_cfg:
+            console_log.warning(f"Species '{args.species}' not found in configuration. falling back to default flanking genes. {flanking_genes}")
+
+    args.flanking_genes = flanking_genes
 
 
 @log_error()
@@ -526,7 +594,7 @@ def annotation_main(args: argparse.Namespace):
 
     if args.assembly:
         if not args.flanking_genes or not args.species:
-            parser.error('-a/--assembly requires -f/--flanking-genes (or --default) and -s/--species.')
+            parser.error('-a/--assembly requires -f/--flanking-genes and -s/--species.')
 
     if args.scaffolding:
         if not args.assembly:
@@ -548,7 +616,6 @@ def annotation_main(args: argparse.Namespace):
         args.assembly = scaffolding_main(args.scaffolding, args.assembly, scaffolding_dir, args.threads, args.verbose)
         timings["scaffolding"] = round(time.time() - t0, 2)
 
-    from .IMGT_scrape import set_release
     # Library
     console_log.info(f"IMGT scrape: {args.species} ({args.receptor_type})")
     lib_dest = cwd / 'library' / 'library.fasta'
@@ -632,6 +699,7 @@ def annotation_main(args: argparse.Namespace):
     data = pd.read_excel(annotation_folder / "annotation_report_all.xlsx")
     make_bed(data, annotation_folder / "BED")
     make_gtf(data, annotation_folder / "GTF")
+    save_args(args)
 
     # Figures
     t0 = time.time()
@@ -645,14 +713,15 @@ def annotation_main(args: argparse.Namespace):
     timings["figures"] = round(time.time() - t0, 2)
 
     timings["total_time"] = round(time.time() - start_total, 2)
-
-    output_dir = Path(args.output)
+    timings["date"] = datetime.today().strftime("%Y-%m-%d")
 
     with open("timing.json", "w") as f:
         json.dump(timings, f, indent=4)
 
+
     file_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
     console_log.info(f"Annotation process completed. Results are available in {annotation_folder}")
+    console_log.info(f"Showing report:  vdj-insights html - i {cwd}")
 
 
 def main():
@@ -671,8 +740,6 @@ def main():
         sys.exit(0)
 
     args = parser.parse_args()
-    if args.command != 'html':
-        save_args(args)
     args.func(args)
     console_log.info("Starting VDJ Insights pipeline.")
 
