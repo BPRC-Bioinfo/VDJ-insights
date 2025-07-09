@@ -58,7 +58,6 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
                        stderr=subprocess.PIPE if not verbose else None
                        )
 
-
 @log_error()
 def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path, verbose: bool) -> None:
     """
@@ -130,8 +129,8 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
             group_locus.loc[index_segment, f"{direction}'-score"] = df_match["score"].values[0]
             group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched_sequence"].values[0].upper()
         else:
-            group_locus.loc[index_segment, "Function"] = "pseudo"
-            group_locus.loc[index_segment, "Function_messenger"] = "None functionality RSS found"
+            group_locus.loc[index_segment, "Function"] = "Pseudo"
+            group_locus.loc[index_segment, "Function_messenger"] = "No functional RSS found"
 
     return group_locus
 
@@ -217,7 +216,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verb
                     locus_fasta_file.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
                     #if check and row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
-                    if row["Function"] == "functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
+                    if row["Function"] == "Functional" and row["Status"] == "Known" and row["Segment"] in ["V", "J"]:
                         spacer = len(spacer) * "N"
                         locus_fasta_file2.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
