@@ -150,7 +150,7 @@ def fetch_sequence(segment: str, directory: Union[str, Path], species: str, fram
                     sleep_time = 30
                     file_log.warning("Retrieved sequence was empty. Will retry after extended wait.")
             else:
-                file_log.warning(f"No sequences found for {segment} of {species}.")
+                console_log.error(f"No sequences found for {segment} of {species}.")
         else:
             file_log.warning(f"Failed to fetch data for {segment} of {species} with status code: {response.status_code}")
         file_log.info(f"Waiting {sleep_time} seconds to avoid overloading the IMGT server.")
