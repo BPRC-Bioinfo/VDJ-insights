@@ -4,7 +4,7 @@
             <tr>
                 {% for column in region_data.columns %}
                     <th data-column="{{ column }}"
-                        {% if column not in ['Region', 'Contig', '5 Flanking Gene', '3 Flanking Gene', 'Count Contigs'] %}
+                        {% if column not in ['Region', 'Contig',  "5'-flanking gene",  "3'-flanking gene", 'Contig counts'] %}
                             style="display: none;"
                         {% endif %}
                     >
@@ -19,7 +19,7 @@
                 <tr>
                     {% for col in region_data.columns %}
                         <td data-column="{{ col }}"
-                            {% if col not in ['Region', 'Contig', '5 Flanking Gene', '3 Flanking Gene', 'Count Contigs'] %}
+                            {% if col not in ['Region', 'Contig',  "5'-flanking gene",  "3'-flanking gene", 'Contig counts'] %}
                                 style="display: none;"
                             {% endif %}
                         >

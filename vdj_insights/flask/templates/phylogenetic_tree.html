@@ -1,0 +1,84 @@
+{% extends "sharedTemplates/base.html" %}
+{% block title %}Dendogram{% endblock %}
+{% block body %}
+    <div class="container">
+        <div class="collapse" id="collapse_info">
+            <div id="infoBox" class="card mt-3 shadow">
+                <button
+                        type="button"
+                        class="btn p-0 position-absolute"
+                        style="top: 0.5rem; right: 0.5rem; color: #6c757d; font-size: 1.25rem; line-height: 1;"
+                        data-toggle="collapse"
+                        data-target="#collapse_info"
+                        aria-label="Close"
+                >
+                    &times;
+                </button>
+                <div class="card-body">
+                    <h5 class="card-title">Dendogram</h5>
+                    <p class="card-text">
+                        <p>
+    A <strong>dendrogram</strong> is a tree-like diagram that shows the arrangement of clusters produced by hierarchical clustering.
+    Each leaf on the right side represents one sample, and branches merge at heights corresponding to the distance (dissimilarity)
+    between clusters. Shorter branch lengths mean samples are more similar. On this page, we cluster samples based on the <em>Jaccard distance</em> between their allele sets, then draw the dendrogram
+    horizontally so you can easily read sample labels and compare branch lengths.
+  </p>
+</section>
+
+<section id="jaccard-info">
+  <h5>How the Jaccard Distance Works</h5>
+  <p>
+    First, we compute the <strong>Jaccard index</strong> between two samples A and B:
+  </p>
+  <pre>J(A, B) = |A ∩ B| / |A ∪ B|</pre>
+  <p>
+    This gives a value between 0 (no shared alleles) and 1 (identical allele sets). We then convert it to a distance:
+  </p>
+  <pre>d<sub>J</sub>(A, B) = 1 − J(A, B)</pre>
+  <p>
+    A smaller Jaccard distance means the two samples share more alleles, so they cluster closer together in the dendrogram.
+  </p>
+  <h5>Example</h5>
+  <p>Imagine two samples with these allele sets:</p>
+  <ul>
+    <li><strong>Sample 1</strong>: { A, B, C }</li>
+    <li><strong>Sample 2</strong>: { B, C, D, E }</li>
+  </ul>
+  <ul>
+    <li><strong>Intersection</strong> = { B, C } → size = 2</li>
+    <li><strong>Union</strong> = { A, B, C, D, E } → size = 5</li>
+    <li><strong>Jaccard index</strong> = 2 / 5 = 0.40</li>
+    <li><strong>Jaccard distance</strong> = 1 − 0.40 = 0.60</li>
+  </ul>
+  <p>
+    So these two samples have a distance of 0.60, which is the height at which their branches meet in the dendrogram.
+  </p>
+</section>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-5">
+            <h2 class="mt-0">Dendrogram</h2>
+            <a class="btn gap-2" data-toggle="collapse" href="#collapse_info" role="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor"
+                     class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                </svg>
+            </a>
+        </div>
+
+        {% for region, dendrogram_div in dendrogram_divs.items() %}
+    <section>
+              <h2>{{ region }}</h2>
+
+        <div class="card card-body mb-4 shadow">
+            {{ dendrogram_div|safe }}
+        </div>
+    </section>
+  {% endfor %}
+
+
+{% endblock %}

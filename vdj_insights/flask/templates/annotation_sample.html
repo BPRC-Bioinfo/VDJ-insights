@@ -23,8 +23,7 @@
         </div>
 
         <div class="d-flex justify-content-between align-items-center mt-5">
-           <h2 class="mt-0">{{ selected_sample }} | {{ selected_region }}</h2>
-
+            <h2 class="mt-0">   {{ selected_sample }}</h2>
             <a class="btn gap-2" data-toggle="collapse" href="#collapse_info" role="button">
                 <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
                     <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
@@ -33,12 +32,22 @@
             </a>
         </div>
 
+
+        <h2 class="mt-5">Extracted regions</h2>
+        <div class="card card-body mb-4 shadow">
+            {% if not region_data.empty %}
+                {% include 'sharedTables/region_table.html' %}
+            {% else %}
+                <p class="text-muted">No region data available for this sample.</p>
+            {% endif %}
+        </div>
+        <hr>
         {% if regions %}
             <form action="/get_sample_table" method="POST" id="form">
 
                 <div class="row g-3 mb-4">
                     <div class="col">
-                        <label for="region" class="form-label">Select regio:</label>
+                        <label for="region" class="form-label">Select region:</label>
                         <select name="region" id="region" class="form-select" onchange="this.form.submit()">
                             <option value="">-- Select region --</option>
                             {% for region in regions %}
@@ -54,18 +63,10 @@
             </form>
         {% endif %}
 
-        <h2 class="mt-5">Extracted regions</h2>
-        <div class="card card-body mb-4">
-            {% if not region_data.empty %}
-                {% include 'sharedTables/region_table.html' %}
-            {% else %}
-                <p class="text-muted">No region data available for this sample.</p>
-            {% endif %}
-        </div>
 
         {% if segments_plot or known_novel_plot or function_plot or rss_plot or function_messenger_plot or function_messenger_plot2 %}
             <h2 class="mt-5">Plots</h2>
-            <div class="card card-body mb-4">
+            <div class="card card-body mb-4 shadow">
                 <div class="row mb-4">
                     {% if segments_plot %}
                         <div class="col-md-4">
@@ -101,7 +102,7 @@
 
         {% if region_viewer %}
             <h2 class="mt-5">Region viewer</h2>
-            <div class="card card-body mb-4">
+            <div class="card card-body mb-4 shadow">
                 <div class="row mb-4">
                     {{ region_viewer|safe }}
                 </div>
@@ -110,10 +111,10 @@
 
 
         <h3 class="mt-2">Annotation data</h3>
-        <div class="card card-body mb-4">
+        <div class="card card-body mb-4 shadow">
             <div class="row d-flex align-items-center g-3">
                 <div class="col">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search in report...">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search in annotation data...">
                 </div>
                 <div class="col-auto">
                     <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#columnModal">Toggle
@@ -127,6 +128,8 @@
                       <ul class="dropdown-menu">
                         <li><a class="dropdown-item" onclick="downloadXLSX()">Excel</a></li>
                         <li><a class="dropdown-item" onclick="downloadBED()">BED</a></li>
+                        <li><a class="dropdown-item" onclick="downloadGTF()">GTF</a></li>
+                        <li><a class="dropdown-item" onclick="downloadFASTA()">Fasta</a></li>
                       </ul>
                     </div>
 
@@ -158,6 +161,25 @@
             window.location.href = url;
         }
 
+        function downloadFASTA() {
+            let sampleId = "{{ selected_sample }}";
+            let region = "{{ selected_region }}"
+            let url = "/download_fasta";
+            if (sampleId && region) {
+                url += "?reference_id=" + encodeURIComponent(sampleId) + "&region=" + encodeURIComponent(region);
+            }
+            window.location.href = url;
+        }
+
+        function downloadGTF() {
+            let sampleId = "{{ selected_sample }}";
+            let region = "{{ selected_region }}"
+            let url = "/download_gtf";
+            if (sampleId && region) {
+                url += "?reference_id=" + encodeURIComponent(sampleId) + "&region=" + encodeURIComponent(region);
+            }
+            window.location.href = url;
+        }
     </script>
 
 </script>

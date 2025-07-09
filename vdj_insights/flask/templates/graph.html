@@ -61,8 +61,36 @@
     </head>
     <div class="container">
         <form action="/get_haplotype_alignment" method="POST" id="form">
-            <h2 class="mt-5">Haplotype viewer</h2>
-            <div class="card card-body mb-4">
+
+             <div class="collapse" id="collapse_info">
+         <div id="infoBox" class="card mt-3 shadow">
+              <button
+              type="button"
+              class="btn p-0 position-absolute"
+              style="top: 0.5rem; right: 0.5rem; color: #6c757d; font-size: 1.25rem; line-height: 1;"
+              data-toggle="collapse"
+              data-target="#collapse_info"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <div class="card-body">
+              <h5 class="card-title">Information</h5>
+              <p class="card-text">dit is info</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-5">
+            <h2 class="mt-0">Haplotype viewer</h2>
+            <a class="btn gap-2" data-toggle="collapse" href="#collapse_info" role="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                </svg>
+            </a>
+        </div>
+            <div class="card card-body mb-4 shadow">
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <label for="accession_one" class="form-label">First sample:</label>
@@ -116,7 +144,7 @@
         </form>
     </div>
 <div class="p-4">
-    <div class="card card-body w-100" style="height: 1000px; overflow: hidden;">
+    <div class="card card-body w-100 shadow" style="height: 1000px; overflow: hidden;">
         <svg width="100%" height="100%">
             <text id="title-text" x="50%" y="30" text-anchor="middle" font-size="20" fill="black"></text>
         </svg>

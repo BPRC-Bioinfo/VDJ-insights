@@ -10,15 +10,28 @@ import io
 import jsonify
 import pandas as pd
 import numpy as np
-from flask import Flask, render_template, request, make_response, flash, redirect, url_for, send_file, Response, session
+from flask import Flask, render_template, request, make_response, flash, redirect, url_for, send_file, Response, session, abort
 
 from celery import Celery
 from flask_caching import Cache
 import base64
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+
+import uuid
+import subprocess
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import plotly.express as px
+from plotly.offline import plot
+
+from scipy.cluster.hierarchy import linkage
+import plotly.figure_factory as ff
 
 from task import merge_sequences
 
-from import_data import open_json, get_sequences, get_region_data, get_scaffold_data
+from import_data import open_json, get_sequences, get_region_data, get_scaffold_data, get_commando_data
 
 from figures.figures import get_known_novel_plot
 from figures.figures import get_vdj_plot
@@ -57,7 +70,35 @@ RSS_PATH = BASE_PATH / "tmp/RSS"
 
 @app.route('/', methods=['POST', 'GET'])
 def home():
-    return render_template("home.html")
+    commando_data = get_commando_data(BASE_PATH)
+    input_row = commando_data.loc[commando_data["Argument"] == "input", "Given argument"].iloc[0]
+    if input_row == None:
+        commando_data = commando_data[commando_data["Argument"] != "input"]
+
+    desired_order = [
+        "species",
+        "receptor_type",
+
+        "assembly",
+        "input",
+
+        "flanking_genes",
+        "library",
+        "mapping_tool",
+
+        "scaffolding",
+        "metadata",
+
+        "output",
+
+        "threads",
+        "verbose",
+        "command line",
+    ]
+    present_args = [arg for arg in desired_order if arg in commando_data["Argument"].values]
+    df_sorted = commando_data.set_index("Argument").loc[present_args].reset_index()
+    df_sorted["Argument"] = df_sorted["Argument"].str.title()
+    return render_template("home.html", commando_data=df_sorted.to_dict(orient='records'))
 
 
 @app.route('/help_annotation', methods=['POST', 'GET'])
@@ -136,6 +177,14 @@ def get_compare():
                            )
 
 
+def get_fasta(file_names):
+    sequences = []
+    for file_name in file_names:
+        for record in SeqIO.parse(file_name, "fasta"):
+            sequences.append({"id": record.id, "sequence": str(record.seq)})
+    return sequences
+
+
 @app.route('/run_mafft', methods=['POST', 'GET'])
 def run_mafft():
     df = get_annotation_data()
@@ -155,12 +204,55 @@ def run_mafft():
         if selected_sample_one == selected_sample_two:
             flash("Same sample given! Please choose two different samples.", "warning")
             return redirect(url_for("run_mafft"))
+        if not selected_region:
+            flash("Select region of interest", "warning")
+            return redirect(url_for("run_mafft"))
 
-        selected_files = ["data1/region/sample_1.fa", "data1/region/sample_2.fa"]
-        output_dir = BASE_PATH / "region/"
-        task = merge_sequences.delay(selected_files, output_dir)
-        return jsonify({"task_id": task.id, "status": "Task started"}), 202
+        path_selected_sample_one = df[(df["Sample"] == selected_sample_one) & (df["Region"] == selected_region)]["Path"].unique()[0]
+        path_selected_sample_two = df[(df["Sample"] == selected_sample_two) & (df["Region"] == selected_region)]["Path"].unique()[0]
 
+        if not path_selected_sample_one or not path_selected_sample_two:
+            flash("One of the samples does not have data for the selected region", "warning")
+            return redirect(url_for("run_mafft"))
+
+        UUID = uuid.uuid4().hex[:8]
+        output_dir = os.path.join( BASE_PATH, f"tmp/mafft/mafft_{UUID}/")
+        merged_dir = os.path.join(output_dir, "merged")
+        aligned_dir = os.path.join(output_dir, "aligned")
+        split_dir = os.path.join(output_dir, "split_regions")
+
+        os.makedirs(merged_dir, exist_ok=True)
+        os.makedirs(aligned_dir, exist_ok=True)
+        os.makedirs(split_dir, exist_ok=True)
+
+        merged_path = os.path.join(merged_dir, "merged_sequences.fasta")
+        aligned_path = os.path.join(aligned_dir, "aligned_sequences.fasta")
+        log_file = os.path.join(output_dir, "mafft.log")
+
+        sequences = get_fasta([path_selected_sample_one, path_selected_sample_two])
+        records = [SeqRecord(Seq(seq["sequence"]), id=seq["id"], description="") for seq in sequences]
+        with open(merged_path, "w") as f:
+            SeqIO.write(records, f, "fasta")
+
+
+        conda_base = subprocess.run(["conda", "info", "--base"], stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
+        cmd = f'''nohup bash -c "source {conda_base}/etc/profile.d/conda.sh && conda activate .tool/conda/vdj-insights_env && mafft '{merged_path}' > '{aligned_path}'" > '{log_file}' 2>&1 &'''
+
+        process = subprocess.Popen(cmd, shell=True)
+
+        #if result.returncode != 0:
+           # flash(f"{result.stderr}", "error")
+           # return redirect(url_for("run_mafft"))
+        """
+        aligned_sequences = get_fasta([aligned_path])
+        records = [SeqRecord(Seq(seq["sequence"]), id=seq["id"], description="") for seq in aligned_sequences]
+        for record in records:
+            fasta_file = os.path.join(split_dir, f"{record.id}.fasta")
+            with open(fasta_file, "w") as f:
+                SeqIO.write(record, f, "fasta")
+        """
+
+        return redirect(url_for("run_mafft"))
 
     return render_template("mafft.html",
                            samples=samples,
@@ -315,7 +407,7 @@ def unique_sequences():
         if not region_data.empty:
             region_data = region_data[region_data["File"].str.contains(selected_accession)]
 
-        return render_template("uniqeue.html",
+        return render_template("unique_sequences.html",
                                data_table=df_unieke_shortnames,
                                selected_accession=selected_accession,
                                region_data=region_data)
@@ -349,7 +441,6 @@ def sequence_list():
     pivot_data["Novel"] = pivot_data.get("Novel", 0)
     pivot_data["Total"] = pivot_data["Known"] + pivot_data["Novel"]
     pivot_data = pivot_data.sort_values(by="Total", ascending=False)
-    print(pivot_data)
     return render_template("sequence.html",
                            regions=regions,
                            selected_region=selected_region,
@@ -368,6 +459,150 @@ def get_sequence_table():
         ["Sample", "Short name", "Start coord", "End coord", "Status", "SNPs", "Insertions", "Deletions", "Library sequence", "Target sequence", "Library name"]
     ].copy()
     return render_template("sequence_list.html",reference=reference, data_table=filtered_df, zip=zip)
+
+
+def make_dendrogram(df):
+    """
+    Build interactive dendrograms per Region and return a dict mapping region -> HTML div.
+    Requires:
+      - df contains columns: 'Region', 'Sample', 'Target sequence', 'Continent'
+      - at least 50 observations per Sample to include in clustering
+    """
+    region_divs = {}
+    for region, df_reg in df.groupby('Region'):
+
+        ctab = pd.crosstab(df['Sample'], df['Target sequence'])
+        Z = linkage(ctab.values, method='average', metric='jaccard')
+        labels = ctab.index.tolist()
+        fig = ff.create_dendrogram(
+            ctab.values,
+            orientation='left',
+            labels=labels,
+            linkagefun=lambda x: Z
+        )
+
+        for trace in fig.data:
+            if trace.mode == 'lines':
+                trace.hoverinfo = 'x'
+                trace.hovertemplate = 'Jaccard distance: %{x:.2f}<extra></extra>'
+
+        height = max(400, 20 * len(labels))
+        fig.update_layout(
+            width=1200,
+            height=height,
+            margin=dict(l=150, r=50, t=50, b=50),
+            template="simple_white",
+            xaxis_title = "Jaccard distance",
+            yaxis_title = "Sample"
+        )
+
+        div = plot(
+            fig,
+            config={
+                'displaylogo': False,
+                'modeBarButtonsToRemove': [
+                    'zoom2d','pan2d','select2d','lasso2d',
+                    'resetScale2d','zoomIn2d','zoomOut2d','autoScale2d'
+                ],
+                'modeBarButtonsToAdd': ['toImage'],
+                'scrollZoom': False,
+                'toImageButtonOptions': {
+                    'format': 'svg',
+                    'filename': f'pca_{region}',
+                    'scale': 1
+                }
+            },
+            output_type='div',
+            include_plotlyjs=True
+        )
+        region_divs[region] = div
+
+    return region_divs
+
+
+@app.route('/get_dendrogram', methods=['POST', 'GET'])
+def get_dendrogram():
+    df = get_annotation_data()
+    plot_divs = make_dendrogram(df)
+    return render_template("phylogenetic_tree.html", dendrogram_divs=plot_divs)
+
+
+def make_pca_figures(df):
+    """
+    Return a dict mapping each Region to its Plotly PCA <div> string.
+    If 'Population' is missing, colors are by 'Sample'.
+    """
+    has_pop = 'Population' in df.columns
+    region_divs = {}
+
+    for region, df_reg in df.groupby('Region'):
+        feat = (
+            df_reg
+            .groupby(['Sample','Target name'])
+            .size()
+            .unstack(fill_value=0)
+        )
+
+        labels = pd.DataFrame({'Sample': feat.index})
+        if has_pop:
+            pop = df_reg[['Sample','Population']].drop_duplicates()
+            labels = labels.merge(pop, on='Sample', how='left')
+        else:
+            labels['Population'] = labels['Sample']
+        labels.set_index('Sample', inplace=True)
+
+        X = StandardScaler().fit_transform(feat)
+        pca = PCA(n_components=2, random_state=42)
+        pcs = pca.fit_transform(X)
+
+        plot_df = pd.DataFrame({
+            'PC1': pcs[:,0],
+            'PC2': pcs[:,1],
+            'Sample': feat.index,
+            'Population': labels['Population']
+        })
+
+        color_col = 'Population' if has_pop else 'Sample'
+        hover = ['Sample','Population'] if has_pop else ['Sample']
+        fig = px.scatter(
+            plot_df,
+            x='PC1', y='PC2',
+            color=color_col,
+            hover_data=hover,
+            #title=f"PCA — Region: {region}",
+            template='simple_white'
+        )
+        fig.update_traces(marker_size=10)
+
+        div = plot(
+            fig,
+            config={
+                'displaylogo': False,
+                'modeBarButtonsToRemove': [
+                    'zoom2d','pan2d','select2d','lasso2d',
+                    'resetScale2d','zoomIn2d','zoomOut2d','autoScale2d'
+                ],
+                'modeBarButtonsToAdd': ['toImage'],
+                'scrollZoom': False,
+                'toImageButtonOptions': {
+                    'format': 'svg',
+                    'filename': f'pca_{region}',
+                    'scale': 1
+                }
+            },
+            output_type='div',
+            include_plotlyjs=True
+        )
+
+        region_divs[region] = div
+
+    return region_divs
+
+@app.route('/get_pca', methods=['POST', 'GET'])
+def get_pca():
+    df = get_annotation_data()
+    plot_divs = make_pca_figures(df)
+    return render_template("pca.html", pca_divs=plot_divs)
 
 
 def chunk_sequence(sequence, chunk_size=100):
@@ -449,20 +684,31 @@ def get_pivot_table(df: pd.DataFrame) -> pd.DataFrame:
 @app.route('/get_report', methods=['POST', 'GET'])
 def get_report():
     df = get_annotation_data()
+
     pivot_table_known = get_pivot_table(df[df["Status"] == "Known"])
-    vdj_plot_known = get_vdj_plot(pivot_table_known)
+    vdj_plot_known = get_vdj_plot(pivot_table_known, "known")
 
     pivot_table_novel = get_pivot_table(df[df["Status"] == "Novel"])
-    heatmap = get_shared_shortname_heatmap_plotly_simple(df[(df['Sample'].isin(['GCA_009914755.4', 'GCA_018466845.1']))])
-    vdj_plot_novel = get_vdj_plot(pivot_table_novel)
+    vdj_plot_novel = get_vdj_plot(pivot_table_novel, "novel")
+    return render_template("report.html", vdj_plot_known=vdj_plot_known, vdj_plot_novel=vdj_plot_novel)
 
-    vdj_plot = get_vdj_plot(df.pivot_table(
-        index="Sample",
-        columns=["Segment"],
-        aggfunc="size",
-        fill_value=0
-    ))
-    return render_template("report.html",heatmap=heatmap, vdj_plot_known=vdj_plot_known, vdj_plot_novel=vdj_plot_novel, vdj_plot=vdj_plot)
+
+@app.route('/get_count_contigs', methods=['POST', 'GET'])
+def get_count_contigs():
+    region_data = get_region_data(BASE_PATH)
+    region_data["Sample"] = (region_data["File"].str.replace(".fasta", "", regex=False).str.replace(".fa", "", regex=False))
+    region_data_pivot = (
+        region_data
+        .pivot_table(
+            index='Sample',
+            columns='Segment',
+            values='Contig counts',
+            aggfunc='sum',
+            fill_value=0
+        )
+        .reset_index()
+    )
+    return render_template("contigs.html", pivot_data=region_data_pivot.to_dict('records'))
 
 
 @app.route('/get_scaffold_figure', methods=['POST', 'GET'])
@@ -477,10 +723,6 @@ def get_scaffold_figure():
         (scaffold_data['Scaffold'] == selected_contig)
         ]["Contig"].to_list()
 
-    df = get_annotation_data()
-
-
-    print(contigs)
     return send_file(
         contigs,
         mimetype="text/plain",
@@ -497,6 +739,7 @@ def get_sample_table():
     df = get_annotation_data()
     regions = df["Region"].unique().tolist()
 
+    vdj_plot = None
     if selected_sample:
         df_sample = df[df["Sample"] == selected_sample].copy()
         regions = df_sample["Region"].unique().tolist()
@@ -513,11 +756,9 @@ def get_sample_table():
         if not region_data.empty:
             region_data = region_data[region_data["File"].str.contains(selected_sample)]
 
-            region_data["5_coords"] = pd.to_numeric(region_data["5_coords"], errors="coerce").fillna(0).astype(int)
-            region_data["3_coords"] = pd.to_numeric(region_data["3_coords"], errors="coerce").fillna(0).astype(int)
+            region_data["5 coords"] = pd.to_numeric(region_data["5 coords"], errors="coerce").fillna(0).astype(int)
+            region_data["3 coords"] = pd.to_numeric(region_data["3 coords"], errors="coerce").fillna(0).astype(int)
             region_data = region_data.iloc[:, 2:]
-            region_data.columns = [col.replace("_", " ").title() for col in region_data.columns]
-            print(region_data.columns)
 
             for (region_name, contig), row_df in region_data.groupby(["Region", "Contig"]):
                 plot_df_filtered = df[
@@ -543,7 +784,7 @@ def get_sample_table():
 
         region_viewer = get_dna_vieuwer_plot(df_filtered)
 
-        return render_template("uniqeue.html",
+        return render_template("annotation_sample.html",
                                data_table=df_filtered,
                                region_data=region_data,
                                selected_sample=selected_sample,
@@ -559,6 +800,7 @@ def get_sample_table():
                                )
     elif selected_region:
         df = df[df["Region"] == selected_region].copy()
+        vdj_plot = get_vdj_plot(df.pivot_table(index="Sample",columns=["Segment"], aggfunc="size", fill_value=0), f"{selected_region}")
 
     grouped_data = df.groupby(["Sample", "Status"]).size().reset_index(name="Count")
 
@@ -576,7 +818,7 @@ def get_sample_table():
     pivot_data = pivot_data.sort_values(by="Total", ascending=False)
 
 
-    return render_template("samples.html", pivot_data=pivot_data.to_dict('records'), regions=regions, selected_region=selected_region)
+    return render_template("samples.html", pivot_data=pivot_data.to_dict('records'), regions=regions, selected_region=selected_region, vdj_plot=vdj_plot)
 
 
 
@@ -612,16 +854,17 @@ def get_rss():
                 }
 
         for fimo_submap in fimo_submappen:
-            fimo_txt = fimo_submap / "fimo.txt"
+            fimo_txt = fimo_submap / "fimo.tsv"
             if fimo_txt.exists():
                 fimo_data = []
                 with open(fimo_txt, "r", encoding="utf-8") as txt_file:
                     headers = txt_file.readline().strip().split("\t")
-                    selected_headers = [headers[i] for i in [1, 5, 6, 7]]
-
+                    selected_headers = [headers[i] for i in [2, 6, 7, 8, 9]]
                     for line in txt_file:
                         lines = line.strip().split("\t")
-                        selected_lines = [lines[i] for i in [1, 5, 6, 7]]
+                        if len(lines) < 2:
+                            continue
+                        selected_lines = [lines[i] for i in [2, 6, 7, 8, 9]]
 
                         fimo_data.append({
                             header: value for header, value in zip(selected_headers, selected_lines)
@@ -633,6 +876,7 @@ def get_rss():
                     rss_data[fimo_submap.name] = {
                         'fimo_data': fimo_data
                     }
+
     return render_template("rss.html",
                            segments=segments,
                            selected_segment=selected_segment,
@@ -641,6 +885,7 @@ def get_rss():
                            rss_plot=rss_plot,
                            rss_data=rss_data
                            )
+
 
 @app.route("/download_xlsx")
 def download_xlsx():
@@ -664,14 +909,64 @@ def download_xlsx():
     )
 
 
+@app.route("/download_gtf")
+def download_gtf():
+    df = get_annotation_data()
+    selected_sample = request.args.get("reference_id", "").strip()
+    region = request.args.get("region", "").strip()
+
+    df = df[(df["Sample"] == selected_sample) & (df["Region"] == region)]
+    gtf_path = Path(f"/tmp/{selected_sample}_{region}.gtf")
+
+    with open(gtf_path, "w") as f:
+        for _, row in df.iterrows():
+            attribute_field = f'gene_id "{row["Target name"]}"'
+            line = [
+                row["Contig"],              #seqname
+                "VDJ-Insights",             #source
+                "Gene",                     #feature
+                str(row["Start coord"]),    #start
+                str(row["Start coord"]),    #end
+                "0",                        #score
+                row["Strand"],              #strand
+                ".",                        #frame
+                attribute_field             #attribute
+            ]
+            f.write("\t".join(line) + "\n")
+
+    return send_file(
+        gtf_path,
+        mimetype="text/plain",
+        as_attachment=True,
+        download_name=gtf_path.name
+    )
+
+
+@app.route("/download_fasta")
+def download_fasta():
+    df = get_annotation_data()
+    selected_sample = request.args.get("reference_id", "").strip()
+    region = request.args.get("region", "").strip()
+
+    fasta_path = Path(df[(df["Sample"] == selected_sample) & (df["Region"] == region)]["Path"].unique()[0])
+    if not fasta_path.exists():
+        abort(404, description="Fasta error")
+
+    return send_file(
+        fasta_path,
+        mimetype="text/plain",
+        as_attachment=True,
+        download_name=fasta_path.name
+    )
+
+
 @app.route("/download_bed")
 def download_bed():
     df = get_annotation_data()
     selected_sample = request.args.get("reference_id", "").strip()
     region = request.args.get("region", "").strip()
 
-    if selected_sample and region:
-        df = df[(df["Sample"] == selected_sample) & (df["Region"] == region)]
+    df = df[(df["Sample"] == selected_sample) & (df["Region"] == region)]
 
     bed_columns = ["Contig", "Start coord", "End coord", "Short name", "Strand"]
 
@@ -763,7 +1058,7 @@ def add_novel():
     if len(selected_ids) >= 1:
         add_to_library(selected_ids)
         clear_cache()
-        flash(f"Successfully added {len(selected_ids)} segments to the library!", "success")
+        flash(f"Successfully added {len(selected_ids)} segment(s) to the library!", "success")
 
     selected_filter_amount = request.form.get("filter_amount", type=int)
 
@@ -813,6 +1108,15 @@ def get_library():
         tilte = f"""Own library"""
 
     regions = ["IGHV", "IGHD", "IGHJ", "IGKV", "IGKJ", "IGLV", "IGLJ", "TRAV", "TRAJ", "TRBV", "TRBD", "TRBJ", "TRGV", "TRGJ", "TRDV", "TRDD", "TRDJ"]
+
+    for seq in sequences:
+        for region in regions:
+            if region in seq["id"]:
+                seq["region"] = region
+                break
+        else:
+            seq["region"] = "Unknown"
+
     result = [{"name": region, "entries": count} for region in regions if (count := sum(region in seq["id"] for seq in sequences)) > 0]
 
     names = [item["name"] for item in result]

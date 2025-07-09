@@ -75,19 +75,19 @@ def get_known_novel_plot(df: dict) -> str:
     return plot_div
 
 
-def get_vdj_plot(pivot_table: pd.DataFrame) -> dict:
+def get_vdj_plot(pivot_table: pd.DataFrame, status: str) -> dict:
     fig = px.bar(
         pivot_table,
         barmode="stack",
-        labels={"value": "Aantal sequenties", "Sample": "Samples", "Region": "Regio's"},
-        title="Aantal sequenties per sample en regio",
+        labels={"value": "Segments count", "Sample": "Samples", "Region": "Regions"},
+        title=f"{status.capitalize()} segment count by sample and genomic region",
         color_discrete_sequence=px.colors.qualitative.Set2
     )
     fig.update_traces(
         textfont_size=12,
         textangle=0,
         textposition="outside",
-        cliponaxis=False
+        cliponaxis=False,
     )
     fig.update_traces(
         hoverinfo="y",
@@ -96,7 +96,7 @@ def get_vdj_plot(pivot_table: pd.DataFrame) -> dict:
     fig.update_layout(
         dragmode=False,
         template="plotly_white",
-        yaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False)
     )
 
     plot_div = plot(
@@ -215,8 +215,8 @@ def get_rss_plot(count_df: pd.DataFrame) -> dict:
             text="Count",
             facet_col="Status",
             facet_col_wrap = 2,
-            title="Found RSS sequence motifs",
-            labels={"Column": "RSS Type", "Count": "Count"},
+            title="Evaluation of motif matches: FIMO results for MEME motif",
+            labels={"Column": "RSS Type", "Count": "Amount"},
             color_discrete_sequence = px.colors.qualitative.Set2
         )
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
@@ -344,16 +344,26 @@ def get_shared_shortname_heatmap_plotly_simple2(df: pd.DataFrame):
 
 def get_library_violin_plot(sequences: list) -> dict:
     df = pd.DataFrame(sequences)
-
+    print(df)
+    region_order = ["IGHV", "IGHD", "IGHJ", "IGKV", "IGKJ", "IGLV", "IGLJ",
+                    "TRAV", "TRAJ", "TRBV", "TRBD", "TRBJ", "TRGV", "TRGJ",
+                    "TRDV", "TRDD", "TRDJ", "Unknown"]
     fig = px.violin(
         df,
+        x="region",
         y="sequence_length",
-        box=True,
+        #box=True,
         points="all",
         labels={"sequence_length": "Sequence length"},
-        title="Distribution of Sequence Lengths",
+        title="Distribution of sequence lengths",
         template="simple_white",
-        color_discrete_sequence=px.colors.qualitative.Set2
+        #color_discrete_sequence=px.colors.qualitative.Set2,
+        category_orders={"region": region_order}
+    )
+
+    fig.update_traces(
+        box_visible=True,
+        box_width=1
     )
 
     fig.update_layout(
@@ -383,6 +393,9 @@ def get_library_violin_plot(sequences: list) -> dict:
 
 
 def get_library_plot(names: list, entries: list, title: str) -> dict:
+    region_order = ["IGHV", "IGHD", "IGHJ", "IGKV", "IGKJ", "IGLV", "IGLJ",
+                    "TRAV", "TRAJ", "TRBV", "TRBD", "TRBJ", "TRGV", "TRGJ",
+                    "TRDV", "TRDD", "TRDJ", "Unknown"]
     fig = px.bar(
         x=names,
         y=entries,
@@ -390,7 +403,8 @@ def get_library_plot(names: list, entries: list, title: str) -> dict:
         title=title,
         text=entries,
         template = 'simple_white',
-        color_discrete_sequence=px.colors.qualitative.Set2
+        #color_discrete_sequence=px.colors.qualitative.Set2,
+        category_orders={"Region": region_order}
 
     )
 
@@ -439,20 +453,20 @@ def plot_count_distribution_bar_chart(df: pd.DataFrame):
         x="Number of occurrences",
         y="Number of genes",
         labels={"Number of occurrences": "Number of occurrences", "Number of genes": "Number of genes"},
-        title="Distribution of Gene Occurrences",
+        title="Number of unique segments supported by N samples",
         color_discrete_sequence=px.colors.qualitative.Set2
     )
 
     fig.update_traces(
-        text=count_distribution["Number of genes"],  # Zet de waarden als tekst in de balken
+        text=count_distribution["Number of genes"],
         textposition="outside",
         hoverinfo="y",
-        hovertemplate="<b>Number of occurrences:</b> %{x}<br><b>Number of genes:</b> %{y}<extra></extra>"
+        hovertemplate="<b>Number of samples:</b> %{x}<br><b>Number of segments:</b> %{y}<extra></extra>"
     )
 
     fig.update_layout(
-        xaxis_title="Number of occurrences",
-        yaxis_title="Number of genes",
+        xaxis_title="Number of samples",
+        yaxis_title="Number of segments",
         xaxis=dict(tickangle=-45, showgrid=False),
         yaxis=dict(showgrid=True),
         dragmode=False,
@@ -602,7 +616,7 @@ def generate_bokeh_segment_div_from_df(df_filtered: pd.DataFrame):
 
         p = figure(
             width=1200, height=250,
-            title=f"{selected_sample} | {region} | {n_contigs} contigs",
+            title=f"{selected_sample} | {region} | {n_contigs} contig(s)",
             x_range=(0, length),
             y_range=(0, 1.3),
             tools="xpan,xwheel_zoom,reset,save",

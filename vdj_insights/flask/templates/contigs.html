@@ -1,0 +1,83 @@
+{% extends 'sharedTemplates/base.html' %}
+{% block title %}Contig composition{% endblock %}
+{% block body %}
+<div class="container">
+  <div class="collapse" id="collapse_info">
+         <div id="infoBox" class="card mt-3 shadow">
+              <button
+              type="button"
+              class="btn p-0 position-absolute"
+              style="top: 0.5rem; right: 0.5rem; color: #6c757d; font-size: 1.25rem; line-height: 1;"
+              data-toggle="collapse"
+              data-target="#collapse_info"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <div class="card-body">
+              <h5 class="card-title">Contigs or scaffolds</h5>
+              <p class="card-text">
+                    <p>The table displays the number of contigs or scaffolds found for each annotated region.</p>
+      <p>- Value of <strong>0</strong> means no flanking genes were detected in that region.</p>
+      <p>- Value of <strong>1</strong> indicates the region was found on a single contig.</p>
+      <p>- Value of <strong>2+</strong> indicates that flanking genes are located on separate contigs, or that the scaffold consists of multiple contigs containing both flanking genes.</p>
+      <p>For detailed contig information about this run, click the <em>&#8594;</em> button next to the sample of interest.</p>
+    </p>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-5">
+            <h2 class="mt-0">Contig composition per annotated region</h2>
+            <a class="btn gap-2" data-toggle="collapse" href="#collapse_info" role="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                </svg>
+            </a>
+        </div>
+
+  <div class="card card-body mb-4 shadow">
+    <div class="row d-flex align-items-center g-3">
+      <div class="col">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search in sample data...">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-warning" type="button" id="amountTable"></button>
+      </div>
+    </div>
+    <div class="table-responsive" style="height: 1000px;">
+      <table class="table table-hover" id="DataTable">
+        <thead>
+          {% if pivot_data|length > 0 %}
+            {% set columns = pivot_data[0].keys()|list %}
+            <tr>
+              {% for col in columns %}
+                <th class="column-header sortable" data-column="{{ col }}">{{ col }}</th>
+              {% endfor %}
+              <th></th>
+            </tr>
+          {% endif %}
+        </thead>
+        <tbody>
+          {% for row in pivot_data %}
+            <tr>
+              {% for col in columns %}
+                <td>{{ row[col] }}</td>
+              {% endfor %}
+              <td>
+                <form method="POST" action="/get_sample_table">
+                  <input type="hidden" name="selected_sample" value="{{ row['Sample'] }}">
+                  <input type="hidden" name="selected_region" value="{{ selected_region }}">
+                  <button type="submit" class="btn btn-primary">&#8594;</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

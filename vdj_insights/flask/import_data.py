@@ -39,6 +39,19 @@ def get_region_data(path: Path):
         return pd.DataFrame()
 
 
+def get_commando_data(path: Path):
+    try:
+        commando_json = open_json(path / "used_commando.json")
+        records = []
+        if commando_json:
+            for command, values in commando_json.items():
+                record = {"Argument": command, "Given argument": values}
+                records.append(record)
+        return pd.DataFrame(records)
+    except FileNotFoundError:
+        return pd.DataFrame()
+
+
 def get_scaffold_data(path: Path):
     try:
         scaffold_json = open_json(path / "ragtag_scaffolds.json")

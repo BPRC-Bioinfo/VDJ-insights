@@ -1,7 +1,133 @@
 {% extends 'sharedTemplates/base.html' %}
-{% block title %}Nieuwe reparatie{% endblock %}
+{% block title %}VDJ-Insights{% endblock %}
 {% block body %}
-<div class="position-absolute top-50 start-50 translate-middle">
-VDJ insights offers a robust framework for assembling and annotating the TCR and BCR regions using long sequence reads from Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT). We designed this tool to uncover both novel and known VDJ segments within T-cell receptors (TCR) or B-cell receptors (BCR). This tool supports analysis across various species, given the availability of a reference genome on the NCBI.
+
+<div class="container">
+   <div class="collapse" id="collapse_info">
+         <div id="infoBox" class="card mt-3 shadow">
+              <button
+              type="button"
+              class="btn p-0 position-absolute"
+              style="top: 0.5rem; right: 0.5rem; color: #6c757d; font-size: 1.25rem; line-height: 1;"
+              data-toggle="collapse"
+              data-target="#collapse_info"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <div class="card-body">
+              <h2 class="card-title">Command-Line Arguments</h2>
+              <p class="card-text">
+
+<section id="cli-arguments">
+  <p>Summary of the required and optional arguments for the V(D)J annotation tool.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Argument</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>-r, --receptor-type</code></td>
+        <td>Type of receptor to analyze. Choices: <code>IG</code> (immunoglobulin) or <code>TR</code> (T-cell receptor). Required when using <code>--default</code>.</td>
+      </tr>
+      <tr>
+        <td><code>-i, --input</code><br>or<br><code>-a, --assembly</code></td>
+        <td>
+          <strong>--input</strong>: directory containing extracted sequence regions (already isolated from an assembly)<br>
+          <strong>--assembly</strong>: directory containing a complete genome assembly
+        </td>
+      </tr>
+      <tr>
+        <td><code>-l, --library</code></td>
+        <td>Path to the FASTA library file containing reference V(D)J segment sequences.</td>
+      </tr>
+      <tr>
+        <td><code>-f, --flanking-genes</code></td>
+        <td>
+          Comma-separated list of flanking genes in JSON format. For a single flanking gene, use <code>"-"</code> as a placeholder.
+        </td>
+      </tr>
+      <tr>
+        <td><code>-s, --species</code></td>
+        <td>Scientific species name (e.g., <em>Homo sapiens</em>).</td>
+      </tr>
+      <tr>
+        <td><code>-M, --metadata</code></td>
+        <td>Path to the metadata file (<code>.xlsx</code>). Download example template <a href="#">here</a>.</td>
+      </tr>
+      <tr>
+        <td><code>-o, --output</code></td>
+        <td>Output directory for the results (default: <code>annotation_results</code>).</td>
+      </tr>
+      <tr>
+        <td><code>-m, --mapping-tool</code></td>
+        <td>Mapping tool(s) to use: <code>minimap2</code>, <code>bowtie</code>, <code>bowtie2</code> (default: all).</td>
+      </tr>
+      <tr>
+        <td><code>-t, --threads</code></td>
+        <td>Number of threads for parallel processing (default: 8).</td>
+      </tr>
+      <tr>
+        <td><code>--default</code></td>
+        <td>Use default settings. Cannot be used together with <code>--flanking-genes</code>.</td>
+      </tr>
+      <tr>
+        <td><code>-S, --scaffolding</code></td>
+        <td>Path to reference genome (FASTA). Only supported for phased assembly files.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-5">
+            <h2 class="mt-0">Used command</h2>
+            <a class="btn gap-2" data-toggle="collapse" href="#collapse_info" role="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                </svg>
+            </a>
+        </div>
+  <div class="card card-body mb-4 shadow">
+    <div class="table-responsive" style="height: 700px;">
+      <table class="table table-hover" id="DataTable">
+        <thead>
+          {% if commando_data|length > 0 %}
+            {% set columns = commando_data[0].keys()|list %}
+            <tr>
+              {% for col in columns %}
+                <th class="column-header sortable" data-column="{{ col }}">{{ col }}</th>
+              {% endfor %}
+              <th></th>
+            </tr>
+          {% endif %}
+        </thead>
+       <tbody>
+        {% for row in commando_data %}
+          <tr>
+            {% for col in columns %}
+              {% if loop.first %}
+                <td><strong>{{ row[col] }}</strong></td>
+              {% else %}
+                <td>{{ row[col] }}</td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
 {% endblock %}
