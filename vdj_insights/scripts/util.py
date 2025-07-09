@@ -148,10 +148,8 @@ def load_config(path: Union[str, Path]) -> dict:
         with open(path) as f:
             config = yaml.safe_load(f)
             file_log.info("Config file loaded successfully")
-            file_log.info("Config file loaded successfully")
             return config
     except Exception as e:
-        file_log.error(f"Failed to load config file: {e}")
         file_log.error(f"Failed to load config file: {e}")
         raise
 
