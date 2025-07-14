@@ -130,7 +130,7 @@ Each annotation report (known or novel) includes the following columns, providin
 | **Insertions**                  | The number of insertions relative to the reference. | `1` |
 | **Deletions**                   | The number of deletions relative to the reference. | `0` |
 | **Mapping tool**                        | The name(s) of the mapping tool(s) used for gene segment annotation. | `Minimap2` |
-| **Function**                    | The functional classification of the segment: "F/ORF" for functional/open reading frame, "P" for potentially functional/open reading frame, or "pseudogene" if an early stop codon is detected.                                               | `F/ORF`                       |
+| **Function**                    | The functional classification of the segment: "Functional" for functional, ORF" for open reading frame, "Pseudo" for potentially functional/open reading frame, or "pseudogene" if an early stop codon is detected.                                               | `Functional`                       |
 | **Status**                      | Indicates whether the gene segment is classified as **Known** or **Novel**. | `Novel`|
 | **Message**                     | A generated message for the segment if stop codons are detected at critical positions. | `The STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement`  |
 | **Population**                  | The population group associated with the sample, if metadata is provided. | `Dutch` |                                                  
