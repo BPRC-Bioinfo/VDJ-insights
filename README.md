@@ -48,7 +48,8 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 ### **Required Arguments:**
 | **Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    | **Description**                                                                                                                                                         | **Example**                                                                    |
 |-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| `-r`,<br> `--receptor-type`                      | Type of receptor to analyze. Choices: `IG` (immunoglobulin) or `TR` (T-cell receptor).<br> **Required when using `--default`.**                                            | `-r TR`                                                                        |
+| `-r`,<br> `--receptor-type`                      | Type of receptor to analyze. Choices: `IG` (immunoglobulin) or `TR` (T-cell receptor).<br>
+            | `-r TR`                                                                        |
 | `-i`,<br> `--input` <br><br> **or** <br><br> `-a`, `--assembly` | Directory containing either extracted sequence regions (`--input`), referring to sequences of the region of interest already isolated from a genome assembly <br><br> **or** <br><Br> complete genome assembly files (`--assembly`).                                                         | `-i /path/to/region` <br> `-a /path/to/assembly`                                 |
 | `-l`,<br> `--library`                            | Path to the FASTA library file containing reference V(D)J segment sequences.                                                                                                     | `-l /path/to/library.fasta`                                                    |
 | `-f`,<br> `--flanking-genes`                     | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is present, use `"-"` as a placeholder for the missing side.              | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'` |
@@ -63,15 +64,13 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 | `-o`,<br> `--output`      | Output directory for the results (Default: `annotation_results`).         | `-o /path/to/output`     |
 | `-m`,<br> `--mapping-tool`| Available mapping tools: `minimap2`, `bowtie`, `bowtie2`. (Default: all).                          | `-m minimap2`            |
 | `-t`,<br> `--threads`     | Number of threads for parallel processing (Default: `8`).                                          | `-t 16`                  |
-| `--default`         | Use default settings (cannot be used with `--flanking-genes`).                                     | `--default`              |
 | `-S`,<br> `--scaffolding` | Path to reference genome (FASTA).<br> **Only supported for phased assembly files.** | `-S /path/to/reference.fasta`|
 
 ### Important notes
 
 - If using the `-i/--input` flag, do not specify `-f/--flanking-genes`, as flanking genes are only required when defining regions of interest from a complete genome assembly using `-a/--assembly`.
 - If using the `-i/--input` flag, input file(s) should be named in the format `<sample-name>_<region>.fasta` and must be located in the indicated directory.
-- If using the `--default` flag, do not specify `-f/--flanking-genes` as they are mutually exclusive.
-- If using the `--default` flag, the annotation tool automatically downloads the appropriate V(D)J gene segment library based on the specified receptor type (`-r`) and species (`-s`). There is no need to define flanking genes manually or provide a local library file.
+- The annotation tool automatically downloads the appropriate V(D)J gene segment library based on the specified receptor type (`-r`) and species (`-s`). There is no need to define flanking genes manually or provide a local library file.
 - If using the `--scaffolding` flag, RagTag scaffolding requires a phased assembly as input. If the input assembly contains contigs of both haplotypes, it should be phased beforehand.
 
 ### Example
