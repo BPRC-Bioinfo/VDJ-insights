@@ -1,0 +1,29 @@
+species: "rhesus_macaque"
+Latin_species: "Macaca mulatta"
+
+
+samples:
+  - "BK063715"
+  - "BK063716"
+  - "BK063717"
+  - "IMGT000059"
+  - "IMGT000073"
+  - "IMGT000076"
+
+#samples:
+ # - "Mmul10"
+
+IG_library: "/path/to/outcomes/validation/Macaca_mulatta/BK063715_IGH/VDJ-INSIGHTS/library/library.fasta"
+TR_library: "/path/to/outcomes/validation/Macaca_mulatta/IMGT000059_TRG/VDJ-INSIGHTS/library/library.fasta"
+
+output_dir: "/path/to/outcomes/validation/Macaca_mulatta/Extracted_lib/"
+base_region_dir: "/path/to/outcomes/validation/Macaca_mulatta/region/"
+digger_output_dir: "/path/to/outcomes/Digger/Macaque_Digger/"
+
+#Both, IG or TR
+region: "IG"
+
+#For compairing
+
+Result_path: "/path/to/outcomes/validation/Macaca_mulatta"
+Digger_path: "/path/to/outcomes/Digger/Macaque_Digger/"
