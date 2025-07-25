@@ -1,0 +1,39 @@
+#Commands Analyses VDJ-Insights
+
+##Before starting:
+Install VDJ-Insights and Digger.
+Make position weight matrices for Digger for the Western lowland gorilla and house mouse: see Before_starting_Digger.txt
+Download HPGC sequences (revision 1):
+
+mkdir outcomes
+Copy the Scripts and libraries folder to outcomes
+Update yaml files to correct locations
+cd Scripts
+
+#Validation scripts
+python VDJ-INSIGHTS-validation.py 			#Runs VDJ-insights and downloads IMGT derived annotations.
+
+mkdir ../validation/species/region                                     #Region directory is needed to run Digger with the correct fasta sequences. These steps should be repeated for every species.
+cp ../validation/species/*/FASTA/* ../validation/species/region/.      #Copy the fasta files to the region directory.
+
+python Digger_run.py 					          #Runs Digger for all regions. The yaml input fille needs to be adjusted for each species.
+python compair_VDJ-Insightsruns.py			#Compares the IMGT curated annotations, with VDJ-Insights and Digger and makes Venn diagrams. The yaml input file needs to be adjusted for each species.
+
+##HPGC data analyses scripts
+
+###Contig analyses:
+vdj_insights annotation -a /path/to/your/downloaded/HPGC_sequences/ -s "Homo sapiens" -r TR -o /path/to/outcomes/Human/contigs/tcr -t 12 -l /path/to/outcomees/libaries/TCR_library.fasta
+vdj_insights annotation -a /path/to/your/downloaded/HPGC_sequences/ -s "Homo sapiens" -r IG -o /path/to/outcomes/Human/contigs/bcr -t 12 -l /path/to/outcomes/libraries/Combi_library_unique.fasta
+
+###Scaffolds analyses:
+vdj_insights annotation -a /path/to/your/downloaded/HPGC_sequences/ -s "Homo sapiens" -r TR -o /path/to/outcomes/Human/scaffolds/tcr -t 12 -S /path/to/your/downloaded/HPGC_sequences/GCA_009914755.4.fasta -l /path/to/outcomees/libaries/TCR_library.fasta
+vdj_insights annotation -a /path/to/your/downloaded/HPGC_sequences/ -s "Homo sapiens" -r IG -o /path/to/outcomes/Human/scaffolds/bcr_IMGT -t 12 -S /path/to/your/downloaded/HPGC_sequences/GCA_009914755.4.fasta -l /path/to/outcomes/libraries/IMGT_library_unique.fasta
+vdj_insights annotation -i /path/to/outcomes/Human/scaffolds/bcr_IMGT/tmp/region/ -s "Homo sapiens" -r IG -o /path/to/outcomes/Human/scaffolds/bcr-VDJbase -t 12 -l /path/to/outcomes/libraries/VDJbase_library_unique.fasta
+vdj_insights annotation -i /path/to/outcomes/Human/scaffolds/bcr_IMGT/tmp/region/ -s "Homo sapiens" -r IG -o /path/to/output/Human/scaffolds/bcr -t 12 -l path/to/outcomes/libraries/Combi_library_unique.fasta
+
+python broken_regions.py						    #Makes figure which compares the completeness of the contigs and scaffolds. Change the path at the last line.
+python heatmap_per_region.py						#Makes figures which shows per haplotype which segments are present. It uses the script Check_dup_haps.py to find haplotypes which have identical annotated segments. Needs to run separately for IG and TCR region. Change input variables at the bottom of the document.
+
+python compair_VDJ-Insightsruns.py			#Compares the different VDJ-Insights runs. Uses the config_runs.yaml. 
+python RSS_figure-maker.py					    #Makes figure of RSS regions. Adjust the base variable. 
+Python CDR_figure-maker.py					    #Makes figure of CDR regions. Adjust BASE_DIR and CLUSTALO variables. 
