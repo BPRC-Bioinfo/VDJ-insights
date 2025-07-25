@@ -144,7 +144,7 @@ or
 ```bash
 vdj_insights html -i /path/to/output --show
 ```
-# Example outcome - an overview of VDJ-Insights web-based application interface
+# Example outcome - An overview of VDJ-Insights web-based application interface
 <img width="2558" height="629" alt="Webbased-application" src="https://github.com/user-attachments/assets/5894f156-52c4-4a90-867c-d3266dd60442" />
 The top of the interface contains several dropdown menus providing access to various analytical features. These include in the Report drop-down with visual summaries of known and novel gene segment annotations, principal component analyses, and dendrograms illustrating relationships between samples based on gene segment composition. The Annotation tab displays detailed information per sample, including annotated segments, their genomic locations on contigs, and segment occurrences across samples. The contig composition (A) visualization depicts the arrangement of V (blue), D (red), and J (green) segments, with novel segments indicated by shorter lines. Dark vertical lines represent contig boundaries. In this example, the IGH and IGK regions span multiple contigs, whereas the IGL region is confined to a single contig. The Tool tab enables comparative analyses across multiple samples. Users can select specific samples via dropdown menus (B), after which a Venn diagram illustrates the overlap of annotated gene segments among the chosen samples. Here, the IGL regions of haplotypes 1 and 2 from an individual are compared. Additionally, the Library tab summarizes statistics of the reference library used for annotation and allows users to incorporate newly identified gene segments into the library.
 
