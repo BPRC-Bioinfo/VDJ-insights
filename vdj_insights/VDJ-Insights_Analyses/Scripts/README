@@ -16,7 +16,7 @@ python VDJ-INSIGHTS-validation.py 			#Runs VDJ-insights and downloads IMGT deriv
 mkdir ../validation/species/region                                     #Region directory is needed to run Digger with the correct fasta sequences. These steps should be repeated for every species.
 cp ../validation/species/*/FASTA/* ../validation/species/region/.      #Copy the fasta files to the region directory.
 
-python Digger_run.py 					          #Runs Digger for all regions. The yaml input fille needs to be adjusted for each species.
+python Digger_run.py 					          #Runs Digger for all regions. The yaml input file needs to be adjusted for each species.
 python compair_VDJ-Insightsruns.py			#Compares the IMGT curated annotations, with VDJ-Insights and Digger and makes Venn diagrams. The yaml input file needs to be adjusted for each species.
 
 ##HPGC data analyses scripts
