@@ -1,1 +1,6 @@
-These libary files are were used for the analyses for the article: VDJ-Insights: simplifying the annotation of genomic IG and TCR regions
+These libary files were used for the analyses for the article VDJ-Insights: simplifying the annotation of genomic IG and TCR regions.
+
+The TCR and IMGT library were sourced from the IMGT database (release 2025-04-30).
+The VDJbase libary was sourced from  https://vdjbase.org (assessed 2025-04-30).
+
+For the IG libraries duplicated sequences were removed. 
