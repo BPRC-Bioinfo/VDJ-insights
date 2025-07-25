@@ -3,7 +3,7 @@
 ##Before starting:
 Install VDJ-Insights and Digger.
 Make position weight matrices for Digger for the Western lowland gorilla and house mouse: see Before_starting_Digger.txt
-Download HPGC sequences (revision 1):
+Download HPGC sequences (revision 1): https://data.humanpangenome.org/assemblies
 
 mkdir outcomes
 Copy the Scripts and libraries folder to outcomes
