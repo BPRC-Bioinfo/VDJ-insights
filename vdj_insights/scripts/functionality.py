@@ -295,44 +295,47 @@ def main_functionality(immune_type, species, threads: int, verbose: bool) -> Non
     if not Path(library_file).is_file():
         imgt_main(species=species, immune_type=immune_type, output_dir=output_base, frame_selection="L-PART1+L-PART2", simple_headers_bool=False)
 
-    write_l_region_fasta_files(library_file, library_path)
+    if Path(library_file).is_file():
+        write_l_region_fasta_files(library_file, library_path)
 
-    data_V, data_D, data_J = open_files(cwd)
+        data_V, data_D, data_J = open_files(cwd)
 
-    if not "Function" in data_V.columns and not "Function" in data_D.columns and not "Function" in data_J.columns:
-        combined_results = data_D
+        if not "Function" in data_V.columns and not "Function" in data_D.columns and not "Function" in data_J.columns:
+            combined_results = data_D
 
-        # V-REGION
-        v_grouped = data_V.groupby("Region")
-        max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
-        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-            futures = [
-                executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose)
-                for locus_gene_type, group_locus in v_grouped
-            ]
+            # V-REGION
+            v_grouped = data_V.groupby("Region")
+            max_jobs = calculate_available_resources(max_cores=threads, threads=1, memory_per_process=2)
+            with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+                futures = [
+                    executor.submit(proces_v_segment, locus_gene_type, group_locus, output_base, library_path, locus_fasta_path, verbose)
+                    for locus_gene_type, group_locus in v_grouped
+                ]
 
-            with tqdm(total=v_grouped.ngroups, desc="Processing functionality V segments", unit='task') as pbar:
-                for future in as_completed(futures):
-                    result = future.result()
-                    combined_results = pd.concat([combined_results, result])
-                    pbar.update(1)
+                with tqdm(total=v_grouped.ngroups, desc="Processing functionality V segments", unit='task') as pbar:
+                    for future in as_completed(futures):
+                        result = future.result()
+                        combined_results = pd.concat([combined_results, result])
+                        pbar.update(1)
 
-        #J-REGION
-        j_grouped = data_J.groupby("Region")
-        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
-            futures = [
-                executor.submit(process_j_group, region, group_locus)
-                for region, group_locus in j_grouped
-            ]
-            with tqdm(total=j_grouped.ngroups, desc="Processing functionality J segments", unit='task') as pbar:
-                for future in as_completed(futures):
-                    group_result = future.result()
-                    combined_results = pd.concat([combined_results, group_result])
-                    pbar.update(1)
+            #J-REGION
+            j_grouped = data_J.groupby("Region")
+            with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+                futures = [
+                    executor.submit(process_j_group, region, group_locus)
+                    for region, group_locus in j_grouped
+                ]
+                with tqdm(total=j_grouped.ngroups, desc="Processing functionality J segments", unit='task') as pbar:
+                    for future in as_completed(futures):
+                        group_result = future.result()
+                        combined_results = pd.concat([combined_results, group_result])
+                        pbar.update(1)
 
-        combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["Pseudo", ""], axis=1, result_type="expand")
+            combined_results[["Function", "Function_messenger"]] = combined_results.apply(lambda row: check_functional_protein(row["Segment"], row["L-PART"], row["Target sequence"], row['Strand'], row["Protein"], row["DONOR-SPLICE"], row["ACCEPTOR-SPLICE"]) if pd.notna(row["Protein"]) else ["Pseudo", ""], axis=1, result_type="expand")
 
-        mask = combined_results["Segment"].isin(["D"])
-        combined_results.loc[mask, ["Function", "Function_messenger"]] = ["Functional", ""]
-        save_results(combined_results, cwd)
+            mask = combined_results["Segment"].isin(["D"])
+            combined_results.loc[mask, ["Function", "Function_messenger"]] = ["Functional", ""]
+            save_results(combined_results, cwd)
+    else:
+        console_log.error(f"L-part of species not found in IMGT database or error in IMGT download.")
 
