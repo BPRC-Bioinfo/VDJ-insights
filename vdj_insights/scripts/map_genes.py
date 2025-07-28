@@ -40,24 +40,30 @@ def download_flanking_genes(gene: str, path: Path, species: str, verbose: bool) 
     path = Path(path)
     output_zip = path / f"{gene}.zip"
     output_fna = path / f"{gene}.fna"
-    if not output_fna.is_file():
-        command = f'datasets download gene symbol {gene} --taxon "{species}" --include gene --filename {output_zip}'
 
+    if not output_fna.is_file():
         max_retries = 10
         retry_delay = 5
-        for attempt in range(1, max_retries + 1):
-            try:
-                subprocess.run(command,
-                               shell=True,
-                               check=True,
-                               stdout=subprocess.PIPE if not verbose else None,
-                               stderr=subprocess.PIPE if not verbose else None,
-                               text=True)
+        success = False
+        for taxon in [f"--taxon '{species}'", ""]:
+            command = f'datasets download gene symbol {gene} {taxon} --include gene --filename {output_zip}'
+            for attempt in range(1, max_retries + 1):
+                try:
+                    results = subprocess.run(command,
+                                   shell=True,
+                                   check=True,
+                                   stdout=subprocess.PIPE if not verbose else None,
+                                   stderr=subprocess.PIPE if not verbose else None,
+                                   text=True)
+                    if output_zip.is_file() and output_zip.stat().st_size > 0:
+                        success = True
+                        break
+                except subprocess.CalledProcessError as e:
+                    print(e.stderr)
+                    if attempt < max_retries:
+                        time.sleep(retry_delay)
+            if success:
                 break
-            except subprocess.CalledProcessError as e:
-                print(e.stderr)
-                if attempt < max_retries:
-                    time.sleep(retry_delay)
 
         unzip_file(output_zip, path)
 
