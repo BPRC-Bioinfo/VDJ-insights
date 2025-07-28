@@ -114,25 +114,32 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
     sam = cwd / "tmp" / "mapped_genes" / assembly_fasta.with_suffix(".sam").name
     extraction_regions = get_positions_and_name(sam, first, second)
     for contig, start, end, flanking_gene_one, flanking_gene_second in extraction_regions:
-        Extraction_status = "extracted" if first == flanking_gene_one and second == flanking_gene_second else "fragmented"
+        extraction_status = "extracted" if first == flanking_gene_one and second == flanking_gene_second else "fragmented"
 
-        output_file = directory / f"{sample}__{flanking_gene_one}__{flanking_gene_second}__{contig}__{Extraction_status}__{immuno_region}.fasta"
+        output_file = directory / f"{sample}__{flanking_gene_one}__{flanking_gene_second}__{contig}__{extraction_status}__{immuno_region}.fasta"
         if not output_file.is_file():
-            cmd = f"samtools faidx {assembly_fasta} {contig}:{start}-{end}"
-            result = subprocess.run(
-                cmd,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True
-            )
-            concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
+            try:
+                cmd = f"samtools faidx {assembly_fasta} {contig}:{start}-{end}"
+                result = subprocess.run(
+                    cmd,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=True
+                )
+                concatenated_sequence = "".join(result.stdout.strip().splitlines()[1:])
 
-            with open(output_file, 'w') as file:
-                file.write(f">{output_file.stem}\n{str(Seq(concatenated_sequence))}")
+                with open(output_file, 'w') as file:
+                    file.write(f">{output_file.stem}\n{str(Seq(concatenated_sequence))}")
 
-            n_contigs = len(list(re.finditer(r'N{100,}', str(Seq(concatenated_sequence)).upper()))) + 1
+                n_contigs = len(list(re.finditer(r'N{100,}', str(Seq(concatenated_sequence)).upper()))) + 1
+            except Exception as e:
+                console_log.error(f"Error processing SAM file: {sam.stem} | Region: {immuno_region} | Error: {e}")
+                extraction_status = "error"
+                concatenated_sequence = ""
+                n_contigs = 0
+
             log_data = {
                 "Region": immuno_region,
                 "Contig": contig,
@@ -140,7 +147,7 @@ def extract(cwd: Union[str, Path], assembly_fasta: Union[str, Path], directory :
                 "3'-flanking gene": flanking_gene_second,
                 "5 coords": int(start),
                 "3 coords": int(end),
-                "Extraction status": Extraction_status.capitalize(),
+                "Extraction status": extraction_status.capitalize(),
                 "Assembly": str(assembly_fasta),
                 "Assembly file": str(assembly_fasta.name),
                 "Output": str(output_file),
