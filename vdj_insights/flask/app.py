@@ -456,7 +456,7 @@ def get_sequence_table():
     df = get_annotation_data()
 
     filtered_df = df[df["Target name"] == reference][
-        ["Sample", "Short name", "Start coord", "End coord", "Status", "SNPs", "Insertions", "Deletions", "Library sequence", "Target sequence", "Library name"]
+        ["Sample", "Short name", "Start coord", "End coord", "Status", "SNPs", "Insertions", "Deletions", "Library sequence", "Target sequence", "Library name", "Target name"]
     ].copy()
     return render_template("sequence_list.html",reference=reference, data_table=filtered_df, zip=zip)
 
@@ -1073,12 +1073,16 @@ def add_novel():
         grouped_extra[["SNPs", "Insertions", "Deletions"]] = grouped_extra[["SNPs", "Insertions", "Deletions"]].astype(int)
         grouped_extra["% identity"] = grouped_extra["% identity"].round(2)
 
+        meta_columns = ["Short name", "Target name", "Library name", "Library sequence", "Target sequence"]
+        meta_data = df_unique[meta_columns].drop_duplicates(subset=["Short name"])
+
         pivot_data = pd.merge(grouped_data, grouped_extra, on="Short name")
+        pivot_data = pd.merge(pivot_data, meta_data, on="Short name")
         pivot_data = pivot_data.sort_values(by="Count", ascending=False)
 
         if selected_filter_amount:
-                pivot_data = pivot_data[pivot_data["Count"] >= selected_filter_amount]
-
+            pivot_data = pivot_data[pivot_data["Count"] >= selected_filter_amount]
+        print(pivot_data)
         plot_count_distribution = plot_count_distribution_bar_chart(pivot_data)
         return render_template("add_to_library.html",
                                plot_count_distribution=plot_count_distribution,
@@ -1151,4 +1155,7 @@ def clear_cache():
 def get_annotation_data() -> pd.DataFrame:
     df = pd.read_excel(BASE_PATH / "annotation/annotation_report_all.xlsx")
     return df
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5004)
 
