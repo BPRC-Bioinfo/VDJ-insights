@@ -1,5 +1,5 @@
 {% extends 'sharedTemplates/base.html' %}
-{% block title %}Nieuwe reparatie{% endblock %}
+    {% block title %}MSA {% endblock %}
 {% block body %}
 <style>
     .alignment-output pre {
@@ -28,10 +28,36 @@
             >
               &times;
             </button>
-            <div class="card-body">
-              <h5 class="card-title">Information</h5>
-              <p class="card-text">dit is info</p>
-            </div>
+
+
+             <div class="card-body">
+  <h5 class="card-title">Information</h5>
+  <p class="card-text">
+    This panel displays a multiple sequence alignment (MSA) of a selected gene segment across multiple samples.<br><br>
+    Each row represents a sample or reference sequence. The alignment uses symbols to highlight differences relative to the reference:
+    <ul>
+      <li>
+        <strong>No difference</strong><br>
+        <code>Ref:  A C G T A<br>Seg:  - - - - -</code><br>
+      </li>
+      <li>
+        <strong>SNP (Single Nucleotide Polymorphism)</strong><br>
+        <code>Ref:  A C G T A<br>Seg:  - G - - -</code><br>
+      </li>
+      <li>
+        <strong>Deletion in the segment</strong><br>
+        <code>Ref:  A C G T A<br>Seg:  - - * - -</code><br>
+      </li>
+      <li>
+        <strong>Insertion in the segment</strong><br>
+        <code>Ref:  A C - T A<br>Seg:  - - G - -</code><br>
+      </li>
+    </ul>
+  </p>
+</div>
+
+
+
           </div>
         </div>
 

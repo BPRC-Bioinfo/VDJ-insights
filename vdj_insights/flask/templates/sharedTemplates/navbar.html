@@ -14,8 +14,8 @@
                     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Report</a>
                     <div class="dropdown-menu">
                         <a class="nav-link {% if request.path == '/get_report' %}active{% endif %} dropdown-item" href="/get_report">Found segment count</a>
-                        <a class="nav-link {% if request.path == '/get_report' %}active{% endif %} dropdown-item" href="/get_pca">Principal component analysis</a>
-                        <a class="nav-link {% if request.path == '/get_report' %}active{% endif %} dropdown-item" href="/get_dendrogram">Dendrogram</a>
+                        <a class="nav-link {% if request.path == '/get_pca' %}active{% endif %} dropdown-item" href="/get_pca">Principal component analysis</a>
+                        <a class="nav-link {% if request.path == '/get_dendrogram' %}active{% endif %} dropdown-item" href="/get_dendrogram">Dendrogram</a>
 
                     </div>
                 </li>
@@ -23,7 +23,7 @@
                     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Annotation</a>
                     <div class="dropdown-menu">
                         <a class="nav-link {% if request.path == '/get_sample_table' %}active{% endif %} dropdown-item" href="/get_sample_table">Sampels</a>
-                        <a class="nav-link {% if request.path == '/get_rss' %}active{% endif %} dropdown-item" href="/get_count_contigs">Contig composition</a>
+                        <a class="nav-link {% if request.path == '/get_count_contigs' %}active{% endif %} dropdown-item" href="/get_count_contigs">Contig composition</a>
                         <a class="nav-link {% if request.path == '/sequence_list' %}active{% endif %} dropdown-item" href="/sequence_list">Segment frequency</a>
                         <a class="nav-link {% if request.path == '/unique_sequences' %}active{% endif %} dropdown-item" href="/unique_sequences">Segments unique to samples</a>
                         <a class="nav-link {% if request.path == '/get_rss' %}active{% endif %} dropdown-item" href="/get_rss">Recombination signal sequences</a>

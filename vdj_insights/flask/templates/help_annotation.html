@@ -21,33 +21,34 @@
                     <th>Example</th>
                 </tr>
             </thead>
-           <tbody>
-                <tr><td><strong>Sample</strong></td><td>The name of the sample</td><td><code>Sample_001</code></td></tr>
-                <tr><td><strong>Haplotype</strong></td><td>The haplotype</td><td><code>1</code></td></tr>
-                <tr><td><strong>Region</strong></td><td>The region type</td><td><code>IGHV</code></td></tr>
-                <tr><td><strong>Segment</strong></td><td>The gene segment</td><td><code>V</code></td></tr>
-                <tr><td><strong>Start coord</strong></td><td>The start coordinate on the contig</td><td><code>12345</code></td></tr>
-                <tr><td><strong>End coord</strong></td><td>The end coordinate on the contig</td><td><code>12789</code></td></tr>
-                <tr><td><strong>Strand</strong></td><td>The orientation of the segment: <code>+</code> for 5' to 3' and <code>-</code> for 3' to 5'</td><td><code>+</code></td></tr>
-                <tr><td><strong>Library name</strong></td><td>The name of the closest reference gene segment for the identified segment</td><td><code>IGHV3-23*01</code></td></tr>
-                <tr><td><strong>Target name</strong></td><td>The name assigned to the new segment, derived from the closest reference, with "like" appended to indicate similarity</td><td><code>IGHV3-23-like</code></td></tr>
-                <tr><td><strong>Short name</strong></td><td>The gene name (IMGT gene name nomenclature)</td><td><code>IGHV3*01</code></td></tr>
-                <tr><td><strong>Similar references</strong></td><td>Other reference gene segments with the same start and end coordinates; the best match is chosen based on the mutation count and reference name</td><td><code>IGHV3-33*02</code></td></tr>
-                <tr><td><strong>Target sequence</strong></td><td>The DNA sequence of the identified "Old name-like" segment</td><td><code>ATGGTGCAAGC...</code></td></tr>
-                <tr><td><strong>Library sequence</strong></td><td>The DNA sequence of the closest reference gene segment</td><td><code>ATGGTGCAAAC...</code></td></tr>
-                <tr><td><strong>Mismatches</strong></td><td>The total number of mismatches between the identified segment and the reference</td><td><code>3</code></td></tr>
-                <tr><td><strong>% Mismatches of total alignment</strong></td><td>The percentage of mismatches relative to the total length of the alignment between the identified segment and the reference</td><td><code>1.5%</code></td></tr>
-                <tr><td><strong>% identity</strong></td><td>The percentage of identical bases between the identified segment and the reference across the entire alignment</td><td><code>98.5%</code></td></tr>
-                <tr><td><strong>BTOP</strong></td><td>BLAST traceback string that describes the exact location of substitutions, insertions, and deletions in the alignment</td><td><code>10A5G3T</code></td></tr>
-                <tr><td><strong>SNPs</strong></td><td>The number of single nucleotide polymorphisms (SNPs) detected in the alignment</td><td><code>2</code></td></tr>
-                <tr><td><strong>Insertions</strong></td><td>The number of insertions in the identified segment relative to the reference</td><td><code>1</code></td></tr>
-                <tr><td><strong>Deletions</strong></td><td>The number of deletions in the identified segment relative to the reference</td><td><code>0</code></td></tr>
-                <tr><td><strong>Mapping tool</strong></td><td>The name of the mapping tool used for the annotation</td><td><code>Minimap2</code></td></tr>
-                <tr><td><strong>Function</strong></td><td>The functional classification of the segment: "F/ORF" for functional/open reading frame, "P" for potentially functional/open reading frame, or "pseudogene" if an early stop codon is detected</td><td><code>F/ORF</code></td></tr>
-                <tr><td><strong>Status</strong></td><td>Indicates whether the segment is classified as <strong>Known</strong> or <strong>Novel</strong></td><td><code>Novel</code></td></tr>
-                <tr><td><strong>Message</strong></td><td>A generated message for the segment if stop codons are detected in critical positions</td><td><code>the STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement</code></td></tr>
-                <tr><td><strong>Population</strong></td><td>The population group associated with the sample, if metadata is provided</td><td><code>Dutch</code></td></tr>
+          <tbody>
+              <tr><td><strong>Sample</strong></td><td>The name of the sample.</td><td><code>Sample_001</code></td></tr>
+              <tr><td><strong>Haplotype</strong></td><td>The haplotype ID (maternal or paternal).</td><td><code>1</code></td></tr>
+              <tr><td><strong>Region</strong></td><td>The annotated region.</td><td><code>IGHV</code></td></tr>
+              <tr><td><strong>Segment</strong></td><td>The gene segment type.</td><td><code>V</code></td></tr>
+              <tr><td><strong>Start coord</strong></td><td>The start coordinate on the annotated contig.</td><td><code>12345</code></td></tr>
+              <tr><td><strong>End coord</strong></td><td>The end coordinate on the annotated contig.</td><td><code>12789</code></td></tr>
+              <tr><td><strong>Strand</strong></td><td>Segment orientation: <code>+</code> for 5' to 3', <code>-</code> for 3' to 5'.</td><td><code>+</code></td></tr>
+              <tr><td><strong>Library name</strong></td><td>The closest reference gene segment name associated with the identified segment.</td><td><code>IGHV3-23*01</code></td></tr>
+              <tr><td><strong>Target name</strong></td><td>The name assigned to the novel gene segment, based on the closest reference, with <code>-like</code> appended.</td><td><code>IGHV3-23-like</code></td></tr>
+              <tr><td><strong>Short name</strong></td><td>The gene name, according to IMGT nomenclature.</td><td><code>IGHV3*01</code></td></tr>
+              <tr><td><strong>Similar references</strong></td><td>Other reference gene segments sharing the same coordinates; the best match is chosen based on mutation count and name.</td><td><code>IGHV3-33*02</code></td></tr>
+              <tr><td><strong>Target sequence</strong></td><td>The nucleotide sequence of the novel gene segment.</td><td><code>ATGGTGCAAGC...</code></td></tr>
+              <tr><td><strong>Library sequence</strong></td><td>The nucleotide sequence of the closest reference segment.</td><td><code>ATGGTGCAAAC...</code></td></tr>
+              <tr><td><strong>Mismatches</strong></td><td>Total mismatches between novel and reference segment.</td><td><code>3</code></td></tr>
+              <tr><td><strong>% Mismatches of total alignment</strong></td><td>Percentage of mismatches over the full alignment length.</td><td><code>1.5%</code></td></tr>
+              <tr><td><strong>% identity</strong></td><td>Percentage of identical bases across the alignment.</td><td><code>98.5%</code></td></tr>
+              <tr><td><strong>BTOP</strong></td><td>BLAST traceback string showing exact mutations (substitutions, insertions, deletions).</td><td><code>10A5G3T</code></td></tr>
+              <tr><td><strong>SNPs</strong></td><td>Number of single nucleotide polymorphisms (SNPs) detected.</td><td><code>2</code></td></tr>
+              <tr><td><strong>Insertions</strong></td><td>Number of insertions relative to the reference.</td><td><code>1</code></td></tr>
+              <tr><td><strong>Deletions</strong></td><td>Number of deletions relative to the reference.</td><td><code>0</code></td></tr>
+              <tr><td><strong>Mapping tool</strong></td><td>The tool used for segment mapping.</td><td><code>Minimap2</code></td></tr>
+              <tr><td><strong>Function</strong></td><td>The segment's classification: Functional, ORF, or Pseudogene.</td><td><code>Functional</code></td></tr>
+              <tr><td><strong>Status</strong></td><td>Indicates if the segment is <strong>Known</strong> or <strong>Novel</strong>.</td><td><code>Novel</code></td></tr>
+              <tr><td><strong>Message</strong></td><td>Annotation notes, e.g., presence of stop codons.</td><td><code>The STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement</code></td></tr>
+              <tr><td><strong>Population</strong></td><td>Population group associated with the sample (if available).</td><td><code>Dutch</code></td></tr>
             </tbody>
+
         </table>
     </div>
 </div>

@@ -28,9 +28,21 @@
               &times;
             </button>
             <div class="card-body">
-              <h5 class="card-title">Information</h5>
-              <p class="card-text">dit is info</p>
-            </div>
+  <h5 class="card-title">Information</h5>
+  <p class="card-text">
+This panel allows you to explore novel gene segments discovered across multiple samples, and optionally add them to the segment library.
+    The bar chart shows how many novel segments are supported by a given number of samples. Segments found in <strong>more than 2 samples</strong> are generally considered reliable and are more likely to represent true novel alleles, rather than sequencing or assembly artifacts.
+    The table below lists each novel segment with:
+    <ul>
+      <li><strong>Reference</strong>: Assigned name of the novel segment</li>
+      <li><strong>% identity</strong>: Sequence similarity to the closest known reference</li>
+      <li><strong>SNPs / Insertions / Deletions</strong>: Number of differences from the closest reference</li>
+      <li><strong>Found in N Samples</strong>: Number of samples in which the segment was found</li>
+    </ul>
+    Use the filter to select segments supported by a minimum number of samples, then select entries and click “Add to library” to include them to the library.
+  </p>
+</div>
+
           </div>
         </div>
 
@@ -95,6 +107,7 @@
                                 <th class="column-header sortable" data-column="Insertions">Insertions</th>
                                 <th class="column-header sortable" data-column="Deletions">Deletions</th>
                                 <th class="column-header sortable" data-column="Amount">Found in N Samples</th>
+                                <th></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -110,6 +123,18 @@
                                     <td>{{ row["Insertions"] }}</td>
                                     <td>{{ row["Deletions"] }}</td>
                                     <td>{{ row["Count"] }}</td>
+                                    <td>
+                                        <form action="{{ url_for('msa_sequence') }}" method="POST">
+                                            <input type="hidden" name="reference" value="{{ row["Target name"] }}">
+                                            <input type="hidden" name="allele" value="{{ row["Library name"] }}">
+
+                                            <input type="hidden" name="query" value="{{ row["Library sequence"] }}">
+                                            <input type="hidden" name="subject" value="{{ row["Target sequence"] }}">
+                                            <button type="submit" class="btn btn-primary">
+                                                MSA
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
