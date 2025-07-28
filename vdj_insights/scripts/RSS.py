@@ -58,6 +58,7 @@ def run_meme(locus_fasta_file_name: Path, meme_output: Path, rss_length: int, su
                        stderr=subprocess.PIPE if not verbose else None
                        )
 
+
 @log_error()
 def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path, verbose: bool) -> None:
     """
@@ -76,6 +77,7 @@ def run_fimo(fimo_output: Path, meme_output: Path, locus_fasta_file_name: Path, 
                        stdout=subprocess.PIPE if not verbose else None,
                        stderr=subprocess.PIPE if not verbose else None
                        )
+
 
 def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
     """
@@ -98,7 +100,7 @@ def get_fimo_output(fimo_intput: Path) -> pd.DataFrame:
     return df_fimo
 
 
-def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
+def process_group_locus(group_locus, df_fimo, direction, rss_length):
     """
     Processes each group locus and updates it with FIMO results.
 
@@ -115,11 +117,6 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
         df_match = df_fimo[df_fimo["index_group_df"] == index_segment]
         is_present = not df_match.empty and df_match["score"].values[0] > 0
 
-        if rss_layout == "end_plus":
-            direction = 3
-        elif rss_layout == "start_minus":
-            direction = 5
-
         group_locus.loc[index_segment, f"{direction}'-RSS"] = str(is_present)
         group_locus[f"{direction}'-RSS"] = group_locus[f"{direction}'-RSS"].astype(str)
 
@@ -127,7 +124,7 @@ def process_group_locus(group_locus, df_fimo, rss_layout, rss_length):
             group_locus.loc[index_segment, f"{direction}'-p-value"] = df_match["p-value"].values[0]
             group_locus.loc[index_segment, f"{direction}'-q-value"] = df_match["q-value"].values[0]
             group_locus.loc[index_segment, f"{direction}'-score"] = df_match["score"].values[0]
-            group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched_sequence"].values[0].upper()
+            #group_locus.loc[index_segment, f"{direction}'-RSS seq"] = df_match["matched_sequence"].values[0].upper()
         else:
             group_locus.loc[index_segment, "Function"] = "Pseudo"
             group_locus.loc[index_segment, "Function_messenger"] = "No functional RSS found"
@@ -201,8 +198,10 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verb
                 rss_layout = rss_variants[rss_variant][strand]
                 if rss_layout == "end_plus":
                     start_rss, end_rss = [end_coord_segment, (end_coord_segment + rss_length)]
+                    direction = 3
                 elif rss_layout == "start_minus":
                     start_rss, end_rss = [(start_coord_segment - rss_length), start_coord_segment]
+                    direction = 5
 
                 rss = record.seq[start_rss:end_rss].replace("-", "N").upper()
                 if rss:
@@ -211,7 +210,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verb
 
                     seq_l, spacer, seq_r = rss[0:mer1], rss[mer1:-mer2], rss[-mer2:]
 
-                    check = check_conserved(seq_l, seq_r, mer1, mer2, rss_layout,  row['Target name'])
+                    #check = check_conserved(seq_l, seq_r, mer1, mer2, rss_layout,  row['Target name'])
 
                     locus_fasta_file.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
 
@@ -227,6 +226,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verb
                         locus_fasta_file2.write(f">{row['Target name']}__{index_segment}\n{seq_l}{spacer}{seq_r}\n")
                         sum_seq = sum_seq + 1
                         sum_lenght_seq += len(rss)
+                    group_locus.loc[index_segment, f"{direction}'-RSS seq"] = str(rss)
 
         if sum_seq > 1:
             meme_output = cwd / output_base / "meme_output" / f"{locus_type}_{rss_variant}"
@@ -238,7 +238,7 @@ def process_variant(locus_gene_type, group_locus, config, output_base, cwd, verb
             run_fimo(fimo_output=fimo_output, meme_output=meme_output, locus_fasta_file_name=locus_fasta_file_name, verbose=verbose)
 
             df_fimo = get_fimo_output(fimo_intput=fimo_output)
-            group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, rss_layout=rss_layout, rss_length=rss_length)
+            group_locus = process_group_locus(group_locus=group_locus, df_fimo=df_fimo, direction=direction, rss_length=rss_length)
     combined_results = pd.concat([combined_results, group_locus])
     return combined_results
 
@@ -272,7 +272,6 @@ def main_rss(threads: int, verbose: bool = False) -> None:
 
     known = combined_df[combined_df["Status"] == "Known"]
     novel = combined_df[combined_df["Status"] == "Novel"]
-
 
     if not combined_df.empty:
         combined_df = combined_df.sort_values(by=['Sample', 'Region', 'Start coord'], ascending=[True, True, True])
