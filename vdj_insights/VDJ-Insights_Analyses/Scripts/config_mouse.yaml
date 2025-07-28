@@ -1,0 +1,27 @@
+species: "house_mouse"
+Latin_species: "Mus musculus"
+
+samples:
+  - "BK063712"
+  - "BK063713"
+  - "BK063714"
+  - "IMGT000117"
+  - "IMGT000126"
+  - "IMGT000134"
+  - "IMGT000188"
+  - "IMGT000211"
+
+IG_library: "/path/to/outcomes/validation/Mus_musculus/BK063712_IGH/VDJ-INSIGHTS/library/library.fasta"
+TR_library: "/path/to/outcomes/validation/Mus_musculus/BK063712_IGH/VDJ-INSIGHTS/library/library.fasta"
+
+output_dir: "/path/to/outcomes/validation/Mus_musculus/library/Extracted_lib/"
+base_region_dir: "/path/to/outcomes/validation/Mus_musculus/region/"
+digger_output_dir: "/path/to/outcomes/Digger/Mouse_Digger/"
+
+#Both, IG or TR
+region: "IG"
+
+#For compairing
+Result_path: "/path/to/outcomes/validation/Mus_musculus/"
+Digger_path: "/path/to/outcomes/Digger/Mouse_Digger/"
+

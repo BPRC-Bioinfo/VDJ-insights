@@ -48,7 +48,7 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 ### **Required Arguments:**
 | **Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    | **Description**                                                                                                                                                         | **Example**                                                                    |
 |-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| `-r`,<br> `--receptor-type`                      | Type of receptor to analyze. Choices: `IG` (immunoglobulin) or `TR` (T-cell receptor).<br> **Required when using `--default`.**                                            | `-r TR`                                                                        |
+| `-r`,<br> `--receptor-type`                      | Type of receptor to analyze. Choices: `IG` (immunoglobulin) or `TR` (T-cell receptor).<br> | `-r TR`                                                                        |
 | `-i`,<br> `--input` <br><br> **or** <br><br> `-a`, `--assembly` | Directory containing either extracted sequence regions (`--input`), referring to sequences of the region of interest already isolated from a genome assembly <br><br> **or** <br><Br> complete genome assembly files (`--assembly`).                                                         | `-i /path/to/region` <br> `-a /path/to/assembly`                                 |
 | `-l`,<br> `--library`                            | Path to the FASTA library file containing reference V(D)J segment sequences.                                                                                                     | `-l /path/to/library.fasta`                                                    |
 | `-f`,<br> `--flanking-genes`                     | Comma-separated list of flanking genes provided as key-value pairs in JSON format. If only one flanking gene is present, use `"-"` as a placeholder for the missing side.              | `-f '{"IGH": ["PACS2", "-"], "IGK": ["RPIA", "PAX8"], "IGL": ["GANZ", "TOP3B"]}'` |
@@ -63,15 +63,13 @@ python vdj-insights annotation -a <assembly_directory> | -i <region_directory> -
 | `-o`,<br> `--output`      | Output directory for the results (Default: `annotation_results`).         | `-o /path/to/output`     |
 | `-m`,<br> `--mapping-tool`| Available mapping tools: `minimap2`, `bowtie`, `bowtie2`. (Default: all).                          | `-m minimap2`            |
 | `-t`,<br> `--threads`     | Number of threads for parallel processing (Default: `8`).                                          | `-t 16`                  |
-| `--default`         | Use default settings (cannot be used with `--flanking-genes`).                                     | `--default`              |
 | `-S`,<br> `--scaffolding` | Path to reference genome (FASTA).<br> **Only supported for phased assembly files.** | `-S /path/to/reference.fasta`|
 
 ### Important notes
 
 - If using the `-i/--input` flag, do not specify `-f/--flanking-genes`, as flanking genes are only required when defining regions of interest from a complete genome assembly using `-a/--assembly`.
 - If using the `-i/--input` flag, input file(s) should be named in the format `<sample-name>_<region>.fasta` and must be located in the indicated directory.
-- If using the `--default` flag, do not specify `-f/--flanking-genes` as they are mutually exclusive.
-- If using the `--default` flag, the annotation tool automatically downloads the appropriate V(D)J gene segment library based on the specified receptor type (`-r`) and species (`-s`). There is no need to define flanking genes manually or provide a local library file.
+- The annotation tool automatically downloads the appropriate V(D)J gene segment library based on the specified receptor type (`-r`) and species (`-s`). There is no need to define flanking genes manually or provide a local library file.
 - If using the `--scaffolding` flag, RagTag scaffolding requires a phased assembly as input. If the input assembly contains contigs of both haplotypes, it should be phased beforehand.
 
 ### Example
@@ -131,7 +129,7 @@ Each annotation report (known or novel) includes the following columns, providin
 | **Insertions**                  | The number of insertions relative to the reference. | `1` |
 | **Deletions**                   | The number of deletions relative to the reference. | `0` |
 | **Mapping tool**                        | The name(s) of the mapping tool(s) used for gene segment annotation. | `Minimap2` |
-| **Function**                    | The functional classification of the segment: "F/ORF" for functional/open reading frame, "P" for potentially functional/open reading frame, or "pseudogene" if an early stop codon is detected.                                               | `F/ORF`                       |
+| **Function**                    | The functional classification of the segment: "Functional", "ORF" or "pseudogene".                                               | `Functional`                       |
 | **Status**                      | Indicates whether the gene segment is classified as **Known** or **Novel**. | `Novel`|
 | **Message**                     | A generated message for the segment if stop codons are detected at critical positions. | `The STOP-CODON at the 3' end of the V-REGION can be deleted by rearrangement`  |
 | **Population**                  | The population group associated with the sample, if metadata is provided. | `Dutch` |                                                  
@@ -146,6 +144,9 @@ or
 ```bash
 vdj_insights html -i /path/to/output --show
 ```
+### Example outcome - An overview of VDJ-Insights web-based application interface
+<img width="2558" height="629" alt="Webbased-application" src="https://github.com/user-attachments/assets/5894f156-52c4-4a90-867c-d3266dd60442" />
+The top of the interface contains several dropdown menus providing access to various analytical features. These include in the Report drop-down with visual summaries of known and novel gene segment annotations, principal component analyses, and dendrograms illustrating relationships between samples based on gene segment composition. The Annotation tab displays detailed information per sample, including annotated segments, their genomic locations on contigs, and segment occurrences across samples. The contig composition (A) visualization depicts the arrangement of V (blue), D (red), and J (green) segments, with novel segments indicated by shorter lines. Dark vertical lines represent contig boundaries. In this example, the IGH and IGK regions span multiple contigs, whereas the IGL region is confined to a single contig. The Tool tab enables comparative analyses across multiple samples. Users can select specific samples via dropdown menus (B), after which a Venn diagram illustrates the overlap of annotated gene segments among the chosen samples. Here, the IGL regions of haplotypes 1 and 2 from an individual are compared. Additionally, the Library tab summarizes statistics of the reference library used for annotation and allows users to incorporate newly identified gene segments into the library.
 
 ## Citing VDJ-Insights
 If VDJ-Insights contributes to your research, please cite:

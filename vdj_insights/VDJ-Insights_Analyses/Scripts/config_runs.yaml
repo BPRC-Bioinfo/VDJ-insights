@@ -1,0 +1,9 @@
+name_run1: "IMGT-lib"
+name_run2: "VDJbase-lib"
+name_run3: "Combi-lib"
+
+run_1: "/path/to/outcomes/HPGC/scaffolds/bcr-IMGT/"
+run_2: "/path/to/outcomes/HPGC/scaffolds/bcr-VDJbase/"
+run_3: "/path/to/outcomes/HPGC/scaffolds/bcr/"
+
+output_dir: "/path/to/outcomes/HPGC/scaffolds/results/"

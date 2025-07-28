@@ -1,0 +1,30 @@
+species: "Western_lowland_gorilla"
+Latin_species: "Gorilla gorilla gorilla"
+
+samples:
+  - "BK063600"
+  - "BK063601"
+  - "BK063602"
+  - "BK063603"
+  - "BK063604"
+  - "BK063605"
+  - "BK063606"
+  - "BK063607"
+  - "BK063608"
+  - "BK063609"
+  - "BK063610"
+  - "BK063611"
+
+
+IG_library: "/path/to/outcomes/validation/Gorilla_gorilla_gorilla/BK063600_IGK/VDJ-INSIGHTS/library/library.fasta"
+TR_library: "/path/to/outcomes/validation/Gorilla_gorilla_gorilla/BK063600_IGK/VDJ-INSIGHTS/library/library.fasta"
+
+output_dir: "/path/to/outcomes/validation/Gorilla_gorilla_gorilla/Extracted_lib/"
+base_region_dir: "/path/to/outcomes/validation/Gorilla_gorilla_gorilla/region/"
+digger_output_dir: "/path/to/outcomes/Digger/Gorilla_digger/"
+
+#Both, IG or TR
+region: "IG"
+
+Result_path: "/path/to/outcomes/validation/Gorilla_gorilla_gorilla"
+Digger_path: "/path/to/outcomes/Digger/Gorilla_digger/"

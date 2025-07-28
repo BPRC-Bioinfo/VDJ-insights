@@ -1,0 +1,101 @@
+Digger has motifs for humans and rhesus macaque IG.
+Motifs for rhesus macaque TR and gorilla need to be downloaded
+
+Go to ~/.local/lib/python3.10/site-packages/digger/motifs/
+
+Make the designated folders:
+In folder rhesus_macaque: TRA, TRB, TRD and TRG
+For the gorilla make a folder: gorilla
+      and make supfolders: IGH, IGK, IGL, TRA, TRB, TRD and TRG
+
+
+####Rhesus Macaque####
+cd ~/.local/lib/python3.10/site-packages/digger/motifs/rhesus_macaque
+
+For the macaque in the correct new folders:
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view?format=IMGT&id=IMGT000076" TRA/IMGT000076_genes.csv TRA
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view?format=IMGT&id=IMGT000076" TRD/IMGT000076_genes.csv TRD
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view?format=IMGT&id=IMGT000073" TRB/IMGT000073_genes.csv TRB
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view?format=IMGT&id=IMGT000059" TRG/IMGT000059_genes.csv TRG
+
+cd TRA
+calc_motifs TRA IMGT000076_genes.csv
+
+cd ../TRD
+calc_motifs TRD IMGT000076_genes.csv
+#These annotations do not consist of D segments for this reason: (I made a note in my motif files to remember this for the long run.)
+cp ../../human/TRB/*D* .
+
+cd ../TRB
+calc_motifs TRB IMGT000073_genes.csv
+#These annotations do not consist of D segments for this reason:
+cp ../../human/TRB/*D* .
+
+cd ../TRG
+calc_motifs TRG IMGT000059_genes.csv
+
+####GORILLA####
+cd ~/.local/lib/python3.10/site-packages/digger/motifs/gorilla
+
+Not sure if this is needed or possible but I thought it would be nice to combine all annotations in the motifs.
+It does not give an error, but there is a chance only the last annotation is used.
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063604" IGH/BK063604_genes.csv IGH
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063605" IGH/BK063605_genes.csv IGH
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063606" IGH/BK063606_genes.csv IGH
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063607" IGH/BK063607_genes.csv IGH
+cat IGH/*.csv > IGH/gorilla_IGH_genes.csv
+
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063600" IGK/BK063600_genes.csv IGK
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063603" IGK/BK063603_genes.csv IGK
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063601" IGK/BK063601_genes.csv IGK
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063602" IGK/BK063602_genes.csv IGK
+cat IGK/*.csv > IGK/gorilla_IGK_genes.csv
+
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063608" IGL/BK063608_genes.csv IGL
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063609" IGL/BK063609_genes.csv IGL
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063610" IGL/BK063610_genes.csv IGL
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK063611" IGL/BK063611_genes.csv IGL
+cat IGL/*.csv > IGL/gorilla_IGL_genes.csv
+
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064837" TRA/BK064837_genes.csv TRA
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064838" TRA/BK064838_genes.csv TRA
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064839" TRA/BK064839_genes.csv TRA
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064840" TRA/BK064840_genes.csv TRA
+cat TRA/*.csv > TRA/gorilla_TRA_genes.csv
+
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064837" TRD/BK064837_genes.csv TRD
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064838" TRD/BK064838_genes.csv TRD
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064839" TRD/BK064839_genes.csv TRD
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064840" TRD/BK064840_genes.csv TRD
+cat TRD/*.csv > TRD/gorilla_TRD_genes.csv
+
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064850" TRB/BK064850_genes.csv TRB
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064851" TRB/BK064851_genes.csv TRB
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064852" TRB/BK064852_genes.csv TRB
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064853" TRB/BK064853_genes.csv TRB
+cat TRB/*.csv > TRB/gorilla_TRB_genes.csv
+
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064854" TRG/BK064854_genes.csv TRG
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064855" TRG/BK064855_genes.csv TRG
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064856" TRG/BK064856_genes.csv TRG
+parse_imgt_annotations "https://www.imgt.org/ligmdb/view.action?format=IMGT&id=BK064857" TRG/BK064857_genes.csv TRG
+cat TRG/*.csv > TRG/gorilla_TRG_genes.csv
+
+cd IGH
+calc_motifs IGH gorilla_IGH_genes.csv
+cd ../IGK
+calc_motifs IGK gorilla_IGK_genes.csv
+cd ../IGL
+calc_motifs IGL gorilla_IGL_genes.csv
+cd ../TRA
+calc_motifs TRA gorilla_TRA_genes.csv
+cd ../TRB
+calc_motifs TRB gorilla_TRB_genes.csv
+cd ../TRD
+calc_motifs TRD gorilla_TRD_genes.csv
+cd ../TRG
+calc_motifs TRG Gorilla_TRG_genes.csv
+
+# now you can run the config files for the gorilla and macaque of the Digger_run script.
+# For the mouse you need to do the same. Name the folder mus_musculus
+# IMGT assesion numbers can be found in Supplemental table S2.

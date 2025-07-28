@@ -1,0 +1,22 @@
+species: "human"
+Latin_species: "Homo sapiens"
+
+samples:
+  - "BK063799"
+  - "IMGT000011"
+  - "IMGT000021"
+  - "IMGT000024"
+
+IG_library: "/path/to/outcomes/validation/Homo_sapiens/BK063799_IGH/VDJ-INSIGHTS/library/library.fasta"
+TR_library: "/mnt/nanopore/VDJ-Insights/validation/Homo_sapiens/IMGT000011_TRG/VDJ-INSIGHTS/library/library.fasta"
+
+output_dir: "/path/to/outcomes/validation/Homo_sapiens/Extracted_lib/"
+base_region_dir: "/path/to/outcomes/validation/Homo_sapiens/region/"
+digger_output_dir: "/path/to/outcomes/Digger/Human_digger/"
+
+#Both, IG or TR
+region: "Both"
+
+#For compairing
+Result_path: "/path/to/outcomes/validation/Homo_sapiens/"
+Digger_path: "/path/to/outcomes/Digger/Human_digger/"
