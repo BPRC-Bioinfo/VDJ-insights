@@ -1,7 +1,7 @@
 #Commands Analyses VDJ-Insights
 
 ##Before starting:
-Install VDJ-Insights and Digger.
+Install VDJ-Insights and Digger (v0.7.5).
 Make position weight matrices for Digger for the Western lowland gorilla and house mouse: see Before_starting_Digger.txt
 Download HPGC sequences (revision 1): https://data.humanpangenome.org/assemblies
 
