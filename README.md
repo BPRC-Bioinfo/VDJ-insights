@@ -138,11 +138,11 @@ Each annotation report (known or novel) includes the following columns, providin
 The pipeline includes an interactive web interface for visualizing and exploring the annotation results. The web-based Flask report can be generated and opened using the following command:
 
 ```bash
-python -m vdj_insights.html -i /path/to/output --show
+python -m vdj_insights.html -i /path/to/output
 ```
 or
 ```bash
-vdj_insights html -i /path/to/output --show
+vdj_insights html -i /path/to/output
 ```
 ### Example outcome - An overview of VDJ-Insights web-based application interface
 <img width="2558" height="629" alt="Webbased-application" src="https://github.com/user-attachments/assets/5894f156-52c4-4a90-867c-d3266dd60442" />
