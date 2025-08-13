@@ -98,7 +98,7 @@ def export_region_function_counts(data_bcr: pd.DataFrame,
         .pivot(index='Sample', columns=['Region','Function'], values='Count')
         .fillna(0).astype(int))
 
-    func_order = ['functional','ORF','pseudo']
+    func_order = ['Functional','ORF','Pseudo']
     regions = list(pivot.columns.levels[0])
     cols = pd.MultiIndex.from_product([regions, func_order], names=['Region','Function'])
     pivot = pivot.reindex(columns=cols, fill_value=0)
